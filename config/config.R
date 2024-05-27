@@ -8,6 +8,12 @@ main.path <- "/Users/rmostowy"
 main.data.dir <- file.path(main.path, "Data")
 main.data.tmp.dir <- file.path(main.data.dir, "tmp-ecfs")
 
+mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
+
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
+ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23")
+
+
 
 #################
 ## Labels
