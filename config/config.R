@@ -17,13 +17,15 @@ safe_source <- function(filepath) {
 #####################
 
 main.path <- "/Users/rmostowy"
-main.data.dir <- file.path(main.path, "Data")
+main.data.dir <- file.path(main.path, "Data", "ECFs")
 main.data.tmp.dir <- file.path(main.data.dir, "tmp-ecfs")
 
 functions.repo.path <- file.path(main.path, "Github", "proj-rmostowy", "functions")
 
-mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
+mgg.db <- file.path(main.path, "MGG Dropbox/Databases")
+phrogs.db.path <- file.path(mgg.db, "Phrogs")
 
+mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
 minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
 
 ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
@@ -35,12 +37,17 @@ ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "ou
 functions.basic.filename <- file.path(functions.repo.path, "basic.R")
 safe_source(functions.basic.filename)
 
+
+#############################
+### Define PHROGs data
+#############################
+phrogs.annot.filename <- file.path(phrogs.db.path, "phrog_annot_v4.tsv")
+phrogs.table.filename <- file.path(phrogs.db.path, "phrogs_table_almostfinal_plusGO_wNA_utf8.tsv")
+
 #############################
 ### Define Smug et al. data
 #############################
-
 all.cds.filename <- file.path(minimal.input.data.path, "coding-seqs/cds-aa.fa") 
-phrogs.annot.filename <- file.path(minimal.input.data.path, "other", "phrog_annot_v4.tsv")
 reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out")
 name.table.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "name-table-full.txt")
 reprseq.lengths.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "repr-seqs-lengths.txt")
