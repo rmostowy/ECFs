@@ -17,36 +17,31 @@ safe_source <- function(filepath) {
 #####################
 
 main.path <- "/Users/rmostowy"
-main.data.dir <- file.path(main.path, "Data", "ECFs")
-main.data.tmp.dir <- file.path(main.data.dir, "tmp-ecfs")
-
-functions.repo.path <- file.path(main.path, "Github", "proj-rmostowy", "functions")
-
 mgg.db <- file.path(main.path, "MGG Dropbox/Databases")
-phrogs.db.path <- file.path(mgg.db, "Phrogs")
-
 mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
-minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
 
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
-ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "output")
 
 ##############################
 ### Load functions
 ##############################
+functions.repo.path <- file.path(main.path, "Github", "proj-rmostowy", "functions")
+
 functions.basic.filename <- file.path(functions.repo.path, "basic.R")
 safe_source(functions.basic.filename)
-
 
 #############################
 ### Define PHROGs data
 #############################
+phrogs.db.path <- file.path(mgg.db, "Phrogs")
+
 phrogs.annot.filename <- file.path(phrogs.db.path, "phrog_annot_v4.tsv")
 phrogs.table.filename <- file.path(phrogs.db.path, "phrogs_table_almostfinal_plusGO_wNA_utf8.tsv")
 
 #############################
 ### Define Smug et al. data
 #############################
+minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
+
 all.cds.filename <- file.path(minimal.input.data.path, "coding-seqs/cds-aa.fa") 
 reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out")
 name.table.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "name-table-full.txt")
@@ -59,7 +54,9 @@ antidefence.hhpred.hits.filename <- file.path(minimal.input.data.path, "other", 
 ####################
 ### Define ECF data
 ####################
-
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
+ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "output")
+# 
 ecf.name.table.filename = file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
 ecf.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt")
 ecf.hits.vs.ecod.filename = file.path(ecf.raw.data.path, "table-scan-ecf_ecod.txt")
@@ -68,6 +65,30 @@ ecf.hits.vs.ecf.filename = file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.t
 reprseq.vs.reprseq.filename = file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
 ecod.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
 qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
+
+#######################
+### Data directories
+#######################
+main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs")
+data.input.dir <- file.path(main.data.dir, "input")
+data.phrog.dir <- file.path(main.data.dir, "annotation", "phrogs")
+
+data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
+
+dirs2create <- c(data.input.dir, data.phrog.dir)
+make.dirs(dirs2create)
+
+#######################
+### Output files
+#######################
+
+# input data
+reprseq.table.filename <- file.path(data.input.dir, "name-table.txt")
+reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
+
+# annotations/phrogs
+phrogs.functions.output <- file.path(data.phrog.dir, "phrogs-table.txt")
+phrogs.count.output <- file.path(data.phrog.dir, "phrogs-count.txt")
 
 
 #################
@@ -105,4 +126,19 @@ phrog.class.labels <- c(
 files.to.check <- ls(pattern = "filename$")
 files.to.check.full.path <- sapply(files.to.check, function(k) get(k, envir = .GlobalEnv))
 file.status.list <- sapply(files.to.check.full.path, check.file)
+
+#####################
+## PARAMETERS
+#####################
+
+# annotation parameters used also in Smug et al
+ACCEPTED.NUM.UNKNOWN.AA <- 10
+MINIMUM.ALIGNMENT.LENGTH.FOR.ANNOTATION <- 30
+MIN.NUM.PHROG.SEQ.PER.ANNOT <- 500
+MIN.NUM.PROT.PER.ANNOT <- 20 # Bogna had MIN.NUM.PROT
+# MAIN.COVS.FOR.ANNOTATION = c(0.1, 0.3, 0.8)
+DEFAULT.MINIMUM.COV.FOR.ANNOTATION <- 60
+DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
+DEFAULT.NAXIMUM.EVAL.FOR.ANNOTATION <- 10^5
+UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
