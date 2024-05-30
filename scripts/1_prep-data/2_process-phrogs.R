@@ -1,6 +1,7 @@
 ### load libraries
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(readxl)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -67,3 +68,24 @@ funct.count <- data.table(annot.index=1:nrow(funct.count), funct.count)
 # Write the final PHROG functions table and function count table to output files
 fwrite(phrogs.functions.final, file = phrogs.functions.output)
 fwrite(funct.count, file = phrogs.count.output)
+
+
+# load antidefence descriptions
+antidefence.descr <- as.data.table(read_xlsx(antidefence.descr.filename))
+
+# modify accession labels 
+antidefence.descr$accession.base <- antidefence.descr$Accession
+accession.regexpr <- regexpr(".1", antidefence.descr$Accession, fixed = T)
+is.accession.versioned <- accession.regexpr>0
+extended.accessions <- antidefence.descr$accession.base[is.accession.versioned]
+extended.accessions.cut <- substr(extended.accessions, 1, accession.regexpr[is.accession.versioned]-1)
+antidefence.descr$accession.base[is.accession.versioned] <- extended.accessions.cut
+
+# modify antidefence table and save it
+antidefence.table <- antidefence.descr %>% 
+  select(accession = accession.base, name = Name, funct = Function, annotation)
+
+fwrite(antidefence.table, file = antidefence.table.output)
+
+
+# antidefence.descr$accession.base[is.accession.versioned] <- 

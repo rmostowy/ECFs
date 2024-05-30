@@ -89,6 +89,7 @@ reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
 # annotations/phrogs
 phrogs.functions.output <- file.path(data.phrog.dir, "phrogs-table.txt")
 phrogs.count.output <- file.path(data.phrog.dir, "phrogs-count.txt")
+antidefence.table.output <- file.path(data.phrog.dir, "antidefence-table.txt")
 
 
 #################
@@ -139,6 +140,6 @@ MIN.NUM.PROT.PER.ANNOT <- 20 # Bogna had MIN.NUM.PROT
 # MAIN.COVS.FOR.ANNOTATION = c(0.1, 0.3, 0.8)
 DEFAULT.MINIMUM.COV.FOR.ANNOTATION <- 60
 DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
-DEFAULT.NAXIMUM.EVAL.FOR.ANNOTATION <- 10^5
+DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 10^5
 UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
