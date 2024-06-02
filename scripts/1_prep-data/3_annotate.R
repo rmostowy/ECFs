@@ -57,22 +57,41 @@ functional.annot.antidef <- antidefence.hhpred.hits.filtered.annot %>%
   select(qname = sname, sname = qname, qcov = scov, scov = qcov, pident, eval, prob, funct = annotation)
 functional.annot.antidef$class <- "antidefence"
 
-reprseq.functional.annot <- rbind(functional.annot.phrogs, functional.annot.antidef)
-setkey(reprseq.functional.annot, qname)
+reprseq.functional.annot.all <- rbind(functional.annot.phrogs, functional.annot.antidef)
+# setkey(reprseq.functional.annot, qname)
 
-reprseq.functional.annot.unique <- copy(reprseq.functional.annot)
-reprseq.functional.annot.unique[, cov := qcov*scov/100]
+# identify top annotations
+top.phrogs.functions <- phrogs.count[phrogs.count$no.seqs >= MIN.NUM.PHROG.SEQ.PER.ANNOT]
 
-setorder(reprseq.functional.annot.unique, qname, -cov, -pident, eval)
-reprseq.functional.annot.unique <- reprseq.functional.annot.unique[ , .SD[1], by=qname]
+no.reprseq.per.function <- reprseq.functional.annot.all[ , .N, by = funct]
+top.functions.by.no.reprseq <- no.reprseq.per.function[no.reprseq.per.function$N >= MIN.NUM.PROT.PER.ANNOT]
 
-reprseq.functional.annot.unique <- reprseq.functional.annot.unique %>%
-  select(reprseq = qname, funct, class)
+# top.functional.hits <- 
+
+
+# choose the strongest annotation per reprseq
+reprseq.functional.annot.best <- copy(reprseq.functional.annot.all)
+reprseq.functional.annot.best[, cov := qcov*scov/100]
+
+setorder(reprseq.functional.annot.best, qname, -cov, -prob, -pident, eval)
+reprseq.functional.annot.best <- reprseq.functional.annot.best[ , .SD[1], by = qname]
+
+# Add a column to indicate if the annotation was unique or not
+reprseq.functional.annot.all[, num.annotations := .N, by = qname]
+reprseq.functional.annot.best <- reprseq.functional.annot.best %>%
+  merge(reprseq.functional.annot.all[, .(qname, num.annotations)], by = "qname")
+
+reprseq.functional.annot.best.sub <- reprseq.functional.annot.best %>%
+  select(reprseq = qname, funct, class, num.annotations)
+
+reprseq.functional.annot.unique <- merge(data.table(reprseq = all.reprseq), reprseq.functional.annot.best.sub, by = "reprseq", all.x = T)
+
+
 
 # TODO
-# 1. consider adding annotation indices to reprseq.functional.annot (but what about antidefence?)
-# 2. expand reprseq.functional.annot.unique with unknowns
-# 3. write them to files
+# 1. make a list of most common PHROG functions
+# 2. think how to quantify common antidefence functions (maybe there's no point)
+# 3. think how to assign unique functions per reprseq -> if by score, what about common functions?
 
 
 
