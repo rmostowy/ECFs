@@ -55,6 +55,7 @@ antidefence.hhpred.hits.filtered.annot <- merge(antidefence.hhpred.hits.filtered
 functional.annot.phrogs <- phrog.hhpred.hits.filtered.annot %>% 
   select(qname, sname, qcov, scov, pident, eval, prob, funct, class)
 functional.annot.phrogs$annotation <- sprintf("%s|%s", functional.annot.phrogs$funct, functional.annot.phrogs$class)
+functional.annot.phrogs <- functional.annot.phrogs[!functional.annot.phrogs$funct %in% UNSPECIFIC.ANNOTATIONS]
 
 functional.annot.antidef <- antidefence.hhpred.hits.filtered.annot %>% 
   select(qname = sname, sname = qname, qcov = scov, scov = qcov, pident, eval, prob, funct = annotation)
@@ -62,7 +63,7 @@ functional.annot.antidef$class <- "antidefence"
 functional.annot.antidef$annotation <- sprintf("%s|%s", functional.annot.antidef$funct, functional.annot.antidef$class)
 
 reprseq.functional.annot.all <- rbind(functional.annot.phrogs, functional.annot.antidef)
-reprseq.functional.annot.all[, score := qcov*scov/100]
+reprseq.functional.annot.all[, score := qcov*scov/10000]
 # setkey(reprseq.functional.annot, qname)
 
 # identify top PHROGs functional annotations:
@@ -76,103 +77,25 @@ top.annotations <- intersect(functions.largest.phrogs$annotation, functions.freq
 non.top.annotations <- phrogs.count$annotation[!phrogs.count$annotation %in% top.annotations]
 ad.annotations <- unique(functional.annot.antidef$annotation)
 
-reprseq.functional.annot.all$annotation.cat <- "NT"
-reprseq.functional.annot.all$annotation.cat[reprseq.functional.annot.all$annotation %in% top.annotations] <- "T"
-reprseq.functional.annot.all$annotation.cat[reprseq.functional.annot.all$annotation %in% ad.annotations] <- "AD"
+reprseq.functional.annot.all$top.annotation <- FALSE
+reprseq.functional.annot.all$top.annotation[reprseq.functional.annot.all$annotation %in% top.annotations] <- TRUE
+reprseq.functional.annot.all$top.annotation[reprseq.functional.annot.all$annotation %in% ad.annotations] <- TRUE
 setkey(reprseq.functional.annot.all, qname)
 
-unique.reprseq <- unique(reprseq.functional.annot.all$qname)
+unique.annotations.count <- reprseq.functional.annot.all[, .(no.unique.annotations = uniqueN(funct)), by = qname]
 
-index=227
-this.reprseq <- unique.reprseq[index]
-reprseq.functional.annot.all[.(this.reprseq)]
-
-
-
-
-# top.annotations.reprseq <- unique(reprseq.functional.annot.all$qname[reprseq.functional.annot.all$annotation %in% top.annotations])
-# non.top.annotations.reprseq <- unique(reprseq.functional.annot.all$qname[reprseq.functional.annot.all$annotation %in% non.top.annotations])
-# ad.annotations.reprseq <- unique(reprseq.functional.annot.all$qname[reprseq.functional.annot.all$annotation %in% ad.annotations])
-# 
-# x <- sort(intersect(intersect(top.annotations.reprseq, non.top.annotations.reprseq), ad.annotations.reprseq))
-# 
-# this.x <- reprseq.functional.annot.all[reprseq.functional.annot.all$qname == x[6]]
-# setorder(this.x, -score)
-# this.x
-
-
-
-
-# functional.annot.phrogs.top <- functional.annot.phrogs[functional.annot.phrogs$annotation %in% top.annotations]
-
-
-
-
-
-
-
-
-
-# 
-# 
-# functional.annot.phrogs
-# 
-# 
-# no.reprseq.per.function <- reprseq.functional.annot.all[ , .N, by = funct]
-# top.functions.by.no.reprseq <- no.reprseq.per.function[no.reprseq.per.function$N >= MIN.NUM.PROT.PER.ANNOT]
-# 
-# # top.functional.hits <- 
-
-
-# choose the strongest annotation per reprseq
 reprseq.functional.annot.best <- copy(reprseq.functional.annot.all)
-reprseq.functional.annot.best[, cov := qcov*scov/100]
-
-setorder(reprseq.functional.annot.best, qname, -cov, -prob, -pident, eval)
+setorder(reprseq.functional.annot.best, qname, -score, -pident, eval)
 reprseq.functional.annot.best <- reprseq.functional.annot.best[ , .SD[1], by = qname]
 
-# Add a column to indicate if the annotation was unique or not
-reprseq.functional.annot.all[, num.annotations := .N, by = qname]
-reprseq.functional.annot.best <- reprseq.functional.annot.best %>%
-  merge(reprseq.functional.annot.all[, .(qname, num.annotations)], by = "qname")
+reprseq.functional.annot.best.full <- merge(reprseq.functional.annot.best, unique.annotations.count, by = "qname")
 
-reprseq.functional.annot.best.sub <- reprseq.functional.annot.best %>%
-  select(reprseq = qname, funct, class, num.annotations)
+reprseq.functional.annot.best.full.sub <- reprseq.functional.annot.best.full %>%
+  select(reprseq = qname, score, funct, class, annotation, top.annotation, no.unique.annotations)
 
-reprseq.functional.annot.unique <- merge(data.table(reprseq = all.reprseq), reprseq.functional.annot.best.sub, by = "reprseq", all.x = T)
+reprseq.functional.annot.unique <- merge(data.table(reprseq = all.reprseq), reprseq.functional.annot.best.full.sub, by = "reprseq", all.x = T)
+reprseq.functional.annot.unique$no.unique.annotations[is.na(reprseq.functional.annot.unique$no.unique.annotations)] <- 0
 
-# How to assign function?
-# BY DEFAULT
-# 1. Rank all functions per reprseq by score (eg, by scov*qcov)
-# 2. Pick top function
-# ----
-# FOR TOP PHROG FUNCTIONS
-# 1. Rank all functions per reprseq by score (eg, by scov*qcov)
-# 2. If functions are only non-top PHROGs, assign to "rare-phrogs"
-# 3. If functions are only top PHROGs or only top AD, no problem.
-# 4. If functions are (top and nontop) OR (AD and nontop), also no problem
-# 5. 
-
-# T, NT, AD -> pick best (T, AD)
-# T, NT -> T
-# T, AD -> pick best
-# NT, AD -> AD
-# T -> T
-# NT -> rare
-# AD -> AD
-
-
-
-
-
-
-# TODO
-# 1. make a list of most common PHROG functions
-# 2. think how to quantify common antidefence functions (maybe there's no point)
-# 3. think how to assign unique functions per reprseq -> if by score, what about common functions?
-
-
-
-
-
+fwrite(reprseq.functional.annot.all, file = reprseq.functions.all.output)
+fwrite(reprseq.functional.annot.unique, file = reprseq.functions.unique.output)
 

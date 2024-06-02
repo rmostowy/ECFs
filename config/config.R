@@ -36,6 +36,7 @@ phrogs.db.path <- file.path(mgg.db, "Phrogs")
 
 phrogs.annot.filename <- file.path(phrogs.db.path, "phrog_annot_v4.tsv")
 phrogs.table.filename <- file.path(phrogs.db.path, "phrogs_table_almostfinal_plusGO_wNA_utf8.tsv")
+manual.phrog.mapping.filename <- file.path(phrogs.db.path, "custom", "v4_phrogs-table-2024.xlsx")
 
 #############################
 ### Define Smug et al. data
@@ -47,7 +48,7 @@ reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipe
 name.table.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "name-table-full.txt")
 reprseq.lengths.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "repr-seqs-lengths.txt")
 phrog.hhpred.hits.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "functional", "hhblits-phrogs.txt")
-manual.phrog.mapping.filename <- file.path(minimal.input.data.path, "other", "v3_phrogs-table-rafal-3_12.xlsx")
+# manual.phrog.mapping.filename <- file.path(minimal.input.data.path, "other", "v3_phrogs-table-rafal-3_12.xlsx")
 antidefence.descr.filename <- file.path(minimal.input.data.path, "other", "media-4-simplified_2023_04.xlsx")
 antidefence.hhpred.hits.filename <- file.path(minimal.input.data.path, "other", "table-hhr-ad-rseq.txt")
 
@@ -90,6 +91,9 @@ reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
 phrogs.functions.output <- file.path(data.phrog.dir, "phrogs-table.txt")
 phrogs.count.output <- file.path(data.phrog.dir, "phrogs-count.txt")
 antidefence.table.output <- file.path(data.phrog.dir, "antidefence-table.txt")
+
+reprseq.functions.all.output <- file.path(data.phrog.dir, "reprseq-annot-all.txt")
+reprseq.functions.unique.output <- file.path(data.phrog.dir, "reprseq-annot-unique.txt")
 
 
 #################
