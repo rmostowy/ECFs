@@ -104,3 +104,10 @@ ecfs.vs.pfam$qname <- gsub("_final", "", ecfs.vs.pfam$qname)
 # write to file
 fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 
+
+#####################################
+# 5. Calculate ECF families (sECFs)
+#####################################
+
+# to be written
+
