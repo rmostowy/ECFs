@@ -74,19 +74,21 @@ ecf.hits.vs.pfam.filename = file.path(ecf.raw.data.path, "table-scan-ecf_pfam.tx
 ecf.hits.vs.ecf.filename = file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.txt")
 reprseq.vs.reprseq.filename = file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
 ecod.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
+pfam.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
 qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
 
 #######################
 ### Data directories
 #######################
 main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs")
-data.input.dir <- file.path(main.data.dir, "input")
-data.phrog.dir <- file.path(main.data.dir, "annotation", "phrogs")
-data.ecod.dir <- file.path(main.data.dir, "annotation", "ecod")
-
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
-dirs2create <- c(main.data.dir, data.input.dir, data.phrog.dir, data.ecod.dir, data.tmp.dir)
+data.input.dir <- file.path(main.data.dir, "input")
+data.phrog.dir <- file.path(main.data.dir, "annotation", "phrogs")
+data.domain.dir <- file.path(main.data.dir, "annotation", "domains")
+
+dirs2create <- c(main.data.dir, data.input.dir, 
+                 data.phrog.dir, data.domain.dir, data.tmp.dir)
 
 make.dirs(dirs2create)
 
@@ -107,7 +109,9 @@ reprseq.functions.all.output <- file.path(data.phrog.dir, "reprseq-annot-all.txt
 reprseq.functions.unique.output <- file.path(data.phrog.dir, "reprseq-annot-unique.txt")
 
 # annotations/ecod
-ecod.domains.output <- file.path(data.ecod.dir, "ecod-domains.txt")
+ecod.domains.output <- file.path(data.domain.dir, "ecod-domains.txt")
+reprseq.domains.ecod.output <-file.path(data.domain.dir, "reprseq-domains-ecod.txt") 
+reprseq.domains.pfam.output <-file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
 
 
 #################
@@ -158,6 +162,14 @@ MIN.NUM.PROT.PER.ANNOT <- 20 # Bogna had MIN.NUM.PROT
 # MAIN.COVS.FOR.ANNOTATION = c(0.1, 0.3, 0.8)
 DEFAULT.MINIMUM.COV.FOR.ANNOTATION <- 60
 DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
-DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 10^5
+DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 1e05
 UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
+
+# parameters related to domain detection
+# MIN.QCOV.FOR.DOMAIN = 0
+# MIN.SCOV.FOR.DOMAIN = 0.7
+MIN.DOMAIN.LENGTH <- 30
+MIN.PROB.FOR.DOMAIN <- 70
+MAX.EVAL.FOR.DOMAIN <- 1e-3
+#MIN.NUM.REPRSEQS.FOR.ECOD.PRESENCE = 5
 
