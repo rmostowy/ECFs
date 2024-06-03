@@ -25,9 +25,13 @@ mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
 ### Load functions
 ##############################
 functions.repo.path <- file.path(main.path, "Github", "proj-rmostowy", "functions")
+scripts.functions.path <- file.path(root, "scripts", "functions")
 
 functions.basic.filename <- file.path(functions.repo.path, "basic.R")
 safe_source(functions.basic.filename)
+
+scripts.functions.filename <- file.path(scripts.functions.path, "helper.R")
+safe_source(scripts.functions.filename)
 
 #############################
 ### Define PHROGs data
