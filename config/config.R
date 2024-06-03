@@ -44,6 +44,9 @@ manual.phrog.mapping.filename <- file.path(phrogs.db.path, "custom", "v4_phrogs-
 ecod.db.path <- file.path(mgg.db, "hhpred", "ECOD", "ECOD_F70_20220613")
 ecod.domains.filename <- file.path(ecod.db.path, "ecod.latest.F70.domains.txt")
 
+ecod.headers <- c("uid", "ecod_domain_id","manual_rep","f_id","pdb","chain","pdb_range","seqid_range","unp_acc",
+  "arch_name","x_name","h_name","t_name","f_name", "asm_status", "ligand")
+
 #############################
 ### Define Smug et al. data
 #############################
@@ -79,10 +82,12 @@ qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
 main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs")
 data.input.dir <- file.path(main.data.dir, "input")
 data.phrog.dir <- file.path(main.data.dir, "annotation", "phrogs")
+data.ecod.dir <- file.path(main.data.dir, "annotation", "ecod")
 
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
-dirs2create <- c(data.input.dir, data.phrog.dir)
+dirs2create <- c(main.data.dir, data.input.dir, data.phrog.dir, data.ecod.dir, data.tmp.dir)
+
 make.dirs(dirs2create)
 
 #######################
@@ -100,6 +105,9 @@ antidefence.table.output <- file.path(data.phrog.dir, "antidefence-table.txt")
 
 reprseq.functions.all.output <- file.path(data.phrog.dir, "reprseq-annot-all.txt")
 reprseq.functions.unique.output <- file.path(data.phrog.dir, "reprseq-annot-unique.txt")
+
+# annotations/ecod
+ecod.domains.output <- file.path(data.ecod.dir, "ecod-domains.txt")
 
 
 #################
