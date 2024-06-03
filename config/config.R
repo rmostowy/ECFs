@@ -80,15 +80,20 @@ qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
 #######################
 ### Data directories
 #######################
-main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs")
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
+main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs")
 data.input.dir <- file.path(main.data.dir, "input")
-data.phrog.dir <- file.path(main.data.dir, "annotation", "phrogs")
-data.domain.dir <- file.path(main.data.dir, "annotation", "domains")
+data.output.dir <- file.path(main.data.dir, "output")
 
-dirs2create <- c(main.data.dir, data.input.dir, 
-                 data.phrog.dir, data.domain.dir, data.tmp.dir)
+data.phrog.dir <- file.path(data.output.dir, "annotation", "phrogs")
+data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
+data.ecfs.dir <- file.path(data.output.dir, "ecfs")
+
+dirs2create <- c(data.tmp.dir,
+                 main.data.dir, data.input.dir, data.output.dir,
+                 data.phrog.dir, data.domain.dir, data.ecfs.dir)
+                 
 
 make.dirs(dirs2create)
 
@@ -108,10 +113,17 @@ antidefence.table.output <- file.path(data.phrog.dir, "antidefence-table.txt")
 reprseq.functions.all.output <- file.path(data.phrog.dir, "reprseq-annot-all.txt")
 reprseq.functions.unique.output <- file.path(data.phrog.dir, "reprseq-annot-unique.txt")
 
-# annotations/ecod
+# annotations/domains
 ecod.domains.output <- file.path(data.domain.dir, "ecod-domains.txt")
-reprseq.domains.ecod.output <-file.path(data.domain.dir, "reprseq-domains-ecod.txt") 
-reprseq.domains.pfam.output <-file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
+reprseq.domains.ecod.output <- file.path(data.domain.dir, "reprseq-domains-ecod.txt") 
+reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
+
+# ecfs
+reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
+
+ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt") 
+ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt") 
+ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt") 
 
 
 #################
@@ -166,10 +178,16 @@ DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 1e05
 UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
 # parameters related to domain detection
-# MIN.QCOV.FOR.DOMAIN = 0
-# MIN.SCOV.FOR.DOMAIN = 0.7
-MIN.DOMAIN.LENGTH <- 30
+MIN.DOMAIN.LENGTH <- 20
+MIN.QCOV.FOR.DOMAIN = 0
+MIN.SCOV.FOR.DOMAIN = 0.7
 MIN.PROB.FOR.DOMAIN <- 70
 MAX.EVAL.FOR.DOMAIN <- 1e-3
-#MIN.NUM.REPRSEQS.FOR.ECOD.PRESENCE = 5
+
+# parameters ECF-domain hits
+MIN.ECF.HIT.LENGTH <- 20
+# MIN.QCOV.FOR.ECF = 0
+# MIN.SCOV.FOR.ECF = 0.7
+MIN.PROB.FOR.ECF <- 95
+MAX.EVAL.FOR.ECF <- 1e-3
 
