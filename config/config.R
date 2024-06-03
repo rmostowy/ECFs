@@ -39,6 +39,12 @@ phrogs.table.filename <- file.path(phrogs.db.path, "phrogs_table_almostfinal_plu
 manual.phrog.mapping.filename <- file.path(phrogs.db.path, "custom", "v4_phrogs-table-2024.xlsx")
 
 #############################
+### Define ECOD data
+#############################
+ecod.db.path <- file.path(mgg.db, "hhpred", "ECOD", "ECOD_F70_20220613")
+ecod.domains.filename <- file.path(ecod.db.path, "ecod.latest.F70.domains.txt")
+
+#############################
 ### Define Smug et al. data
 #############################
 minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
