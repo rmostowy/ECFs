@@ -94,9 +94,12 @@ data.phrog.dir <- file.path(data.output.dir, "annotation", "phrogs")
 data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
 data.ecfs.dir <- file.path(data.output.dir, "ecfs")
 
+data.comparisons.dir <- file.path(data.output.dir, "comparisons")
+
 dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir,
-                 data.phrog.dir, data.domain.dir, data.ecfs.dir)
+                 data.phrog.dir, data.domain.dir, data.ecfs.dir,
+                 data.comparisons.dir)
                  
 
 make.dirs(dirs2create)
@@ -128,6 +131,10 @@ reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt")
 ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt") 
 ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt") 
 ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt") 
+
+# comparisons
+reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
+reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
 
 
 #################

@@ -84,6 +84,9 @@ reprseq.ecf.ecod.overlaps <- result.ecfs.ecods %>%
          qstart.ecf = qstart, qend.ecf = qend, hit.length.ecf = hit.length, sname.ecf = sname_db1,
          qstart.ecod = qstart_db2, qend.ecod = qend_db2, hit.length.ecod = i.hit.length, sname.ecod = sname_db2,
          overlap.start, overlap.end, overlap.length)
+
+# write to file
+fwrite(reprseq.ecf.ecod.overlaps, file = reprseq.ecf.vs.ecod.output)
   
 ##################################################
 # 4. Calculate overlaps between reprseq and PFAM
@@ -119,11 +122,13 @@ reprseq.ecf.pfam.overlaps <- result.ecfs.pfam %>%
          qstart.pfam = qstart_db2, qend.pfam = qend_db2, hit.length.pfam = i.hit.length, sname.pfam = sname_db2,
          overlap.start, overlap.end, overlap.length)
 
+# Write to file
+fwrite(reprseq.ecf.pfam.overlaps, file = reprseq.ecf.vs.pfam.output)
 
-# sanity checks
-tr <- intersect(reprseq.ecfs$qname, reprseq.ecod$qname)[13]
-reprseq.ecf.ecod.overlaps[reprseq.ecf.ecod.overlaps$qname == tr]
-
-
-reprseq.ecfs[reprseq.ecfs$qname==tr]
-reprseq.ecod[reprseq.ecod$qname==tr]
+# # sanity checks
+# tr <- intersect(reprseq.ecfs$qname, reprseq.ecod$qname)[13]
+# reprseq.ecf.ecod.overlaps[reprseq.ecf.ecod.overlaps$qname == tr]
+# 
+# 
+# reprseq.ecfs[reprseq.ecfs$qname==tr]
+# reprseq.ecod[reprseq.ecod$qname==tr]
