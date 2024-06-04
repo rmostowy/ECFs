@@ -80,6 +80,7 @@ reprseq.vs.reprseq.filename = file.path(ecf.raw.data.path, "reprseq-all-clust.tx
 ecod.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
 pfam.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
 qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
+ecf.vs.qecf.filename = file.path(ecf.raw.data.path, "ecf2qecfs.csv")
 
 #######################
 ### Data directories
@@ -126,6 +127,8 @@ reprseq.domains.ecod.output <- file.path(data.domain.dir, "reprseq-domains-ecod.
 reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
 
 # ecfs
+ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt") 
+
 reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
 
 ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt") 

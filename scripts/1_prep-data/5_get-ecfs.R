@@ -19,6 +19,18 @@ ecf.name.table <- fread(ecf.name.table.filename, header = F)
 setnames(ecf.name.table, c("er.name", "ecf.name"))
 setkey(ecf.name.table, er.name)
 
+# process ECF-to-qECF mapping
+ecf.vs.qecf.raw <- readLines(ecf.vs.qecf.filename)
+ecf.vs.qecf.list <- lapply(1:length(ecf.vs.qecf.raw), function(k){
+  this.ecf <- strsplit(ecf.vs.qecf.raw[k], ",")[[1]][1]
+  this.qcfs <- strsplit(ecf.vs.qecf.raw[k], ",")[[1]][2]
+  this.qcfs.v <- strsplit(this.qcfs, " ")[[1]]
+  this.qcfs.v <- gsub("ecf_", "", this.qcfs.v)
+  data.table(ecf = this.ecf, qecf = this.qcfs.v)  
+})
+ecf.vs.qecf <- rbindlist(ecf.vs.qecf.list)
+fwrite(ecf.vs.qecf, file = ecf.vs.qecf.output)
+
 #####################################
 # 2. Process reprseq to ECF mapping
 #####################################
