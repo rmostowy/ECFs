@@ -1,6 +1,7 @@
 ### load libraries
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(parallel)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -115,8 +116,43 @@ fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 
 
 #####################################
-# 5. Calculate ECF families (sECFs)
+# 5. Calculate ECF qcov/scov
 #####################################
 
+use.cores <- 8
+no.iterations <- 20
+ecfs.vs.ecfs.cov <- ecfs.vs.ecfs %>% filter(prob >= MIN.PROB.FOR.ECF.QCOV.SCOV)
+
+pair.table <- get.all.pairs(ecfs.vs.ecfs.cov)
+no.pairs <- nrow(pair.table)
+
+pairs.per.iteration <- floor(no.pairs/no.iterations)
+start.end.per.iteration <- lapply(1:no.iterations, function(index){
+  end.pair <- pairs.per.iteration*index
+  start.pair <- end.pair - pairs.per.iteration + 1
+  if(index == no.iterations) end.pair <- no.pairs
+  return(c(start.pair, end.pair))
+})
+
+pb <- txtProgressBar(min = 0, max = no.iterations, style = 3, initial = 0)
+pair.table.hits.list <- lapply(1:no.iterations, function(iteration.index){
+  this.iteration.pairs.index <- start.end.per.iteration[[iteration.index]][1]:start.end.per.iteration[[iteration.index]][2]
+  this.iteration.pairs <- pair.table[this.iteration.pairs.index]
+  this.iteration.hits <- get.pair.table.hits(this.iteration.pairs, ecfs.vs.ecfs.cov, no.cores = use.cores)
+  this.iteration.output <- cbind(this.iteration.pairs, this.iteration.hits)
+  setTxtProgressBar(pb, iteration.index)
+  return(this.iteration.output)
+})
+close(pb)
+
+pair.table.hits <- rbindlist(pair.table.hits.list)
+new.col.names <- c("query", "subject", "prob", "scov.min", "scov.max", "qcov.min", "qcov.max", "pident")
+setnames(pair.table.hits, new = new.col.names)
+pair.table.hits[, prob := prob * 100]
+pair.table.hits[, pident := pident * 100]
+
+setorder(pair.table.hits, query, subject)
+
+fwrite(pair.table.hits, file = ecfs.vs.ecfs.cov.output)
 
 

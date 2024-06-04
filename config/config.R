@@ -134,9 +134,11 @@ ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt")
 
 reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
 
-ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt") 
-ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt") 
-ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt") 
+ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt")
+ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")
+ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
+
+ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
 
 # comparisons
 reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
@@ -196,23 +198,22 @@ UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
 # parameters related to domain detection
 MIN.DOMAIN.LENGTH <- 20
-MIN.QCOV.FOR.DOMAIN = 0
-MIN.SCOV.FOR.DOMAIN = 0.7
+MIN.QCOV.FOR.DOMAIN <- 0
+MIN.SCOV.FOR.DOMAIN <- 0.7
 MIN.PROB.FOR.DOMAIN <- 70
 MAX.EVAL.FOR.DOMAIN <- 1e-3
 
 # parameters ECF-domain hits
 MIN.ECF.HIT.LENGTH <- 20
-# MIN.QCOV.FOR.ECF = 0
-# MIN.SCOV.FOR.ECF = 0.7
 MIN.PROB.FOR.ECF <- 70
 MAX.EVAL.FOR.ECF <- 1e-1
 MIN.OVERLAP.LENGTH <- 20
+MIN.PROB.FOR.ECF.QCOV.SCOV <- 95
 
 # parameters for comparing ECFs to ECODs
-MIN.PROB.FOR.DOMAIN.EQUIVALENCE = 95
-MIN.QCOV.FOR.DOMAIN.EQUIVALENCE = 0.9
-MIN.SCOV.FOR.DOMAIN.EQUIVALENCE = 0.9
-MAX.EVAL.FOR.DOMAIN.EQUIVALENCE = 10^(-3)
-MAX.SCOV.FOR.SUBDOMAIN = 0.6
+MIN.PROB.FOR.DOMAIN.EQUIVALENCE <- 95
+MIN.QCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
+MIN.SCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
+MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 10^(-3)
+MAX.SCOV.FOR.SUBDOMAIN <- 0.6
 
