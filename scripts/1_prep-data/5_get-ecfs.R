@@ -19,16 +19,13 @@ ecf.name.table <- fread(ecf.name.table.filename, header = F)
 setnames(ecf.name.table, c("er.name", "ecf.name"))
 setkey(ecf.name.table, er.name)
 
-# process ECF-to-qECF mapping
-ecf.vs.qecf.raw <- readLines(ecf.vs.qecf.filename)
-ecf.vs.qecf.list <- lapply(1:length(ecf.vs.qecf.raw), function(k){
-  this.ecf <- strsplit(ecf.vs.qecf.raw[k], ",")[[1]][1]
-  this.qcfs <- strsplit(ecf.vs.qecf.raw[k], ",")[[1]][2]
-  this.qcfs.v <- strsplit(this.qcfs, " ")[[1]]
-  this.qcfs.v <- gsub("ecf_", "", this.qcfs.v)
-  data.table(ecf = this.ecf, qecf = this.qcfs.v)  
-})
-ecf.vs.qecf <- rbindlist(ecf.vs.qecf.list)
+# Read the file efficiently
+ecf.vs.qecf.raw <- fread(ecf.vs.qecf.filename, header = FALSE, sep = "\n")
+# Separate the 'ecf' and 'qcfs' parts
+ecf.vs.qecf.raw[, c("ecf", "qcfs") := tstrsplit(V1, ",")]
+# Split the 'qcfs' part into individual elements and process
+ecf.vs.qecf <- ecf.vs.qecf.raw[, .(qecf = unlist(strsplit(qcfs, " "))), by = ecf]
+ecf.vs.qecf[, qecf := gsub("ecf_", "", qecf)]
 fwrite(ecf.vs.qecf, file = ecf.vs.qecf.output)
 
 #####################################
@@ -121,5 +118,5 @@ fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 # 5. Calculate ECF families (sECFs)
 #####################################
 
-# to be written
+
 
