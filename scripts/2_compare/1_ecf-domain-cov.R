@@ -81,7 +81,7 @@ result.ecfs.ecods <- combined.ecfs.ecods[, .SD[1], by = .(qname, sname_db1)]
 reprseq.ecf.ecod.overlaps <- result.ecfs.ecods %>%
   filter(overlap.length >= MIN.OVERLAP.LENGTH) %>%
   select(qname, qlength, 
-         qstart.ecf = qstart, qend.ecf = qend, hit.length.ecf = hit.length, sname.ecf = sname_db1,
+         qstart.ecf = qstart, qend.ecf = qend, hit.length.ecf = hit.length, sname.ecf = sname_db1, slength.ecf = slength,
          qstart.ecod = qstart_db2, qend.ecod = qend_db2, hit.length.ecod = i.hit.length, sname.ecod = sname_db2,
          overlap.start, overlap.end, overlap.length)
 
@@ -118,17 +118,27 @@ result.ecfs.pfam <- combined.ecfs.pfam[, .SD[1], by = .(qname, sname_db1)]
 reprseq.ecf.pfam.overlaps <- result.ecfs.pfam %>%
   filter(overlap.length >= MIN.OVERLAP.LENGTH) %>%
   select(qname, qlength, 
-         qstart.ecf = qstart, qend.ecf = qend, hit.length.ecf = hit.length, sname.ecf = sname_db1,
+         qstart.ecf = qstart, qend.ecf = qend, hit.length.ecf = hit.length, sname.ecf = sname_db1, slength.ecf = slength,
          qstart.pfam = qstart_db2, qend.pfam = qend_db2, hit.length.pfam = i.hit.length, sname.pfam = sname_db2,
          overlap.start, overlap.end, overlap.length)
 
 # Write to file
 fwrite(reprseq.ecf.pfam.overlaps, file = reprseq.ecf.vs.pfam.output)
 
-# # sanity checks
-# tr <- intersect(reprseq.ecfs$qname, reprseq.ecod$qname)[13]
-# reprseq.ecf.ecod.overlaps[reprseq.ecf.ecod.overlaps$qname == tr]
-# 
-# 
-# reprseq.ecfs[reprseq.ecfs$qname==tr]
-# reprseq.ecod[reprseq.ecod$qname==tr]
+######################
+# 5. Combine tables
+######################
+
+reprseq.ecf.ecod.overlaps.short <- reprseq.ecf.ecod.overlaps %>%
+  select(qname, qlength, qstart.ecf, qend.ecf, hit.length.ecf, sname.ecf, slength.ecf,
+         qstart.ecod, qend.ecod,
+         overlap.ecod.start = overlap.start, overlap.ecod.end = overlap.end, overlap.ecod.length = overlap.length)
+
+reprseq.pfam.ecod.overlaps.short <- reprseq.ecf.pfam.overlaps %>%
+  select(qname, qlength, qstart.ecf, qend.ecf, hit.length.ecf, sname.ecf, slength.ecf,
+         qstart.pfam, qend.pfam,
+         overlap.pfam.start = overlap.start, overlap.pfam.end = overlap.end, overlap.pfam.length = overlap.length)
+
+reprseq.ecf.ecod.pfam.overlaps.merged <- merge(reprseq.ecf.ecod.overlaps.short, reprseq.pfam.ecod.overlaps.short, by = c("qname", "qlength", "qstart.ecf", "qend.ecf", "hit.length.ecf", "sname.ecf", "slength.ecf"), all = TRUE)
+fwrite(reprseq.ecf.ecod.pfam.overlaps.merged, file = reprseq.ecf.vs.ecod.and.pfam.output)
+
