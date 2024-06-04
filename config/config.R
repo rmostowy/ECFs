@@ -30,6 +30,9 @@ scripts.functions.path <- file.path(root, "scripts", "functions")
 functions.basic.filename <- file.path(functions.repo.path, "basic.R")
 safe_source(functions.basic.filename)
 
+functions.custom.cov.filename <- file.path(functions.repo.path, "custom", "hhr-cov.R")
+safe_source(functions.custom.cov.filename)
+
 scripts.functions.filename <- file.path(scripts.functions.path, "helper.R")
 safe_source(scripts.functions.filename)
 
