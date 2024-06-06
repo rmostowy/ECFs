@@ -33,6 +33,11 @@ ecod.domains[missing.x]$x_name <- ecod.domains[missing.x]$t_name
 
 ecod.domains$full.id <- sprintf("ECOD_%s_%s", ecod.domains$uid, ecod.domains$ecod_domain_id)
 
+arch.dt <- data.table(arch = ecod.arch, arch.class = ecod.arch.class)
+setkey(arch.dt, arch)
+
+ecod.domains$arch.class <- arch.dt[.(ecod.domains$arch_name)]$arch.class
+
 # write to a file
 fwrite(ecod.domains, file = ecod.domains.output)
 
