@@ -142,6 +142,8 @@ reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ec
 reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
 reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod-and-pfam.txt")
 
+ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifications.txt")
+
 #################
 ## Labels
 #################
