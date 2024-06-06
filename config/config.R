@@ -106,7 +106,7 @@ dirs2create <- c(data.tmp.dir,
                  data.comparisons.dir)
                  
 
-make.dirs(dirs2create)
+read.table("ecod-labels.txt")
 
 #######################
 ### Output files
@@ -172,6 +172,20 @@ phrog.class.labels <- c(
   "other" = "other",
   'moron, auxiliary metabolic gene and host takeover' = "moron, auxiliary\nmetabolic gene\nand host takeover"
 )
+
+ecod.arch <- c("a/b barrels", "a/b three-layered sandwiches", "a+b complex topology",
+               "a+b duplicates or obligate multimers", "a+b four layers", "a+b three layers",
+               "a+b two layers", "alpha arrays", "alpha bundles", 
+               "alpha complex topology", "alpha duplicates or obligate multimers", "alpha superhelices",
+               "beta barrels", "beta complex topology", "beta duplicates or obligate multimers",
+               "beta meanders", "beta sandwiches", "extended segments", 
+               "few secondary structure elements", "mixed a+b and a/b")
+
+ecod.arch.class <- c("alpha/beta", "alpha/beta", "alpha+beta", "alpha+beta",
+                     "alpha+beta", "alpha+beta", "alpha+beta", "all-alpha",
+                     "all-alpha", "all-alpha", "all-alpha", "all-alpha",
+                     "all-beta", "all-beta", "all-beta", "all-beta",
+                     "all-beta", "others", "others", "mixed alpha+beta and alpha/beta")
 
 #####################
 ## Check file status
