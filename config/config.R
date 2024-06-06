@@ -104,9 +104,6 @@ dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir,
                  data.phrog.dir, data.domain.dir, data.ecfs.dir,
                  data.comparisons.dir)
-                 
-
-read.table("ecod-labels.txt")
 
 #######################
 ### Output files
