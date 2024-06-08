@@ -93,4 +93,12 @@ ecf.classification.table.list <- lapply(1:length(all.ecfs), function(index){
 })
 ecf.classification.table <- rbindlist(ecf.classification.table.list)
 
-fwrite(ecf.classification.table, file = ecf.classification.table.output)
+has.functional.hit <- ecf.classification.table$funct != "unknown"
+has.domain.hit <- ecf.classification.table$type != "new"
+
+ecf.classification.table$hit.types <- "none"
+ecf.classification.table$hit.types[has.functional.hit & !has.domain.hit] <- "F"
+ecf.classification.table$hit.types[!has.functional.hit & has.domain.hit] <- "D"
+ecf.classification.table$hit.types[has.functional.hit & has.domain.hit] <- "F+D"
+
+fwrite(ecf.classification.table, file = ecf.classification.table.output, sep = "\t")

@@ -57,6 +57,9 @@ ecfs.vs.ecfs.all <- fread(ecf.hits.vs.ecf.filename)
 ecfs.vs.ecfs.all[, hit.length := qend - qstart + 1]
 ecfs.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
+# remove weird hits to super long proteins
+ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$sstart<ecfs.vs.ecfs.all$send]
+ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$qstart<ecfs.vs.ecfs.all$qend]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%

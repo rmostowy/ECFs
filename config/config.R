@@ -99,11 +99,14 @@ data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
 data.ecfs.dir <- file.path(data.output.dir, "ecfs")
 
 data.comparisons.dir <- file.path(data.output.dir, "comparisons")
+ecf.network.dir <- file.path(data.comparisons.dir, "networks")
 
 dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir,
                  data.phrog.dir, data.domain.dir, data.ecfs.dir,
-                 data.comparisons.dir)
+                 data.comparisons.dir, ecf.network.dir)
+
+make.dirs(dirs2create)
 
 #######################
 ### Output files
@@ -143,6 +146,7 @@ reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pf
 reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod-and-pfam.txt")
 
 ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifications.txt")
+
 
 #################
 ## Labels
@@ -229,4 +233,8 @@ MIN.QCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
 MIN.SCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
 MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 10^(-3)
 MAX.SCOV.FOR.SUBDOMAIN <- 0.6
+
+# additional parms
+# 
+
 
