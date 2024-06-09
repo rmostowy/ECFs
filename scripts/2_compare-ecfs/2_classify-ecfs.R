@@ -1,0 +1,104 @@
+### load libraries
+suppressWarnings(suppressPackageStartupMessages(library(data.table)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+
+### load config
+config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
+source(config.filename)
+
+####################################################################
+############################### MAIN ###############################
+####################################################################
+
+# Load ECOD domain table
+ecod.domains <- fread(ecod.domains.output)
+setkey(ecod.domains, full.id)
+
+# Load PHROG annotations
+reprseq.functions.unique <- fread(reprseq.functions.unique.output)
+setkey(reprseq.functions.unique, reprseq)
+
+# Load ECF table
+ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
+ecfs.vs.qecfs$reprseq <- substr(ecfs.vs.qecfs$qecf, 1, regexpr("_", ecfs.vs.qecfs$qecf)-1)
+setkey(ecfs.vs.qecfs, ecf)
+all.ecfs <- unique(ecfs.vs.qecfs$ecf)
+
+# Load ECF vs ECOD table
+ecfs.vs.ecod <- fread(ecfs.vs.ecod.output)
+ecfs.vs.ecod[, score := round(qcov*scov*prob/100*pident/100, d = 6)]
+
+# Add T-level information
+ecfs.vs.ecod$t.id <- ecod.domains[.(ecfs.vs.ecod$sname)]$t_id
+ecfs.vs.ecod$arch.class <- ecod.domains[.(ecfs.vs.ecod$sname)]$arch.class
+
+setkey(ecfs.vs.ecod, qname)
+
+# ecfs.with.ecod.hit <- unique(ecfs.vs.ecod$qname)
+# ecfs.potentially.new <- setdiff(all.ecfs, ecfs.with.ecod.hit)
+
+ecf.classification.table.list <- lapply(1:length(all.ecfs), function(index){
+  # get linked PHROG annotations
+  this.ecf <- all.ecfs[index]
+  this.ecf.reprseqs <- ecfs.vs.qecfs[.(this.ecf)]$reprseq
+  this.ecf.linked.annotations <- reprseq.functions.unique[.(this.ecf.reprseqs)]
+  this.ecf.linked.annotations.known <- this.ecf.linked.annotations[this.ecf.linked.annotations$funct != ""]
+  this.ecf.phrogs.funct <- "unknown"
+  this.ecf.phrogs.class <- "unknown"
+  if(nrow(this.ecf.linked.annotations.known)>0){
+    setorder(this.ecf.linked.annotations.known, -score)
+    this.ecf.phrogs.funct <- this.ecf.linked.annotations.known$funct[1]
+    this.ecf.phrogs.class <- this.ecf.linked.annotations.known$class[1]
+  }
+
+  # get linked ECODs
+  this.ecf.type <- "new"
+  this.ecf.arch <- "unknown"
+  this.ecf.t.level <- "unknown"
+  if(this.ecf %in% ecfs.vs.ecod$qname){
+    this.ecf.type <- "similar"
+    this.ecfs.vs.ecod <- ecfs.vs.ecod[.(this.ecf)]
+    
+    this.ecfs.vs.ecod.equivalent <- this.ecfs.vs.ecod %>% 
+      filter(prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE) %>%
+      filter(qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE) %>%
+      filter(scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE) %>%
+      filter(eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)
+    is.equivalent <- nrow(this.ecfs.vs.ecod.equivalent)>0
+    
+    this.ecfs.vs.ecod.subdomain <- this.ecfs.vs.ecod %>% 
+      filter(prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE) %>%
+      filter(qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE) %>%
+      filter(scov <= MAX.SCOV.FOR.SUBDOMAIN) %>%
+      filter(eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)
+    is.subdomain <- nrow(this.ecfs.vs.ecod.subdomain)>0
+    
+    if(is.equivalent){
+      this.ecfs.vs.ecod <- this.ecfs.vs.ecod.equivalent
+      this.ecf.type <- "equivalent"
+    } else if(is.subdomain){
+      this.ecfs.vs.ecod <- this.ecfs.vs.ecod.subdomain
+      this.ecf.type <- "subdomain"
+    }
+    
+    setorder(this.ecfs.vs.ecod, -score)
+    this.ecf.arch <- this.ecfs.vs.ecod$arch.class[1]
+    this.ecf.t.level <- this.ecfs.vs.ecod$t.id[1]
+    
+  }
+  data.table(ecf = this.ecf, type = this.ecf.type, 
+             arch.class = this.ecf.arch, t.id = this.ecf.t.level,
+             funct = this.ecf.phrogs.funct, class = this.ecf.phrogs.class)
+  
+})
+ecf.classification.table <- rbindlist(ecf.classification.table.list)
+
+has.functional.hit <- ecf.classification.table$funct != "unknown"
+has.domain.hit <- ecf.classification.table$type != "new"
+
+ecf.classification.table$hit.types <- "none"
+ecf.classification.table$hit.types[has.functional.hit & !has.domain.hit] <- "F"
+ecf.classification.table$hit.types[!has.functional.hit & has.domain.hit] <- "D"
+ecf.classification.table$hit.types[has.functional.hit & has.domain.hit] <- "F+D"
+
+fwrite(ecf.classification.table, file = ecf.classification.table.output, sep = "\t")
