@@ -148,6 +148,8 @@ ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
 
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
 
+ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-vs-EFs.txt")
+
 # comparisons
 reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
 reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
@@ -242,7 +244,8 @@ MIN.SCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
 MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 10^(-3)
 MAX.SCOV.FOR.SUBDOMAIN <- 0.6
 
-# additional parms
-# 
-
+# parameters for sECFs
+ECF.LENGTH.DIFF.THR <- 5
+ECF.MAX.COV.THR <- 0.9
+ECF.MIN.COV.THR <- 0.1
 
