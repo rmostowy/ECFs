@@ -55,6 +55,13 @@ ecod.headers <- c("uid", "ecod_domain_id","manual_rep","f_id","pdb","chain","pdb
   "arch_name","x_name","h_name","t_name","f_name", "asm_status", "ligand")
 
 #############################
+### Define PFAM data
+#############################
+pfam.db.path <- file.path(mgg.db, "hhpred", "pfamA", "Pfam35")
+pfam.domains.filename <- file.path(pfam.db.path, "pfamA.txt")
+pfam.sql.filename <- file.path(pfam.db.path, "pfamA.sql")
+
+#############################
 ### Define Smug et al. data
 #############################
 minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
@@ -126,6 +133,7 @@ reprseq.functions.unique.output <- file.path(data.phrog.dir, "reprseq-annot-uniq
 
 # annotations/domains
 ecod.domains.output <- file.path(data.domain.dir, "ecod-domains.txt")
+pfam.domains.output <- file.path(data.domain.dir, "pfam-domains.txt")
 reprseq.domains.ecod.output <- file.path(data.domain.dir, "reprseq-domains-ecod.txt") 
 reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
 

@@ -1,6 +1,7 @@
 ### load libraries
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressPackageStartupMessages(library(stringr))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -58,13 +59,37 @@ reprseq.domains.ecod <- reprseq.domains.ecod.all %>%
 # write ECOD hits
 fwrite(reprseq.domains.ecod, reprseq.domains.ecod.output)
 
+###########################################
+# 3. Load and modify PFAM reference table
+###########################################
+# Read the contents of the SQL file
+pfam.sql <- readLines(pfam.sql.filename)
+
+# Extract column names from the SQL file
+create_table_start <- grep("^CREATE TABLE `pfamA`", pfam.sql)
+create_table_end <- grep("^\\) ENGINE=", pfam.sql)
+create_table_statement <- pfam.sql[(create_table_start + 1):(create_table_end - 1)]
+column_definitions <- create_table_statement[str_detect(create_table_statement, "^\\s*`")]
+column_names <- str_extract(column_definitions, "`\\w+`")
+column_names <- str_replace_all(column_names, "`", "")
+
+# Extract relevant columns
+pfam.domains.full <- fread(pfam.domains.filename) 
+setnames(pfam.domains.full, column_names)
+pfam.domains <- pfam.domains.full %>% select(accession = pfamA_acc, id = pfamA_id, description)
+
+# Write to file
+fwrite(pfam.domains, file = pfam.domains.output)
+
 ################################
-# 3. Load and filter PFAM hits
+# 4. Load and filter PFAM hits
 ################################
 reprseq.domains.pfam.all <- fread(pfam.domain.hits.filename)
 reprseq.domains.pfam.all[, hit.length := qend - qstart + 1]
 reprseq.domains.pfam.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.domains.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
+reprseq.domains.pfam.all[, accession := sub("\\..*", "", sname)]
+
 
 # filter ECOD hits
 reprseq.domains.pfam <- reprseq.domains.pfam.all %>%
