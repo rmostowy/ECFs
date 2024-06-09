@@ -102,23 +102,18 @@ p <- plot.qecf.hits("reprseq004403")
 
 Work on function to visualise domains
 ```{r}
- 
-  # Filter rows for the specified query name
-  query_hits <- reprseq.domain.data[.(query_name)]
-  # Create a unique y position for each hit within each source
-  query_hits[, y_position := seq_len(.N)]
+query_name <- "reprseq122635"
+# Filter rows for the specified query name
+query_hits <- reprseq.domain.data[.(query_name)]
+# Create a unique y position for each hit within each source
+query_hits[, y_position := seq_len(.N)]
   
-  # Now, use the source as a factor for coloring
-  query_hits$source <- factor(query_hits$source, levels = c("ECFs", "ECOD", "Pfam"))
+# Now, use the source as a factor for coloring
+query_hits$source <- factor(query_hits$source, levels = c("ECFs", "ECOD", "Pfam"))
   
-  qlength <- query_hits$qlength[1]
+qlength <- query_hits$qlength[1]
   
-  query_hits
-```
-
-
-```{r}
-  ggplot_object <- ggplot(query_hits, aes(x = qstart, xend = qend, y = y_position, yend = y_position, color = source)) +
+ ggplot_object <- ggplot(query_hits, aes(x = qstart, xend = qend, y = y_position, yend = y_position, color = source)) +
     geom_segment(linewidth = 4) +  # Use thicker lines for clarity
     scale_colour_manual(values = c("ECFs" = "red", "ECOD" = "blue", "Pfam" = "green"), name = "Source") +
     scale_x_continuous(name = "Query position", limits = c(1, qlength)) +
@@ -130,3 +125,4 @@ Work on function to visualise domains
           legend.position = "right")
   ggplot_object
 ```
+
