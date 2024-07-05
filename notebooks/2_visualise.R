@@ -1,0 +1,112 @@
+### load libraries
+suppressWarnings(suppressPackageStartupMessages(library(data.table)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
+
+### load config
+config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
+source(config.filename)
+
+# load data
+reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
+qecf.stats <- fread(qecf.stats.filename)
+qecf.stats[, V1 := NULL]
+
+# Load reprseq vs domain databases and merge them
+reprseq.ecfs <- fread(reprseq.ecfs.output)
+reprseq.domains.ecod <- fread(reprseq.domains.ecod.output)
+reprseq.domains.pfam <- fread(reprseq.domains.pfam.output)
+reprseq.domains.pfam$sname <- reprseq.domains.pfam$accession
+
+reprseq.ecfs[, source := "ECFs"]
+reprseq.domains.ecod[, source := "ECOD"]
+reprseq.domains.pfam[, accession := NULL ]
+reprseq.domains.pfam[, source := "Pfam"]
+reprseq.domain.data <- rbind(reprseq.ecfs, reprseq.domains.ecod, reprseq.domains.pfam)
+setkey(reprseq.domain.data, qname)
+
+# filter
+# reprseq.domain.data <- reprseq.domain.data[reprseq.domain.data$scov>=0.7]
+
+
+# Define a function for qECF visualisation
+plot.qecf.hits <- function(query_name) {
+  
+  aba <- reprseq.vs.reprseq
+  stats <- qecf.stats
+  stats_query <- stats[qname == query_name]
+  stats_query[, cluster := as.factor(cluster)]
+  # Calculate labels as percentages and round to full numbers
+  stats_query[, AHO := round(avg_hits_overlap * 100, 0)]
+  stats_query[, AC := round(avg_hit_coverage * 100, 0)]
+  tstats <- stats_query[, c("cluster", "AHO", "AC")]
+  
+  # Filter rows for the specified query name
+  query_hits <- aba[qname == query_name]
+  
+  # First, ensure the data is sorted by cluster, then by sstart, and finally by send
+  query_hits <- query_hits[order(cluster, qstart, qend)]
+  
+  # Assign a unique y-axis position for each hit
+  # This combines cluster sorting with within-cluster alignment order
+  query_hits[, y_position := .GRP, by = .(cluster, qstart, qend)]
+  
+  # Adjust y_position further to separate clusters visually
+  query_hits[, y_position := cumsum(!duplicated(y_position))]
+  
+  # query_hits[, y_position := y_position + (as.integer(cluster) - 1) * max(query_hits$y_position)]
+  
+  # Now, use the cluster as a factor for coloring
+  query_hits$cluster <- factor(query_hits$cluster)
+  
+  qlength <- query_hits$qlength[1]
+  annotation_text <- paste("C", tstats$cluster, "AHO:", paste0(tstats$AHO, "%"), "AC:", paste0(tstats$AC, "%"), collapse = "\n")
+  # Plotting
+  ggplot_object <- ggplot(query_hits, aes(x = qstart, xend = qend, y = y_position, group = sname, color = cluster)) +
+    geom_segment(aes(yend = y_position), linewidth = 1) +  # Use thicker lines for clarity
+    scale_colour_brewer(palette = "Set1", name = "Cluster") +
+    scale_x_continuous(name = "Query position", limits = c(1, qlength)) +
+    # scale_y_continuous(name = "Sorted Hits within Clusters", breaks = NULL) +  # No specific breaks
+    scale_y_continuous(name = "Sorted Hits within Clusters", breaks = NULL, expand = c(0, 0.01)) +  # Adjust expand to reduce space
+    labs(title = paste("Alignment Hits for Query:", query_name),
+         subtitle = "Lines sorted by cluster and alignment positions (sstart, send)") +
+    annotate("text", x = Inf, y = Inf, label = annotation_text, hjust = 1, vjust = 1, size = 3, color = "black") +
+    theme_minimal() +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),  # Clean y-axis
+          legend.position = "right")
+  
+  
+  
+  return(ggplot_object)
+  
+}
+
+
+# Test the qECF function
+p <- plot.qecf.hits("reprseq002829")
+p
+
+# Work on function to visualise domains
+query_name <- "reprseq122635"
+# Filter rows for the specified query name
+query_hits <- reprseq.domain.data[.(query_name)]
+# Create a unique y position for each hit within each source
+query_hits[, y_position := seq_len(.N)]
+
+# Now, use the source as a factor for coloring
+query_hits$source <- factor(query_hits$source, levels = c("ECFs", "ECOD", "Pfam"))
+
+qlength <- query_hits$qlength[1]
+
+ggplot_object <- ggplot(query_hits, aes(x = qstart, xend = qend, y = y_position, yend = y_position, color = source)) +
+  geom_segment(linewidth = 4) +  # Use thicker lines for clarity
+  scale_colour_manual(values = c("ECFs" = "red", "ECOD" = "blue", "Pfam" = "green"), name = "Source") +
+  scale_x_continuous(name = "Query position", limits = c(1, qlength)) +
+  scale_y_continuous(name = "Hits", breaks = NULL, limits = c(0, max(query_hits$y_position) + 1)) +
+  labs(title = paste("Domain Hits for Query:", query_name),
+       subtitle = "Lines represent hits from different sources (ECFs, ECOD, Pfam)") +
+  theme_minimal() +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),  # Clean y-axis
+        legend.position = "right")
+ggplot_object
+

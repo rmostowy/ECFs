@@ -51,7 +51,7 @@ plot.qecf.hits <- function(query_name) {
   stats_query[, cluster := as.factor(cluster)]
   # Calculate labels as percentages and round to full numbers
   stats_query[, AHO := round(avg_hits_overlap * 100, 0)]
-  stats_query[, AC := round(avg_hit_len_to_ecf_span * 100, 0)]
+  stats_query[, AC := round(avg_hit_coverage * 100, 0)]
   tstats <- stats_query[, c("cluster", "AHO", "AC")]
 
   # Filter rows for the specified query name
@@ -97,7 +97,8 @@ plot.qecf.hits <- function(query_name) {
 
 Test the qECF function
 ```{r}
-p <- plot.qecf.hits("reprseq004403")
+p <- plot.qecf.hits("reprseq122051")
+p
 ```
 
 Work on function to visualise domains
