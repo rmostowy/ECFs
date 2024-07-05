@@ -38,13 +38,23 @@ reprseq.vs.ecfs.all <- fread(ecf.hits.filename)
 reprseq.vs.ecfs.all[, hit.length := qend - qstart + 1]
 reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
+reprseq.vs.ecfs.all$sname <- ecf.name.table[.(reprseq.vs.ecfs.all$sname)]$ecf.name
 
 # filter ECF hits
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
   filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
   filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
+  filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
+  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
   filter(hit.length >= MIN.DOMAIN.LENGTH)
-reprseq.vs.ecfs$sname <- ecf.name.table[.(reprseq.vs.ecfs$sname)]$ecf.name
+# reprseq.vs.ecfs$sname <- ecf.name.table[.(reprseq.vs.ecfs$sname)]$ecf.name
+
+
+dist.ecfs <- setdiff(unique(reprseq.vs.ecfs.all$sname), unique(reprseq.vs.ecfs$sname))
+
+reprseq.dist <- reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname %in% dist.ecfs]
+
+reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname == "ecf_03242"]
 
 # write to file
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
