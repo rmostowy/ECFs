@@ -20,7 +20,6 @@ main.path <- "/Users/rmostowy"
 mgg.db <- file.path(main.path, "MGG Dropbox/Databases")
 mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
 
-
 ##############################
 ### Load functions
 ##############################
@@ -71,9 +70,9 @@ reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipe
 name.table.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "name-table-full.txt")
 reprseq.lengths.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "repr-seqs-lengths.txt")
 phrog.hhpred.hits.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "functional", "hhblits-phrogs.txt")
-# manual.phrog.mapping.filename <- file.path(minimal.input.data.path, "other", "v3_phrogs-table-rafal-3_12.xlsx")
 antidefence.descr.filename <- file.path(minimal.input.data.path, "other", "media-4-simplified_2023_04.xlsx")
 antidefence.hhpred.hits.filename <- file.path(minimal.input.data.path, "other", "table-hhr-ad-rseq.txt")
+metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refseq_metadata_updated_v3.csv")
 
 ####################
 ### Define ECF data
@@ -81,16 +80,22 @@ antidefence.hhpred.hits.filename <- file.path(minimal.input.data.path, "other", 
 ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "output")
 # 
-ecf.name.table.filename = file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
-ecf.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt")
-ecf.hits.vs.ecod.filename = file.path(ecf.raw.data.path, "table-scan-ecf_ecod.txt")
-ecf.hits.vs.pfam.filename = file.path(ecf.raw.data.path, "table-scan-ecf_pfam.txt")
-ecf.hits.vs.ecf.filename = file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.txt")
-reprseq.vs.reprseq.filename = file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
-ecod.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
-pfam.domain.hits.filename = file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
-qecf.stats.filename = file.path(ecf.raw.data.path, "reprseq-all-stat.txt")
-ecf.vs.qecf.filename = file.path(ecf.raw.data.path, "ecf2qecfs.csv")
+ecf.name.table.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
+ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt")
+ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod.txt")
+ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam.txt")
+ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.txt")
+reprseq.vs.reprseq.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
+ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
+pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
+qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.txt")
+ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
+
+####################
+### Define other data
+####################
+
+ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL38_v2.xlsx")
 
 #######################
 ### Data directories
@@ -149,6 +154,9 @@ ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
 
 ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-vs-EFs.txt")
+
+# metadata
+metadata.table.output <- file.path(data.input.dir, "metadata.tsv")
 
 # comparisons
 reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
@@ -228,7 +236,7 @@ MIN.DOMAIN.LENGTH <- 20
 MIN.QCOV.FOR.DOMAIN <- 0
 MIN.SCOV.FOR.DOMAIN <- 0.7
 MIN.PROB.FOR.DOMAIN <- 70
-MAX.EVAL.FOR.DOMAIN <- 1e-3
+MAX.EVAL.FOR.DOMAIN <- 1e-2
 
 # parameters ECF-domain hits
 MIN.ECF.HIT.LENGTH <- 20
