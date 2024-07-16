@@ -78,6 +78,7 @@ metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refse
 ### Define ECF data
 ####################
 ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
+ecf.raw.input.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "output")
 # 
 ecf.name.table.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
@@ -85,7 +86,8 @@ ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt
 ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod.txt")
 ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam.txt")
 ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.txt")
-reprseq.vs.reprseq.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
+reprseq.vs.reprseq.filename <- file.path(ecf.raw.input.path, "table-hhr.txt")
+reprseq.vs.reprseq.clust.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
 ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
 pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
 qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.txt")
@@ -174,13 +176,14 @@ phrogs.class <- c("integration and excision", "head and packaging",
                   "transcription regulation", "connector", 
                   "tail", "lysis", 
                   "DNA, RNA and nucleotide metabolism", "other",
-                  "moron, auxiliary metabolic gene and host takeover")
-phrogs.col <- c("#FF7F00", "#C7E9C0", "#984EA3", "#41AB5D", "#006D2C", "#E41A1C", "#377EB8", "#999999", "#F781BF")
+                  "moron, auxiliary metabolic gene and host takeover",
+                  "antidefence")
+phrogs.col <- c("#FF7F00", "#C7E9C0", "#984EA3", "#41AB5D", "#006D2C", "#E41A1C", "#377EB8", "#999999", "#F781BF", "#111111")
 
 phrogs.class.order <- c("head and packaging", "connector", "tail", 
                         "DNA, RNA and nucleotide metabolism", "integration and excision",
                         "moron, auxiliary metabolic gene and host takeover", "transcription regulation",
-                        "lysis", "other")
+                        "lysis", "antidefence", "other")
 
 phrog.class.labels <- c(
   'integration and excision' = "integration\nand excision",
@@ -191,7 +194,8 @@ phrog.class.labels <- c(
   'transcription regulation' = "transcription\nregulation",
   'DNA, RNA and nucleotide metabolism' = "DNA, RNA and\nnucleotide\nmetabolism",
   "other" = "other",
-  'moron, auxiliary metabolic gene and host takeover' = "moron, auxiliary\nmetabolic gene\nand host takeover"
+  'moron, auxiliary metabolic gene and host takeover' = "moron, auxiliary\nmetabolic gene\nand host takeover",
+  "antidefence" = "antidefence"
 )
 
 ecod.arch <- c("a/b barrels", "a/b three-layered sandwiches", "a+b complex topology",
@@ -224,7 +228,7 @@ file.status.list <- sapply(files.to.check.full.path, check.file)
 ACCEPTED.NUM.UNKNOWN.AA <- 10
 MINIMUM.ALIGNMENT.LENGTH.FOR.ANNOTATION <- 30
 MIN.NUM.PHROG.SEQ.PER.ANNOT <- 500
-MIN.NUM.PROT.PER.ANNOT <- 20 # Bogna had MIN.NUM.PROT
+MIN.NUM.PROT.PER.ANNOT <- 100 # Bogna had MIN.NUM.PROT
 # MAIN.COVS.FOR.ANNOTATION = c(0.1, 0.3, 0.8)
 DEFAULT.MINIMUM.COV.FOR.ANNOTATION <- 60
 DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
