@@ -4,6 +4,7 @@ suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(reshape2)))
 suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
+suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -25,7 +26,7 @@ reprseq.pfam <- reprseq.domains.pfam %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, sco
 
 ecf.family.table <- fread(ecf.family.table.output)
 
-all.reprseq <- unique(reprseq.ecfs$qname)
+reprseq.with.ecf.hits <- unique(reprseq.ecfs$qname)
 all.ecfs <- unique(reprseq.ecfs$sname)
 
 reprseq.functions.all <- fread(reprseq.functions.all.output)
@@ -37,7 +38,17 @@ top.annotations <- reprseq.functions.all[reprseq.functions.all$top.annotation] %
 ecf.family.table <- ecf.family.table[ecf.family.table$ecf %in% all.ecfs]
 no.families <- length(unique(ecf.family.table$ecf.family))
 
-# 1. Plot the distribution of the number of reprseqs per ECF
+reprseq.table <- fread(reprseq.table.filename)
+reprseq.table[, accession := tstrsplit(cluster.name, ":")[[1]]]
+reprseq.table[, accession := tstrsplit(accession, ".", fixed = T)[[1]]]
+
+metadata.table <- fread(metadata.table.output)
+setkey(metadata.table, accession)
+
+
+###############################################################
+### 1. Plot the distribution of the number of reprseqs per ECF
+###############################################################
 this.results.dir <- "analysis1_distr"
 make.dir(this.results.dir)
 
@@ -55,8 +66,10 @@ p.repr.per.ecf.logx.fn <- file.path(this.results.dir, "plot1b_repr-per-ecf-log.p
 ggsave(p.repr.per.ecf.fn, p.repr.per.ecf, width = 6, height = 5)
 ggsave(p.repr.per.ecf.logx.fn, p.repr.per.ecf.logx, width = 5, height = 5)
 
+###############################################################
+### 2. Plot the distribution of the number of ECFs per EF
+###############################################################
 
-# 2. Plot the distribution of the number of ECFs per EF
 ecfs.per.family <- ecf.family.table[, .(no.ecfs = uniqueN(ecf)), by = ecf.family]
 
 p.ecfs.per.fam.logx <- ggplot(ecfs.per.family, aes(x = no.ecfs)) +
@@ -65,8 +78,9 @@ p.ecfs.per.fam.logx <- ggplot(ecfs.per.family, aes(x = no.ecfs)) +
 p.ecfs.per.fam.logx.fn <- file.path(this.results.dir, "plot2a_ecfs-per-fam.png")
 ggsave(p.ecfs.per.fam.logx.fn, p.ecfs.per.fam.logx, width = 6, height = 5)
 
-
-# 3. Plot the distribution of ECF lengths (as well as for ECODs and Pfams)
+###############################################################
+### 3. Plot the distribution of ECF lengths (as well as for ECODs and Pfams)
+###############################################################
 
 ecf.lengths <- reprseq.ecfs %>% select(ecf = sname, length = slength) %>% distinct()
 
@@ -75,10 +89,11 @@ p.ecf.lengths <- ggplot(ecf.lengths, aes(x = length)) +
 p.ecf.lengths.fn <- file.path(this.results.dir, "plot3a_ecf-lengths.png")
 ggsave(p.ecf.lengths.fn, p.ecf.lengths, width = 6, height = 5)
 
-
-# 4. Plot the domain coverage (ECFs vs Pfam/ECODs) per function:
-#    a) number of proteins with any hit
-#    b) proportion of aa space with a domain hit
+###############################################################
+### 4. Plot the domain coverage (ECFs vs Pfam/ECODs) per function:
+###    a) number of proteins with any hit
+###    b) proportion of aa space with a domain hit
+###############################################################
 
 this.results.dir <- "analysis2_funct-cov"
 make.dir(this.results.dir)
@@ -89,7 +104,7 @@ funct.cov.list <- lapply(1:nrow(top.annotations), function(annotation.index){
   this.class <- top.annotations$class[annotation.index]
   this.reprseq.functions.all <- reprseq.functions.all[.(this.annotation)]
   all.reprseqs.with.this.annotation <- unique(this.reprseq.functions.all$qname)
-  all.reprseqs.with.this.annotation.has.ecf <- all.reprseqs.with.this.annotation %in% all.reprseq
+  all.reprseqs.with.this.annotation.has.ecf <- all.reprseqs.with.this.annotation %in% reprseq.with.ecf.hits
   all.reprseqs.with.this.annotation.has.ecod <- all.reprseqs.with.this.annotation %in% reprseq.ecod$qname
   all.reprseqs.with.this.annotation.has.pfam <- all.reprseqs.with.this.annotation %in% reprseq.pfam$qname
   
@@ -119,17 +134,12 @@ melted_data <- melt(funct.cov, id.vars = c("funct", "class"),
                     measure.vars = c("ecf_coverage", "ecod_coverage", "pfam_coverage"),
                     variable.name = "database", value.name = "coverage")
 setDT(melted_data)
-
-
 # Define the colours for the domain coverages
 coverage_colours <- c("ecf_coverage" = "#08306B", "ecod_coverage" = "#006D2C", "pfam_coverage" = "#800026")
-
 # Set the order of the facets
 melted_data$class <- factor(melted_data$class, levels = phrogs.class.order)
-
 # Count the number of functions per class
 n_funct <- melted_data[, .N, by = class]
-
 # Define strip backgrounds using ggh4x
 strip <- strip_themed(
   background_y = elem_list_rect(fill = phrogs.col[match(levels(melted_data$class), phrogs.class)])
@@ -156,26 +166,223 @@ p.domain.cov <- ggplot(melted_data) +
 p.domain.cov.fn <- file.path(this.results.dir, "plot1_domain-cov.pdf")
 ggsave(file = p.domain.cov.fn, p.domain.cov, width = 7, height = 10)
 
-# 5. Plot the domain coverage per frequency
+# Calculate and plot domain coverage in reprseq of known vs. unknown function
+all.reprseq <- unique(reprseq.table$reprseq)
+has.assigned.function <- all.reprseq %in% reprseq.functions.all$qname
+has.ecf.hit <- all.reprseq %in% reprseq.with.ecf.hits
+has.ecod.hit <- all.reprseq %in% reprseq.ecod$qname
+has.pfam.hit <- all.reprseq %in% reprseq.pfam$qname
+reprseq.domain.coverage <- data.table(reprseq = all.reprseq, has.assigned.function, has.ecf.hit, has.ecod.hit, has.pfam.hit)
+
+# Transforming the data to a long format
+long_data <- melt(reprseq.domain.coverage, id.vars = "has.assigned.function", 
+                  measure.vars = c("has.ecf.hit", "has.ecod.hit", "has.pfam.hit"),
+                  variable.name = "domain", value.name = "hit")
+
+setDT(long_data)
+
+# Calculate the proportions
+proportions <- long_data[, .(proportion = mean(hit, na.rm = TRUE)), by = .(has.assigned.function, domain)]
+
+# Plot
+p.known.unknown <- ggplot(proportions, aes(x = domain, y = proportion, fill = domain)) +
+  geom_col(position = position_dodge()) +
+  facet_wrap(~ has.assigned.function, scales = "free_y", labeller = labeller(has.assigned.function = c(`TRUE` = "With Function", `FALSE` = "Without Function"))) +
+  labs(title = "Domain Coverage in Proteins", 
+       x = "Domain", 
+       y = "Proportion of Proteins with Hit",
+       fill = "Domain") +
+  scale_y_continuous(limits = c(0,1))
+  
+p.known.unknown.fn <- file.path(this.results.dir, "plot2_domain-cov-unknown.pdf")
+ggsave(p.known.unknown.fn, p.known.unknown, width = 6, height = 4)
+
+#######################################
+### 5. Calculate reprseq frequency
+#######################################
+
+frequency.thresholds <- seq(0,1,0.2)
+no.ranges <- length(frequency.thresholds)-1
+
+# Calculate frequency based on reprseq cluster size
+reprseq.cluster.size <- reprseq.table[, .N, by = .(reprseq, family)]
+max.size <- max(reprseq.cluster.size$N)
+freq.per.thr <- sapply(1:max.size, function(size.thr) sum(reprseq.cluster.size[reprseq.cluster.size$N==size.thr]$N)/sum(reprseq.cluster.size$N))
+cum.freq.per.thr <- cumsum(freq.per.thr)
+
+reprseq.per.freq.quintile.list <- lapply(1:no.ranges, function(range.index){
+  this.range.lower <- frequency.thresholds[range.index]
+  if(range.index == no.ranges){
+    this.range.upper <- 1
+  } else{
+    this.range.upper <- frequency.thresholds[range.index+1]  
+  }
+  sizes.within.this.range <- which((cum.freq.per.thr > this.range.lower) & (cum.freq.per.thr <= this.range.upper))
+  reprseqs.within.this.range <- reprseq.cluster.size[reprseq.cluster.size$N %in% sizes.within.this.range]$reprseq
+  data.table(reprseq = reprseqs.within.this.range, frequency.quintile = range.index)  
+})
+reprseq.per.freq.cluster.quintile <- rbindlist(reprseq.per.freq.quintile.list)
+
+# Calculate frequency based on taxonomic genus
+genus.freq <- metadata.table[, .N, by = genus.ncbi]
+genus.freq <- genus.freq[!genus.freq$genus.ncbi %in% c("Unclassified", "")]
+
+ncbi.genus <- metadata.table[.(reprseq.table$accession)]$genus.ncbi
+ncbi.genus[ncbi.genus == "Unclassified" | ncbi.genus == ""] <- NA
+reprseq.table$genus <- ncbi.genus
+
+max.genus.size <- max(genus.freq$N)
+genus.freq.per.thr <- sapply(1:max.genus.size, function(size.thr) sum(genus.freq[genus.freq$N==size.thr]$N)/sum(genus.freq$N))
+cum.genus.freq.per.thr <- cumsum(genus.freq.per.thr)
+
+reprseq.per.freq.quintile.list <- lapply(1:no.ranges, function(range.index){
+  this.range.lower <- frequency.thresholds[range.index]
+  if(range.index == no.ranges){
+    this.range.upper <- 1
+  } else{
+    this.range.upper <- frequency.thresholds[range.index+1]  
+  }
+  sizes.within.this.range <- which((cum.genus.freq.per.thr > this.range.lower) & (cum.genus.freq.per.thr <= this.range.upper))
+  genera.within.this.range <- genus.freq[genus.freq$N %in% sizes.within.this.range]$genus.ncbi
+  reprseq.within.this.range <- unique(reprseq.table[reprseq.table$genus %in% genera.within.this.range]$reprseq)
+  data.table(reprseq = reprseq.within.this.range, frequency.quintile = range.index)
+})
+reprseq.per.freq.genus.quintile <- rbindlist(reprseq.per.freq.quintile.list)
+
+
+##########################################
+### 6. Visualise domain coverage per freq
+##########################################
+
+cov.per.freq.list <- lapply(1:no.ranges, function(this.quantile){# get domain coverage within this quantile for cluster frequency
+  reprseq.per.freq.cluster.within <- reprseq.per.freq.cluster.quintile[reprseq.per.freq.cluster.quintile$frequency.quintile == this.quantile]$reprseq
+  reprseq.per.freq.cluster.within.with.ecf <- reprseq.per.freq.cluster.within[reprseq.per.freq.cluster.within %in% reprseq.with.ecf.hits]
+  reprseq.per.freq.cluster.within.with.ecod <- reprseq.per.freq.cluster.within[reprseq.per.freq.cluster.within %in% reprseq.ecod$qname]
+  reprseq.per.freq.cluster.within.with.pfam <- reprseq.per.freq.cluster.within[reprseq.per.freq.cluster.within %in% reprseq.pfam$qname]
+  
+  out.cluster <- data.table(quantile = this.quantile, freq.type = "cluster",
+                            no.reprseq = length(reprseq.per.freq.cluster.within),
+                            no.reprseq.with.ecf = length(reprseq.per.freq.cluster.within.with.ecf),
+                            no.reprseq.with.ecod = length(reprseq.per.freq.cluster.within.with.ecod),
+                            no.reprseq.with.pfam = length(reprseq.per.freq.cluster.within.with.pfam)
+  )
+  
+  # get domain coverage within this quantile for genus frequency
+  reprseq.per.freq.genus.within <- reprseq.per.freq.genus.quintile[reprseq.per.freq.genus.quintile$frequency.quintile == this.quantile]$reprseq
+  reprseq.per.freq.genus.within.with.ecf <- reprseq.per.freq.genus.within[reprseq.per.freq.genus.within %in% reprseq.with.ecf.hits]
+  reprseq.per.freq.genus.within.with.ecod <- reprseq.per.freq.genus.within[reprseq.per.freq.genus.within %in% reprseq.ecod$qname]
+  reprseq.per.freq.genus.within.with.pfam <- reprseq.per.freq.genus.within[reprseq.per.freq.genus.within %in% reprseq.pfam$qname]
+  
+  out.genus <- data.table(quantile = this.quantile, freq.type = "genus",
+                          no.reprseq = length(reprseq.per.freq.genus.within),
+                          no.reprseq.with.ecf = length(reprseq.per.freq.genus.within.with.ecf),
+                          no.reprseq.with.ecod = length(reprseq.per.freq.genus.within.with.ecod),
+                          no.reprseq.with.pfam = length(reprseq.per.freq.genus.within.with.pfam)
+  )
+  
+  rbind(out.cluster, out.genus)
+})
+cov.per.freq <- rbindlist(cov.per.freq.list)
+
+# Calculate proportions
+cov.per.freq[, `:=`(ecf.cov = no.reprseq.with.ecf / no.reprseq,
+                    ecod.cov = no.reprseq.with.ecod / no.reprseq,
+                    pfam.cov = no.reprseq.with.pfam / no.reprseq)]
+
+
+# Convert the data from wide to long format
+long_data.abs <- pivot_longer(cov.per.freq, 
+                          cols = c("no.reprseq", "no.reprseq.with.ecf", "no.reprseq.with.ecod", "no.reprseq.with.pfam"),
+                          names_to = "category",
+                          values_to = "count")
+
+# Plot
+p.abs <- ggplot(long_data.abs, aes(x = as.factor(quantile), y = count, fill = category)) +
+  geom_col(position = position_dodge()) +
+  facet_wrap(~freq.type, scales = "free_y") +  # free_y allows each facet to have its own y scale
+  labs(title = "Coverage per Frequency Type across Quintiles",
+       x = "Quintile",
+       y = "Count",
+       fill = "Category") +
+  theme_minimal()
+
+# Convert the data from wide to long format
+long_data.prop <- pivot_longer(cov.per.freq, 
+                          cols = c("ecf.cov", "ecod.cov", "pfam.cov"),
+                          names_to = "category",
+                          values_to = "proportion")
+
+# Plot
+p.prop <- ggplot(long_data.prop, aes(x = as.factor(quantile), y = proportion, fill = category)) +
+  geom_col(position = position_dodge()) +
+  facet_wrap(~freq.type, scales = "free_y") +  # Allows each facet to have its own y scale
+  labs(title = "Proportional Coverage per Frequency Type across Quintiles",
+       x = "Quintile",
+       y = "Proportion",
+       fill = "Coverage Type") +
+  theme_minimal() + scale_y_continuous(limits = c(0,1))
+
+p.abs.fn <- file.path(this.results.dir, "plot3a_domain-cov-freq-abs.pdf")
+p.prop.fn <- file.path(this.results.dir, "plot3b_domain-cov-freq-rel.pdf")
+ggsave(file = p.abs.fn, p.abs, width = 6, height = 4)
+ggsave(file = p.prop.fn, p.prop, width = 6, height = 4)
+
+
+  
+
+# ecf.cov <- no.reprseq.with.ecf/no.reprseq
+# ecod.cov <- no.reprseq.with.ecod/no.reprseq
+# pfam.cov <- no.reprseq.with.pfam/no.reprseq
+
+
+# all.reprseqs.with.this.annotation.has.ecf <- all.reprseqs.with.this.annotation %in% all.reprseq
+# all.reprseqs.with.this.annotation.has.ecod <- all.reprseqs.with.this.annotation %in% reprseq.ecod$qname
+# all.reprseqs.with.this.annotation.has.pfam <- all.reprseqs.with.this.annotation %in% reprseq.pfam$qname
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# genus.freq <- metadata.table[, .N, by = genus.ncbi]
+# genus.freq <- genus.freq[!genus.freq$genus.ncbi %in% c("Unclassified", "")]
+# 
+# ncbi.genus <- metadata.table[.(reprseq.table$accession)]$genus.ncbi
+# ncbi.genus[ncbi.genus == "Unclassified" | ncbi.genus == ""] <- NA
+# reprseq.table$genus <- ncbi.genus
+# 
+# reprseq.cluster.size <- reprseq.table[, .N, by = .(reprseq, family)]
+# family.size <- reprseq.cluster.size[, .N, by = family]
+# 
+# max.size <- max(reprseq.cluster.size$N)
+# freq.per.thr <- sapply(1:max.size, function(size.thr){
+#   reprseq.of.given.freq.thr <- reprseq.cluster.size[reprseq.cluster.size$N==size.thr]
+#   no.reprseq.of.given.freq.thr <- lw(reprseq.table$reprseq %in% reprseq.of.given.freq.thr$reprseq)
+#   prop.of.these <- no.reprseq.of.given.freq.thr/nrow(reprseq.table)
+#   prop.of.these  
+# })
+# 
+# # OR simply
+# 
+# freq.per.thr <- sapply(1:max.size, function(size.thr) sum(reprseq.cluster.size[reprseq.cluster.size$N==size.thr]$N)/sum(reprseq.cluster.size$N))
+# cum.freq.per.thr <- cumsum(freq.per.thr)
+# 
+# 
+# size.thr=2
+# reprseq.up.to.freq.thr <- reprseq.cluster.size[reprseq.cluster.size$N<=size.thr]
+# lw(reprseq.cluster.size$reprseq %in% reprseq.up.to.freq.thr$reprseq)/
+# 
+# 
+# 
+# 
+# 
+# ggplot(reprseq.cluster.size, aes(x = N)) +
+#   geom_histogram(bins = 100, fill = "blue") +
+#   scale_y_log10() +  # Sets the y-axis to log scale
+#   labs(title = "Histogram of x$N", x = "x$N values", y = "Log Frequency")
+# 
+# ggplot(family.size, aes(x = N)) +
+#   geom_histogram(bins = 100, fill = "blue") +
+#   scale_y_log10() +  # Sets the y-axis to log scale
+#   labs(title = "Histogram of x$N", x = "x$N values", y = "Log Frequency")
+# 
+# quantile(log10(reprseq.cluster.size$N))
+# 
+# 
