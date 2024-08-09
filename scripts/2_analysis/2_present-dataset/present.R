@@ -5,6 +5,7 @@ suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(reshape2)))
 suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
 suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
+suppressWarnings(suppressPackageStartupMessages(library(seqinr)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -45,6 +46,9 @@ reprseq.table[, accession := tstrsplit(accession, ".", fixed = T)[[1]]]
 metadata.table <- fread(metadata.table.output)
 setkey(metadata.table, accession)
 
+ecod.domains <- fread(ecod.domains.output)
+pfam.domains <- fread(pfam.domains.output)
+
 
 ###############################################################
 ### 1. Plot the distribution of the number of reprseqs per ECF
@@ -62,7 +66,6 @@ p.repr.per.ecf.logx <- ggplot(reprseq.per.ecf, aes(x = no.reprseqs)) +
 
 p.repr.per.ecf.fn <- file.path(this.results.dir, "plot1a_repr-per-ecf.png")
 p.repr.per.ecf.logx.fn <- file.path(this.results.dir, "plot1b_repr-per-ecf-log.png")
-   
 ggsave(p.repr.per.ecf.fn, p.repr.per.ecf, width = 6, height = 5)
 ggsave(p.repr.per.ecf.logx.fn, p.repr.per.ecf.logx, width = 5, height = 5)
 
@@ -88,6 +91,21 @@ p.ecf.lengths <- ggplot(ecf.lengths, aes(x = length)) +
   geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
 p.ecf.lengths.fn <- file.path(this.results.dir, "plot3a_ecf-lengths.png")
 ggsave(p.ecf.lengths.fn, p.ecf.lengths, width = 6, height = 5)
+
+ecod.domains.seqs <- read.fasta(ecod.domains.fasta.filename)
+ecod.domains.lengths <- sapply(ecod.domains.seqs, length)
+# hist(ecod.domains.lengths, breaks = 30)
+ecod.lengths <- data.table(ecod = names(ecod.domains.seqs), length = ecod.domains.lengths)
+
+p.ecod.lengths <- ggplot(ecod.lengths, aes(x = length)) +
+  geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
+p.ecod.lengths.fn <- file.path(this.results.dir, "plot3b_ecod-lengths.png")
+ggsave(p.ecod.lengths.fn, p.ecod.lengths, width = 6, height = 5)
+
+p.pfam.lengths <- ggplot(pfam.domains, aes(x = length)) +
+  geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
+p.pfam.lengths.fn <- file.path(this.results.dir, "plot3c_pfam-lengths.png")
+ggsave(p.pfam.lengths.fn, p.pfam.lengths, width = 6, height = 5)
 
 ###############################################################
 ### 4. Plot the domain coverage (ECFs vs Pfam/ECODs) per function:

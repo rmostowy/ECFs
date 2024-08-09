@@ -42,8 +42,8 @@ get.qp.overlap <- function(fragment_start, fragment_end, pfam_start, pfam_end){
 
 pfam.hits <- fread(reprseq.domains.pfam.output)
 pfam.hits.filtered <- pfam.hits %>%
-  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN)
+  filter(prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE) %>%
+  filter(scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE)
 setkey(pfam.hits.filtered, qname)
 
 no.qecfs <- nrow(stats)
@@ -79,18 +79,32 @@ stats.df <- as.data.frame(stats)
 stats.df$is.pfam.equiv <- as.factor(stats.df$is.pfam.equiv)
 
 # Assuming your data frame is called stats and has columns average.frag.overlap and is.pfam.equiv
-p <- ggplot(stats.df, aes(x = is.pfam.equiv, y = average.frag.overlap, fill = is.pfam.equiv)) +
+p.aho <- ggplot(stats.df, aes(x = is.pfam.equiv, y = average.frag.overlap, fill = is.pfam.equiv)) +
   geom_boxplot(alpha = 0.5) +  # Boxplot with semi-transparent fill for better visibility of points
   geom_jitter(width = 0.2, alpha = 0.3, color = "black", size = .5) +  # Jittered points overlay
   scale_fill_brewer(palette = "Set1") +  # Optional: Use a Color Brewer palette for fills
-  labs(title = "Distribution of Average Fragment Overlap",
+  labs(title = "Distribution of Average Hit Overlap",
        x = "Is Pfam Equivalent",
-       y = "Average Fragment Overlap") +
+       y = "Average Hit Overlap (AHO)") +
   theme_minimal() +
   theme(legend.position = "none")  # Hide the legend if it's not needed
 
-p.filename <- "plot1_pfam-equiv-aho.png"
-ggsave(p.filename, p, width = 6, height = 5)
+# Assuming your data frame is called stats and has columns average.frag.overlap and is.pfam.equiv
+p.ac <- ggplot(stats.df, aes(x = is.pfam.equiv, y = average.coverage, fill = is.pfam.equiv)) +
+  geom_boxplot(alpha = 0.5) +  # Boxplot with semi-transparent fill for better visibility of points
+  geom_jitter(width = 0.2, alpha = 0.3, color = "black", size = .5) +  # Jittered points overlay
+  scale_fill_brewer(palette = "Set1") +  # Optional: Use a Color Brewer palette for fills
+  labs(title = "Distribution of Average Coverage",
+       x = "Is Pfam Equivalent",
+       y = "Average Coveratge (AC)") +
+  theme_minimal() +
+  theme(legend.position = "none")  # Hide the legend if it's not needed
+
+p.aho.filename <- "plot1a_pfam-equiv-aho.png"
+ggsave(p.aho.filename, p.aho, width = 6, height = 5)
+
+p.ac.filename <- "plot1b_pfam-equiv-ac.png"
+ggsave(p.ac.filename, p.ac, width = 6, height = 5)
 
 ######################################
 ##### 4. Get value cut-offs
@@ -101,6 +115,9 @@ lowerbound.aho <- quantile(stats$average.frag.overlap[stats$is.pfam.equiv], prob
 
 cutoff.ac <- as.numeric(lowerbound.ac["10%"])
 cutoff.aho <- as.numeric(lowerbound.aho["10%"])
+
+round(cutoff.ac, d=2)
+round(cutoff.aho, d=2)
 
 # stats.qcfs <- stats[stats$]
 # stats[stats$average.frag.overlap >= cutoff.aho]

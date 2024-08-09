@@ -49,6 +49,7 @@ manual.phrog.mapping.filename <- file.path(phrogs.db.path, "custom", "v4_phrogs-
 #############################
 ecod.db.path <- file.path(mgg.db, "hhpred", "ECOD", "ECOD_F70_20220613")
 ecod.domains.filename <- file.path(ecod.db.path, "ecod.latest.F70.domains.txt")
+ecod.domains.fasta.filename <- file.path(ecod.db.path, "ecod.latest.F70.fasta.txt")
 
 ecod.headers <- c("uid", "ecod_domain_id","manual_rep","f_id","pdb","chain","pdb_range","seqid_range","unp_acc",
   "arch_name","x_name","h_name","t_name","f_name", "asm_status", "ligand")

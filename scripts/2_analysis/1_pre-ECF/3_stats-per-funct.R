@@ -144,8 +144,9 @@ qecf.stats.per.ecod <- merged.qecf.ecod.filtered %>% select(qecf.name, aho = ave
 
 qecf.stats.per.ecod$t.id <- ecod.domains[.(qecf.stats.per.ecod$sname)]$t_id
 qecf.stats.per.ecod$t.name <- ecod.domains[.(qecf.stats.per.ecod$sname)]$t_name
+qecf.stats.per.ecod$arch.class <- ecod.domains[.(qecf.stats.per.ecod$sname)]$arch.class
 
-# 2. Merge all fragments with ECODs by qname
+# 2. Merge all fragments with Pfam by qname
 merged.qecf.pfam <- qecf.stats[reprseq.pfam, on = .(qname), allow.cartesian = T]
 merged.qecf.pfam <- merged.qecf.pfam[!is.na(qecf.name)]
 merged.qecf.pfam[, overlap := get.fragment.domain.overlap(qecf.start, qecf.end, qstart, qend), by = .(qecf.name, sname)]
@@ -185,6 +186,9 @@ p.de.ac.filename <- "plot3b_ecod-ac.pdf"
 ggsave(file = p.de.aho.filename, p.de.aho, width = 20, height = 7)
 ggsave(file = p.de.ac.filename, p.de.ac, width = 20, height = 7)
 
+# # Plot for architecutre class
+# ggplot(qecf.stats.per.ecod, aes(x = arch.class, y = aho)) + geom_boxplot()
+
 #### PFAM
 min.number.of.qecfs.per.pfam <- 100
 no.qecfs.per.pfam <- qecf.stats.per.pfam[, .N, by = annot]
@@ -210,3 +214,4 @@ p.dp.ac.filename <- "plot4b_pfam-ac.pdf"
 
 ggsave(file = p.dp.aho.filename, p.dp.aho, width = 20, height = 7)
 ggsave(file = p.dp.ac.filename, p.dp.ac, width = 20, height = 7)
+
