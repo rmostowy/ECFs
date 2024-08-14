@@ -71,6 +71,7 @@ stats$max.pfam.overlap <- max.pfam.overlap
 stats$is.pfam.equiv <- FALSE
 stats$is.pfam.equiv[which(max.pfam.overlap>=min.qp.overlap)] <- TRUE
 
+
 ######################################
 ##### 3. Visualise
 ######################################
@@ -124,23 +125,3 @@ cutoff.aho.rounded <- round(cutoff.aho, d=2)
 # stats[stats$average.frag.overlap >= cutoff.aho]
 stats.qcfs <- stats[stats$average.frag.overlap >= cutoff.aho.rounded & stats$average.coverage >= cutoff.ac.rounded]
 nrow(stats.qcfs)
-
-
-
-# ####### DEBUG
-# 
-aho.f.r <- stats[stats$average.frag.overlap >= cutoff.aho.rounded]
-stats.ks.filename <- "/Users/rmostowy/Desktop/quick-download/reprseq-all-stat-coverage.txt"
-stats.ks <- fread(stats.ks.filename)
-stats.ks[, qecf.name := sprintf("%s_%s", stats.ks$qname, stats.ks$cluster)]
-
-aho.f.k <- stats.ks[stats.ks$avg_hits_overlap >= cutoff.aho.rounded]
-
-setdiff(aho.f.r$qecf.name, aho.f.k$qecf.name)
-setdiff(aho.f.k$qecf.name, aho.f.r$qecf.name)
-
-
-
-
-
-
