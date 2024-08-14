@@ -109,11 +109,11 @@ my.stats <- rbindlist(my.stats.list)
 ##### 4. Process and save data
 ######################################
 
-# Round all float columns to 4 significant digits
-my.stats[, (names(my.stats)) := lapply(.SD, function(x) {
-  if (is.numeric(x)) return(round(x, 4))
-  else return(x)
-})]
+# # Round all float columns to 4 significant digits
+# my.stats[, (names(my.stats)) := lapply(.SD, function(x) {
+#   if (is.numeric(x)) return(round(x, 4))
+#   else return(x)
+# })]
 
 fwrite(my.stats, file = "reprseq-all-stat-mine.txt")
 

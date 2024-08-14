@@ -20,6 +20,7 @@ min.qp.overlap <- 0.8 # minimum overlap between qECF and Pfam
 
 stats.fn <- "reprseq-all-stat-mine.txt"
 stats <- fread(stats.fn)
+stats[, qecf.name := sprintf("%s_%s", stats$qname, stats$cluster)]
 
 ######################################
 ##### 2. Define functions
@@ -116,13 +117,30 @@ lowerbound.aho <- quantile(stats$average.frag.overlap[stats$is.pfam.equiv], prob
 cutoff.ac <- as.numeric(lowerbound.ac["10%"])
 cutoff.aho <- as.numeric(lowerbound.aho["10%"])
 
-round(cutoff.ac, d=2)
-round(cutoff.aho, d=2)
+cutoff.ac.rounded <- round(cutoff.ac, d=2)
+cutoff.aho.rounded <- round(cutoff.aho, d=2)
 
 # stats.qcfs <- stats[stats$]
 # stats[stats$average.frag.overlap >= cutoff.aho]
-stats.qcfs <- stats[stats$average.frag.overlap >= cutoff.aho & stats$average.coverage >= cutoff.ac]
+stats.qcfs <- stats[stats$average.frag.overlap >= cutoff.aho.rounded & stats$average.coverage >= cutoff.ac.rounded]
 nrow(stats.qcfs)
+
+
+
+# ####### DEBUG
+# 
+aho.f.r <- stats[stats$average.frag.overlap >= cutoff.aho.rounded]
+stats.ks.filename <- "/Users/rmostowy/Desktop/quick-download/reprseq-all-stat-coverage.txt"
+stats.ks <- fread(stats.ks.filename)
+stats.ks[, qecf.name := sprintf("%s_%s", stats.ks$qname, stats.ks$cluster)]
+
+aho.f.k <- stats.ks[stats.ks$avg_hits_overlap >= cutoff.aho.rounded]
+
+setdiff(aho.f.r$qecf.name, aho.f.k$qecf.name)
+setdiff(aho.f.k$qecf.name, aho.f.r$qecf.name)
+
+
+
 
 
 
