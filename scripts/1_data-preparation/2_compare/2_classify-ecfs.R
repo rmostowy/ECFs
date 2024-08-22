@@ -66,12 +66,13 @@ ecf.classification.table.list <- lapply(1:length(all.ecfs), function(index){
       filter(eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)
     is.equivalent <- nrow(this.ecfs.vs.ecod.equivalent)>0
     
+    is.subdomain.cond1 <- all(this.ecfs.vs.ecod$scov < MAX.SCOV.FOR.SUBDOMAIN)
     this.ecfs.vs.ecod.subdomain <- this.ecfs.vs.ecod %>% 
-      filter(prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE) %>%
-      filter(qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE) %>%
-      filter(scov <= MAX.SCOV.FOR.SUBDOMAIN) %>%
-      filter(eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)
-    is.subdomain <- nrow(this.ecfs.vs.ecod.subdomain)>0
+      filter(prob >= MIN.PROB.FOR.SUBDOMAIN) %>%
+      filter(qcov >= MIN.QCOV.FOR.SUBDOMAIN) %>%
+      filter(eval <= MAX.EVAL.FOR.SUBDOMAIN)
+    is.subdomain.cond2 <- nrow(this.ecfs.vs.ecod.subdomain)>0
+    is.subdomain <- is.subdomain.cond1 & is.subdomain.cond2
     
     if(is.equivalent){
       this.ecfs.vs.ecod <- this.ecfs.vs.ecod.equivalent
