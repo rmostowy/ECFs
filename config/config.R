@@ -168,6 +168,8 @@ reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_
 
 ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifications.txt")
 
+# ecf-sharing pairs
+ecf.sharing.pairs.output <- file.path(data.comparisons.dir, "ecf-sharing-pairs.txt")
 
 #################
 ## Labels

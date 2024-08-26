@@ -161,6 +161,7 @@ putative.recomb.pairs.ecf.coords$seq.b <- reprseq.seqs.table[.(putative.recomb.p
 # TODO!!! WE NEED TO CORRECT THE DATA PROCESSING TO AVOID THIS
 
 seqs.are.ok <- !is.na(putative.recomb.pairs.ecf.coords$seq.a) & !is.na(putative.recomb.pairs.ecf.coords$seq.b)
+putative.recomb.pairs.aln <- putative.recomb.pairs.aln[seqs.are.ok]
 putative.recomb.pairs.ecf.coords <- putative.recomb.pairs.ecf.coords[seqs.are.ok]
 
 # Extract subsequences for query.a using the correct string column
@@ -203,6 +204,17 @@ all.alignments.list <- mclapply(1:N, function(pair.index){
 all.alignments.pident <- sapply(all.alignments.list, get.pident)
 
 putative.recomb.pairs.ecf.coords$ecf.pident <- all.alignments.pident
+
+putative.recomb.pairs.aln$ecf.seq.a <- putative.recomb.pairs.ecf.coords$ecf.seq.a
+putative.recomb.pairs.aln$ecf.seq.b <- putative.recomb.pairs.ecf.coords$ecf.seq.b
+putative.recomb.pairs.aln$ecf.pident <- putative.recomb.pairs.ecf.coords$ecf.pident
+
+fwrite(putative.recomb.pairs.aln, file = ecf.sharing.pairs.output)
+
+# z <- putative.recomb.pairs.aln[putative.recomb.pairs.aln$ecf.pident>70 & putative.recomb.pairs.aln$different.x] %>% select(ecod.a, ecod.b, x.id.a, x.id.b)
+# z$x.name.a <- ecod.domains[.(z$ecod.a)]$x_name
+# z$x.name.b <- ecod.domains[.(z$ecod.b)]$x_name
+
 
 # # TEST ON A SUBSET OF 10%
 # set.seed(1234)
