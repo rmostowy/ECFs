@@ -150,7 +150,8 @@ reprseq.seqs.table <- data.table(name = reprseq.seqs.n, string = toupper(reprseq
 setkey(reprseq.seqs.table, name)
 
 # Define an object to work on
-putative.recomb.pairs.ecf.coords <- putative.recomb.pairs %>% select(query.a, query.b, qlength.a, ecf.start.a, ecf.end.a, qlength.b, ecf.start.b, ecf.end.b)
+# putative.recomb.pairs.ecf.coords <- putative.recomb.pairs %>% select(query.a, query.b, qlength.a, ecf.start.a, ecf.end.a, qlength.b, ecf.start.b, ecf.end.b)
+putative.recomb.pairs.ecf.coords <- putative.recomb.pairs.aln
 
 # Add full sequence information
 putative.recomb.pairs.ecf.coords$seq.a <- reprseq.seqs.table[.(putative.recomb.pairs.ecf.coords$query.a)]$string
@@ -160,9 +161,9 @@ putative.recomb.pairs.ecf.coords$seq.b <- reprseq.seqs.table[.(putative.recomb.p
 # These are repseqs that should have been removed at the inital filtering due to Xs in their sequence
 # TODO!!! WE NEED TO CORRECT THE DATA PROCESSING TO AVOID THIS
 
-seqs.are.ok <- !is.na(putative.recomb.pairs.ecf.coords$seq.a) & !is.na(putative.recomb.pairs.ecf.coords$seq.b)
-putative.recomb.pairs.aln <- putative.recomb.pairs.aln[seqs.are.ok]
-putative.recomb.pairs.ecf.coords <- putative.recomb.pairs.ecf.coords[seqs.are.ok]
+# seqs.are.ok <- !is.na(putative.recomb.pairs.ecf.coords$seq.a) & !is.na(putative.recomb.pairs.ecf.coords$seq.b)
+# putative.recomb.pairs.aln <- putative.recomb.pairs.aln[seqs.are.ok]
+# putative.recomb.pairs.ecf.coords <- putative.recomb.pairs.ecf.coords[seqs.are.ok]
 
 # Extract subsequences for query.a using the correct string column
 putative.recomb.pairs.ecf.coords[, ecf.seq.a := substr(seq.a, ecf.start.a, ecf.end.a)]
@@ -178,38 +179,86 @@ calculate_percentage_identity <- function(aligned_seq1, aligned_seq2) {
   return(percent_identity)
 }
 get.pident <- function(alignment){
-  aligned_pattern <- as.character(alignment@pattern)
-  aligned_subject <- as.character(alignment@subject)
-  percentage_identity <- calculate_percentage_identity(s2c(aligned_pattern), s2c(aligned_subject))
+  percentage_identity <- NA
+  alignment.is.null <- is.null(alignment)
+  if(!alignment.is.null){
+    aligned_pattern <- as.character(alignment@pattern)
+    aligned_subject <- as.character(alignment@subject)
+    percentage_identity <- calculate_percentage_identity(s2c(aligned_pattern), s2c(aligned_subject))
+  }
   return(percentage_identity)
 }
 
 # Align all ECF fragments
-N <- nrow(putative.recomb.pairs.ecf.coords)
 
-NO.CORES=12
-all.alignments.list <- mclapply(1:N, function(pair.index){
-  seq1.raw <- putative.recomb.pairs.ecf.coords$ecf.seq.a[pair.index]
-  seq2.raw <- putative.recomb.pairs.ecf.coords$ecf.seq.b[pair.index]
-  seq1 <- AAString(toupper(seq1.raw))
-  seq2 <- AAString(toupper(seq2.raw))
-  alignment <- pairwiseAlignment(pattern = seq1, subject = seq2, substitutionMatrix = "BLOSUM62", type = "global")
-  # aligned_pattern <- as.character(alignment@pattern)
-  # aligned_subject <- as.character(alignment@subject)
-  # # Function to calculate percentage identity
-  # percentage_identity <- calculate_percentage_identity(s2c(aligned_pattern), s2c(aligned_subject))
+# #|
+# set.seed(1234)
+# sample.size <- 0.1
+# nrow.pairs <- nrow(putative.recomb.pairs.ecf.coords)
+# nrows.sample <- ceiling(nrow.pairs*sample.size)
+# rows2sample <- sort(sample(nrow.pairs, nrows.sample))
+# putative.recomb.pairs.ecf.coords <- putative.recomb.pairs.ecf.coords[rows2sample]
+# #|
+
+# N <- nrow(putative.recomb.pairs.ecf.coords)
+# 
+# 
+# NO.CORES=8
+# all.alignments.list <- mclapply(1:N, function(pair.index){
+#   seq1.raw <- putative.recomb.pairs.ecf.coords$ecf.seq.a[pair.index]
+#   seq2.raw <- putative.recomb.pairs.ecf.coords$ecf.seq.b[pair.index]
+#   seq1 <- AAString(toupper(seq1.raw))
+#   seq2 <- AAString(toupper(seq2.raw))
+#   alignment <- pairwiseAlignment(pattern = seq1, subject = seq2, substitutionMatrix = "BLOSUM62", type = "global")
+#   # aligned_pattern <- as.character(alignment@pattern)
+#   # aligned_subject <- as.character(alignment@subject)
+#   # # Function to calculate percentage identity
+#   # percentage_identity <- calculate_percentage_identity(s2c(aligned_pattern), s2c(aligned_subject))
+#   return(alignment)
+# }, mc.cores = NO.CORES)
+# 
+# all.alignments.pident <- sapply(all.alignments.list, get.pident)
+# putative.recomb.pairs.ecf.coords$ecf.pident <- all.alignments.pident
+# 
+# 
+
+############
+
+putative.recomb.pairs.ecf.coords.subset <- putative.recomb.pairs.ecf.coords
+NO.CORES=10
+all.alignments.list <- mclapply(1:nrow(putative.recomb.pairs.ecf.coords.subset), function(pair.index){
+# all.alignments.list <- lapply(1:nrow(putative.recomb.pairs.ecf.coords.subset), function(pair.index){
+  cat(pair.index,"\n")
+  seq1.raw <- putative.recomb.pairs.ecf.coords.subset$ecf.seq.a[pair.index]
+  seq2.raw <- putative.recomb.pairs.ecf.coords.subset$ecf.seq.b[pair.index]
+  alignment <- NULL
+  check <- !is.na(seq1.raw) & !is.na(seq2.raw)
+  if(check){
+    seq1 <- AAString(toupper(seq1.raw))
+    seq2 <- AAString(toupper(seq2.raw))
+    alignment <- pairwiseAlignment(pattern = seq1, subject = seq2, substitutionMatrix = "BLOSUM62", type = "global")
+    
+  }
   return(alignment)
 }, mc.cores = NO.CORES)
-
+# })
 all.alignments.pident <- sapply(all.alignments.list, get.pident)
-
 putative.recomb.pairs.ecf.coords$ecf.pident <- all.alignments.pident
 
-putative.recomb.pairs.aln$ecf.seq.a <- putative.recomb.pairs.ecf.coords$ecf.seq.a
-putative.recomb.pairs.aln$ecf.seq.b <- putative.recomb.pairs.ecf.coords$ecf.seq.b
-putative.recomb.pairs.aln$ecf.pident <- putative.recomb.pairs.ecf.coords$ecf.pident
+fwrite(putative.recomb.pairs.ecf.coords, file = ecf.sharing.pairs.output)
 
-fwrite(putative.recomb.pairs.aln, file = ecf.sharing.pairs.output)
+View(putative.recomb.pairs.ecf.coords[ecf.pident > 50 & different.x & cov.a < 0.5 & cov.b < 0.5])
+
+
+
+############################
+
+
+# putative.recomb.pairs.aln$ecf.seq.a <- putative.recomb.pairs.ecf.coords$ecf.seq.a
+# putative.recomb.pairs.aln$ecf.seq.b <- putative.recomb.pairs.ecf.coords$ecf.seq.b
+# putative.recomb.pairs.aln$ecf.pident <- putative.recomb.pairs.ecf.coords$ecf.pident
+# 
+# fwrite(putative.recomb.pairs.aln, file = ecf.sharing.pairs.output)
 
 # z <- putative.recomb.pairs.aln[putative.recomb.pairs.aln$ecf.pident>70 & putative.recomb.pairs.aln$different.x] %>% select(ecod.a, ecod.b, x.id.a, x.id.b)
 # z$x.name.a <- ecod.domains[.(z$ecod.a)]$x_name
@@ -243,11 +292,6 @@ fwrite(putative.recomb.pairs.aln, file = ecf.sharing.pairs.output)
 # all.alignments.pident <- sapply(all.alignments.list, get.pident)
 # 
 # putative.recomb.pairs.ecf.coords.subsample$ecf.pident <- all.alignments.pident
-
-
-sapply()
-
-
 
 
 

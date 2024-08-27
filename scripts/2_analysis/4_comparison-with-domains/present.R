@@ -112,7 +112,6 @@ x.levels.per.ecf.l <- sapply(x.levels.per.ecf, length)
 ecf.classification.table$multiple.x <- x.levels.per.ecf.l>1
 ecf.classification.table.subset <- ecf.classification.table[ecf.classification.table$multiple.x]
 
-
 linked.architectures.all.list <- lapply(1:nrow(ecf.classification.table.subset), function(this.ecf.index){
   this.ecf.name <- ecf.classification.table.subset$ecf[this.ecf.index]
   this.ecf.hits <- ecfs.full.vs.ecod[.(this.ecf.name)]
