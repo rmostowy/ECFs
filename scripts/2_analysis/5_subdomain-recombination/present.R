@@ -23,6 +23,23 @@ reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
 reprseq.vs.reprseq[, qcov := round((qend - qstart + 1)/qlength, d = 4)]
 reprseq.vs.reprseq[, scov := round((send - sstart + 1)/slength, d = 4)]
 
+# Load functional annotations
+reprseq.functions.unique <- fread(reprseq.functions.unique.output)
+setkey(reprseq.functions.unique, reprseq)
+
+# Load taxonomy data
+name.table <- fread(name.table.filename)
+name.table.unique <- unique(name.table[, c("cluster.name", "repr.name")])
+name.table.unique$accession <- sapply(1:nrow(name.table.unique), function(k) strsplit(name.table.unique$cluster.name[k], ":")[[1]][1])
+name.table.unique$accession <- sapply(1:nrow(name.table.unique), function(k) strsplit(name.table.unique$accession[k], ".", fixed = T)[[1]][1])
+metadata.table <- fread(metadata.table.output)
+setkey(metadata.table, accession)
+
+name.table.unique$family.ncbi <- metadata.table[.(name.table.unique$accession)]$family.ncbi
+name.table.unique$genus.ncbi <- metadata.table[.(name.table.unique$accession)]$genus.ncbi
+setkey(name.table.unique, repr.name)
+
+
 # ############
 # 1. Find all overlapping ECFs and ECODs in reprseqs and calculate overlaps
 # ############
@@ -113,7 +130,7 @@ putative.recomb.pairs.temp <- putative.recomb.pairs.temp[query.a < query.b & h.i
 putative.recomb.pairs <- putative.recomb.pairs.temp %>% 
   select(query.a, query.b, shared.ecf, qlength.a, qlength.b,
          ecf.start.a, ecf.end.a, ecf.start.b, ecf.end.b,
-         ecod.a, ecod.b, x.id.a,, h.id.a, x.id.b, h.id.b,
+         ecod.a, ecod.b, x.id.a, h.id.a, x.id.b, h.id.b,
          ecod.start.a, ecod.end.a, ecod.start.b, ecod.end.b,
          ecod.cov.by.ecf.a, ecod.cov.by.ecf.b)
 putative.recomb.pairs[ , different.x := x.id.a != x.id.b]
@@ -247,8 +264,39 @@ putative.recomb.pairs.ecf.coords$ecf.pident <- all.alignments.pident
 
 fwrite(putative.recomb.pairs.ecf.coords, file = ecf.sharing.pairs.output)
 
-View(putative.recomb.pairs.ecf.coords[ecf.pident > 50 & different.x & cov.a < 0.5 & cov.b < 0.5])
 
+putative.recomb.pairs.ecf.coords$genus.a <- name.table.unique[.(putative.recomb.pairs.ecf.coords$query.a)]$genus.ncbi
+putative.recomb.pairs.ecf.coords$genus.b <- name.table.unique[.(putative.recomb.pairs.ecf.coords$query.b)]$genus.ncbi
+putative.recomb.pairs.ecf.coords$funct.a <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.a)]$funct
+putative.recomb.pairs.ecf.coords$funct.b <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.b)]$funct
+
+View(putative.recomb.pairs.ecf.coords[ecf.pident > 50 & cov.a < 0.5 & cov.b < 0.5])
+
+source("examples.R")
+
+subdomain.shortlist <- putative.recomb.pairs.ecf.coords[ecf.pident > 50 & cov.a < 0.5 & cov.b < 0.5]
+
+row.index <- 162
+subdomain.shortlist[row.index]
+protein1_length <- subdomain.shortlist$qlength.a[row.index]
+protein2_length <- subdomain.shortlist$qlength.b[row.index]
+aln1_start <- subdomain.shortlist$aln.start.a[row.index]
+aln1_end <- subdomain.shortlist$aln.end.a[row.index]
+aln2_start <- subdomain.shortlist$aln.start.b[row.index]
+aln2_end <- subdomain.shortlist$aln.end.b[row.index]
+
+ecf1_start <- subdomain.shortlist$ecf.start.a[row.index]
+ecf1_end <- subdomain.shortlist$ecf.end.a[row.index]
+ecf2_start <- subdomain.shortlist$ecf.start.b[row.index]
+ecf2_end <- subdomain.shortlist$ecf.end.b[row.index]
+
+aln_identity <- subdomain.shortlist$aln.pident[row.index]/100
+ecf_identity <- subdomain.shortlist$ecf.pident[row.index]/100
+
+plot_protein_alignment(protein1_length, protein2_length, 
+                       aln1_start, aln1_end, aln2_start, aln2_end, 
+                       ecf1_start, ecf1_end, ecf2_start, ecf2_end, 
+                       aln_identity, ecf_identity)
 
 
 ############################
