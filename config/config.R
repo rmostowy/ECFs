@@ -105,7 +105,7 @@ ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL38_v2.xlsx")
 #######################
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
-main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v2")
+main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v1")
 data.input.dir <- file.path(main.data.dir, "input")
 data.output.dir <- file.path(main.data.dir, "output")
 
