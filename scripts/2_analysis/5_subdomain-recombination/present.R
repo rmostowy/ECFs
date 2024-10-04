@@ -268,7 +268,14 @@ fwrite(putative.recomb.pairs.ecf.coords, file = ecf.sharing.pairs.output)
 putative.recomb.pairs.ecf.coords$genus.a <- name.table.unique[.(putative.recomb.pairs.ecf.coords$query.a)]$genus.ncbi
 putative.recomb.pairs.ecf.coords$genus.b <- name.table.unique[.(putative.recomb.pairs.ecf.coords$query.b)]$genus.ncbi
 putative.recomb.pairs.ecf.coords$funct.a <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.a)]$funct
+putative.recomb.pairs.ecf.coords$class.a <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.a)]$class
 putative.recomb.pairs.ecf.coords$funct.b <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.b)]$funct
+putative.recomb.pairs.ecf.coords$class.b <- reprseq.functions.unique[.(putative.recomb.pairs.ecf.coords$query.b)]$class
+putative.recomb.pairs.ecf.coords$t.name.a <- ecod.domains[.(putative.recomb.pairs.ecf.coords$ecod.a)]$t_name
+putative.recomb.pairs.ecf.coords$t.id.a <- ecod.domains[.(putative.recomb.pairs.ecf.coords$ecod.a)]$t_id
+putative.recomb.pairs.ecf.coords$t.name.b <- ecod.domains[.(putative.recomb.pairs.ecf.coords$ecod.b)]$t_name
+putative.recomb.pairs.ecf.coords$t.id.b <- ecod.domains[.(putative.recomb.pairs.ecf.coords$ecod.b)]$t_id
+
 
 View(putative.recomb.pairs.ecf.coords[ecf.pident > 50 & cov.a < 0.5 & cov.b < 0.5])
 
@@ -276,8 +283,13 @@ source("examples.R")
 
 subdomain.shortlist <- putative.recomb.pairs.ecf.coords[ecf.pident > 50 & cov.a < 0.5 & cov.b < 0.5]
 
-row.index <- 162
+row.index <- 143
+# row.index <- 76
 subdomain.shortlist[row.index]
+
+protein1_name <- subdomain.shortlist$query.a[row.index]
+protein2_name <- subdomain.shortlist$query.b[row.index]
+
 protein1_length <- subdomain.shortlist$qlength.a[row.index]
 protein2_length <- subdomain.shortlist$qlength.b[row.index]
 aln1_start <- subdomain.shortlist$aln.start.a[row.index]
@@ -293,10 +305,31 @@ ecf2_end <- subdomain.shortlist$ecf.end.b[row.index]
 aln_identity <- subdomain.shortlist$aln.pident[row.index]/100
 ecf_identity <- subdomain.shortlist$ecf.pident[row.index]/100
 
-plot_protein_alignment(protein1_length, protein2_length, 
+ecod1_start <- subdomain.shortlist$ecod.start.a[row.index]
+ecod1_end <- subdomain.shortlist$ecod.end.a[row.index]
+ecod2_start <- subdomain.shortlist$ecod.start.b[row.index]
+ecod2_end <- subdomain.shortlist$ecod.end.b[row.index]
+
+protein1_funct <- subdomain.shortlist$funct.a[row.index]
+protein1_class <- subdomain.shortlist$class.a[row.index]
+protein1_tname <- subdomain.shortlist$t.name.a[row.index]
+protein1_tid <- subdomain.shortlist$t.id.a[row.index]
+protein1_description <- sprintf("%s | %s\n%s (%s)", protein1_funct, protein1_class, protein1_tname, protein1_tid)
+
+protein2_funct <- subdomain.shortlist$funct.b[row.index]
+protein2_class <- subdomain.shortlist$class.b[row.index]
+protein2_tname <- subdomain.shortlist$t.name.b[row.index]
+protein2_tid <- subdomain.shortlist$t.id.b[row.index]
+protein2_description <- sprintf("%s | %s\n%s (%s)", protein2_funct, protein2_class, protein2_tname, protein2_tid)
+
+# source("examples.R")
+plot_protein_alignment(protein1_name, protein2_name,
+                       protein1_length, protein2_length, 
                        aln1_start, aln1_end, aln2_start, aln2_end, 
                        ecf1_start, ecf1_end, ecf2_start, ecf2_end, 
-                       aln_identity, ecf_identity)
+                       aln_identity, ecf_identity, 
+                       ecod1_start, ecod1_end, ecod2_start, ecod2_end,
+                       protein1_description, protein2_description)
 
 
 ############################
