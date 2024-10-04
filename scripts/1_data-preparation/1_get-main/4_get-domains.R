@@ -91,11 +91,11 @@ reprseq.domains.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
 reprseq.domains.pfam.all[, accession := sub("\\..*", "", sname)]
 
 
-# filter ECOD hits
+# filter PFAM hits
 reprseq.domains.pfam <- reprseq.domains.pfam.all %>%
   filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
   filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
   filter(hit.length >= MIN.DOMAIN.LENGTH)
 
-# write ECOD hits
+# write PFAM hits
 fwrite(reprseq.domains.pfam, reprseq.domains.pfam.output)

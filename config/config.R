@@ -78,19 +78,19 @@ metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refse
 ####################
 ### Define ECF data
 ####################
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-05-23")
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-10-04")
 ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 # 
 ecf.name.table.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
-ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt")
-ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod.txt")
-ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam.txt")
-ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf.txt")
+ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db-hhsearch.txt")
+ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod-hhsearch.txt")
+ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam-hhsearch.txt")
+ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf-hhsearch.txt")
 reprseq.vs.reprseq.filename <- file.path(ecf.raw.input.path, "table-hhr.txt")
 reprseq.vs.reprseq.clust.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
-ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod.txt")
-pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam.txt")
+ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod-hhsearch.txt")
+pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam-hhsearch.txt")
 qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.txt")
 ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
 

@@ -28,30 +28,9 @@ name.table$has.missing.char <- name.table$ncbi.id %in% reprseqs.with.unknown.cha
 # Get the representative names of sequences with missing characters
 reprseqs.with.missing.chars <- unique(name.table$repr.name[name.table$has.missing.char])
 
-# Load tables with hits to other representative sequences and PHROGs
-reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
-reprseq.vs.phrogs <- fread(phrog.hhpred.hits.filename)
-# reprseq.vs.phrogs <- reprseq.vs.phrogs[reprseq.vs.phrogs$prob>=min(reprseq.vs.reprseq$prob)]
-reprseq.vs.antidefence <- fread(antidefence.hhpred.hits.filename)
-# reprseq.vs.antidefence <- reprseq.vs.antidefence[reprseq.vs.antidefence$prob>=min(reprseq.vs.reprseq$prob)]
-
-# Identify reprseqs that have hits to other reprseqs
-reprseq.with.hits.to.other.reprseq <- sort(unique(c(reprseq.vs.reprseq$qname, reprseq.vs.reprseq$sname)))
-# Identify reprseqs that do not have hits to other reprseqs
-reprseq.without.hits.to.other.reprseq <- unique(name.table$repr.name[!name.table$repr.name %in% reprseq.with.hits.to.other.reprseq])
-
-# Identify reprseqs that have hits to PHROGs or antidefence proteins
-reprseq.with.hits.to.phrogs <- sort(unique(reprseq.vs.phrogs$qname))
-reprseq.with.hits.to.antidef <- sort(unique(reprseq.vs.antidefence$sname))
-reprseq.with.functional.hits <- union(reprseq.with.hits.to.phrogs, reprseq.with.hits.to.antidef)
-# Identify reprseqs that do not have any functional hits
-reprseq.without.functional.hits <- unique(name.table$repr.name[!name.table$repr.name %in% reprseq.with.functional.hits])
-
-# Identify reprseqs that do not have hits to PHROGs *nor* other antidefence proteins *or* other reprseqs
-reprseq.weird.singletons <- intersect(reprseq.without.functional.hits, reprseq.without.hits.to.other.reprseq)
 
 # Create a vector of all sequences to remove
-reprseqs.to.remove <- sort(unique(c(reprseq.weird.singletons, reprseqs.with.missing.chars)))
+reprseqs.to.remove <- reprseqs.with.missing.chars
 # Identify sequences that should not be removed
 reprseqs.not.to.remove <- unique(name.table$repr.name[!name.table$repr.name %in% reprseqs.to.remove])
 

@@ -69,7 +69,6 @@ funct.count <- data.table(annot.index=1:nrow(funct.count), funct.count)
 fwrite(phrogs.functions.final, file = phrogs.functions.output)
 fwrite(funct.count, file = phrogs.count.output)
 
-
 # load antidefence descriptions
 antidefence.descr <- as.data.table(read_xlsx(antidefence.descr.filename))
 
@@ -86,6 +85,3 @@ antidefence.table <- antidefence.descr %>%
   select(accession = accession.base, name = Name, funct = Function, annotation)
 
 fwrite(antidefence.table, file = antidefence.table.output)
-
-
-# antidefence.descr$accession.base[is.accession.versioned] <- 
