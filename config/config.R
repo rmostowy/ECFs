@@ -78,9 +78,9 @@ metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refse
 ####################
 ### Define ECF data
 ####################
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer")
-ecf.raw.input.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "input")
-ecf.raw.data.path <- file.path(ecf.explorer.path, "ecf-explorer_2024-05-23", "output")
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-05-23")
+ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
+ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 # 
 ecf.name.table.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
 ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db.txt")
