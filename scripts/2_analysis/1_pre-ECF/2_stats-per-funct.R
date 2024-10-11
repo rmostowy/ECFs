@@ -15,9 +15,12 @@ source(config.filename)
 ######################################
 ##### 1. Load data
 ######################################
-qecf.stats <- fread("reprseq-all-stat-mine.txt")
+qecf.stats <- fread(qecf.stats.filename)
 qecf.stats[, qecf.name := sprintf("%s_%s", qecf.stats$qname, qecf.stats$cluster)]
 qecf.stats <- qecf.stats[order(qname)]
+qecf.stats[, V1 := NULL]
+qecf.stats[avg_hit_coverage < 0, avg_hit_coverage := 0]
+qecf.stats.filtered <- qecf.stats[qecf_span >= 20 & nb_hits >= 5 & avg_hit_coverage > 0 & avg_hits_overlap > 0]
 
 # reprseq.domains.ecod <- fread(reprseq.domains.ecod.output)
 # reprseq.ecod <- reprseq.domains.ecod %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
@@ -60,11 +63,11 @@ stats.per.funct.list <- lapply(1:nrow(top.annotations), function(index){
   this.funct <- top.annotations$funct[index]
   this.class <- top.annotations$class[index]
   this.annotation.reprseqs <- reprseq.functions.all[.(this.annotation)]$qname
-  this.annotation.qecf.stats <- qecf.stats[qecf.stats$qname %in% this.annotation.reprseqs]
+  this.annotation.qecf.stats <- qecf.stats.filtered[qecf.stats.filtered$qname %in% this.annotation.reprseqs]
   no.qecfs.per.annot <- nrow(this.annotation.qecf.stats)
   if(no.qecfs.per.annot>0){
-  out <- data.table(qecf.name = this.annotation.qecf.stats$qecf.name, aho = this.annotation.qecf.stats$average.frag.overlap, 
-             ac = this.annotation.qecf.stats$average.coverage, funct = this.funct, 
+  out <- data.table(qecf.name = this.annotation.qecf.stats$qecf.name, aho = this.annotation.qecf.stats$avg_hits_overlap, 
+             ac = this.annotation.qecf.stats$avg_hit_coverage, funct = this.funct, 
              class = this.class, annotation = this.annotation)
   }
   return(out)
@@ -88,7 +91,6 @@ p.aho <- ggplot(stats.per.funct.vis, aes(x = funct, y = aho, fill = class)) +
   labs(title = "Aho Values per Funct, Ordered and Coloured by Class",
        x = "Function (sorted by Class)", y = "AHO Value") +
   scale_fill_manual(values = setNames(phrogs.col, phrogs.class))
-  
 
 p.ac <- ggplot(stats.per.funct.vis, aes(x = funct, y = ac, fill = class)) +
   geom_boxplot() +
@@ -102,7 +104,6 @@ p.ac.filename <- "plot2b_funct-ac.pdf"
 
 ggsave(file = p.aho.filename, p.aho, width = 20, height = 7)
 ggsave(file = p.ac.filename, p.ac, width = 20, height = 7)
-
 
 # Create a color vector for axis text
 selected_functions <- c("endolysin", "minor tail", "tail fiber")
@@ -135,24 +136,24 @@ mean.stats.per.funct[mean.stats.per.funct$low.ac]
 ######################################
 
 # 1. Merge all fragments with ECODs by qname
-merged.qecf.ecod <- qecf.stats[reprseq.ecod, on = .(qname), allow.cartesian = T]
+merged.qecf.ecod <- qecf.stats.filtered[reprseq.ecod, on = .(qname), allow.cartesian = T]
 merged.qecf.ecod <- merged.qecf.ecod[!is.na(qecf.name)]
-merged.qecf.ecod[, overlap := get.fragment.domain.overlap(qecf.start, qecf.end, qstart, qend), by = .(qecf.name, sname)]
+merged.qecf.ecod[, overlap := get.fragment.domain.overlap(qecf_start, qecf_end, qstart, qend), by = .(qecf.name, sname)]
 merged.qecf.ecod.filtered <- merged.qecf.ecod[order(-overlap, -bitscore), .SD[1], by = qecf.name]
 merged.qecf.ecod.filtered <- merged.qecf.ecod.filtered[merged.qecf.ecod.filtered$overlap >= MIN.OVERLAP.THRESHOLD]
-qecf.stats.per.ecod <- merged.qecf.ecod.filtered %>% select(qecf.name, aho = average.frag.overlap, ac = average.coverage, sname)
+qecf.stats.per.ecod <- merged.qecf.ecod.filtered %>% select(qecf.name, aho = avg_hits_overlap, ac = avg_hit_coverage, sname)
 
 qecf.stats.per.ecod$t.id <- ecod.domains[.(qecf.stats.per.ecod$sname)]$t_id
 qecf.stats.per.ecod$t.name <- ecod.domains[.(qecf.stats.per.ecod$sname)]$t_name
 qecf.stats.per.ecod$arch.class <- ecod.domains[.(qecf.stats.per.ecod$sname)]$arch.class
 
 # 2. Merge all fragments with Pfam by qname
-merged.qecf.pfam <- qecf.stats[reprseq.pfam, on = .(qname), allow.cartesian = T]
+merged.qecf.pfam <- qecf.stats.filtered[reprseq.pfam, on = .(qname), allow.cartesian = T]
 merged.qecf.pfam <- merged.qecf.pfam[!is.na(qecf.name)]
-merged.qecf.pfam[, overlap := get.fragment.domain.overlap(qecf.start, qecf.end, qstart, qend), by = .(qecf.name, sname)]
+merged.qecf.pfam[, overlap := get.fragment.domain.overlap(qecf_start, qecf_end, qstart, qend), by = .(qecf.name, sname)]
 merged.qecf.pfam.filtered <- merged.qecf.pfam[order(-overlap, -bitscore), .SD[1], by = qecf.name]
 merged.qecf.pfam.filtered <- merged.qecf.pfam.filtered[merged.qecf.pfam.filtered$overlap >= MIN.OVERLAP.THRESHOLD]
-qecf.stats.per.pfam <- merged.qecf.pfam.filtered %>% select(qecf.name, aho = average.frag.overlap, ac = average.coverage, accession)
+qecf.stats.per.pfam <- merged.qecf.pfam.filtered %>% select(qecf.name, aho = avg_hits_overlap, ac = avg_hit_coverage, accession)
 
 qecf.stats.per.pfam$annot <- pfam.domains[.(qecf.stats.per.pfam$accession)]$description
 
