@@ -98,7 +98,7 @@ ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
 ### Define other data
 ####################
 
-ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL38_v2.xlsx")
+ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL39_v2.xlsx")
 
 #######################
 ### Data directories
@@ -157,6 +157,7 @@ ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
 
 ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-vs-EFs.txt")
+ecf.family.network.output <- file.path(data.ecfs.dir, "ecfs-network.txt")
 
 # metadata
 metadata.table.output <- file.path(data.input.dir, "metadata.tsv")
