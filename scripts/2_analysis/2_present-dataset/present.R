@@ -16,6 +16,10 @@ source(config.filename)
 ####################################################################
 
 # Load all datasets
+ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
+all.ecfs <- unique(ecfs.vs.qecfs$ecf)
+Ne <- length(all.ecfs)
+
 reprseq.ecfs <- fread(reprseq.ecfs.output)
 reprseq.ecfs <- reprseq.ecfs %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
 
@@ -28,7 +32,7 @@ reprseq.pfam <- reprseq.domains.pfam %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, sco
 ecf.family.table <- fread(ecf.family.table.output)
 
 reprseq.with.ecf.hits <- unique(reprseq.ecfs$qname)
-all.ecfs <- unique(reprseq.ecfs$sname)
+# all.ecfs <- unique(reprseq.ecfs$sname)
 
 reprseq.functions.all <- fread(reprseq.functions.all.output)
 # reprseq.functions.all <- reprseq.functions.all[reprseq.functions.all$qname %in% all.reprseq]
@@ -36,7 +40,7 @@ setkey(reprseq.functions.all, annotation)
 
 top.annotations <- reprseq.functions.all[reprseq.functions.all$top.annotation] %>% select(funct, class, annotation) %>% distinct()
 
-ecf.family.table <- ecf.family.table[ecf.family.table$ecf %in% all.ecfs]
+# ecf.family.table <- ecf.family.table[ecf.family.table$ecf %in% all.ecfs]
 no.families <- length(unique(ecf.family.table$ecf.family))
 
 reprseq.table <- fread(reprseq.table.filename)
@@ -213,7 +217,7 @@ p.known.unknown <- ggplot(proportions, aes(x = domain, y = proportion, fill = do
   scale_y_continuous(limits = c(0,1))
   
 p.known.unknown.fn <- file.path(this.results.dir, "plot2_domain-cov-unknown.pdf")
-ggsave(p.known.unknown.fn, p.known.unknown, width = 6, height = 4)
+ggsave(p.known.unknown.fn, p.known.unknown, width = 8, height = 5)
 
 #######################################
 ### 5. Calculate reprseq frequency
@@ -347,60 +351,3 @@ ggsave(file = p.prop.fn, p.prop, width = 6, height = 4)
 
 
   
-
-# ecf.cov <- no.reprseq.with.ecf/no.reprseq
-# ecod.cov <- no.reprseq.with.ecod/no.reprseq
-# pfam.cov <- no.reprseq.with.pfam/no.reprseq
-
-
-# all.reprseqs.with.this.annotation.has.ecf <- all.reprseqs.with.this.annotation %in% all.reprseq
-# all.reprseqs.with.this.annotation.has.ecod <- all.reprseqs.with.this.annotation %in% reprseq.ecod$qname
-# all.reprseqs.with.this.annotation.has.pfam <- all.reprseqs.with.this.annotation %in% reprseq.pfam$qname
-
-
-
-# genus.freq <- metadata.table[, .N, by = genus.ncbi]
-# genus.freq <- genus.freq[!genus.freq$genus.ncbi %in% c("Unclassified", "")]
-# 
-# ncbi.genus <- metadata.table[.(reprseq.table$accession)]$genus.ncbi
-# ncbi.genus[ncbi.genus == "Unclassified" | ncbi.genus == ""] <- NA
-# reprseq.table$genus <- ncbi.genus
-# 
-# reprseq.cluster.size <- reprseq.table[, .N, by = .(reprseq, family)]
-# family.size <- reprseq.cluster.size[, .N, by = family]
-# 
-# max.size <- max(reprseq.cluster.size$N)
-# freq.per.thr <- sapply(1:max.size, function(size.thr){
-#   reprseq.of.given.freq.thr <- reprseq.cluster.size[reprseq.cluster.size$N==size.thr]
-#   no.reprseq.of.given.freq.thr <- lw(reprseq.table$reprseq %in% reprseq.of.given.freq.thr$reprseq)
-#   prop.of.these <- no.reprseq.of.given.freq.thr/nrow(reprseq.table)
-#   prop.of.these  
-# })
-# 
-# # OR simply
-# 
-# freq.per.thr <- sapply(1:max.size, function(size.thr) sum(reprseq.cluster.size[reprseq.cluster.size$N==size.thr]$N)/sum(reprseq.cluster.size$N))
-# cum.freq.per.thr <- cumsum(freq.per.thr)
-# 
-# 
-# size.thr=2
-# reprseq.up.to.freq.thr <- reprseq.cluster.size[reprseq.cluster.size$N<=size.thr]
-# lw(reprseq.cluster.size$reprseq %in% reprseq.up.to.freq.thr$reprseq)/
-# 
-# 
-# 
-# 
-# 
-# ggplot(reprseq.cluster.size, aes(x = N)) +
-#   geom_histogram(bins = 100, fill = "blue") +
-#   scale_y_log10() +  # Sets the y-axis to log scale
-#   labs(title = "Histogram of x$N", x = "x$N values", y = "Log Frequency")
-# 
-# ggplot(family.size, aes(x = N)) +
-#   geom_histogram(bins = 100, fill = "blue") +
-#   scale_y_log10() +  # Sets the y-axis to log scale
-#   labs(title = "Histogram of x$N", x = "x$N values", y = "Log Frequency")
-# 
-# quantile(log10(reprseq.cluster.size$N))
-# 
-# 
