@@ -19,6 +19,9 @@ source(config.filename)
 # 1. Load data
 #########################
 
+reprseq.table <- fread(reprseq.table.filename)
+all.reprseq <- unique(reprseq.table$reprseq)
+
 reprseq.ecfs.all <- fread(reprseq.ecfs.output)
 reprseq.ecod.all <- fread(reprseq.domains.ecod.output)
 reprseq.pfam.all <- fread(reprseq.domains.pfam.output)

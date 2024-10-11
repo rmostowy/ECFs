@@ -9,6 +9,9 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
+# Load reprseq tables
+reprseq.table <- fread(reprseq.table.filename)
+all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load ECOD domain table
 ecod.domains <- fread(ecod.domains.output)
@@ -20,9 +23,9 @@ setkey(reprseq.functions.unique, reprseq)
 
 # Load ECF table
 ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
-ecfs.vs.qecfs$reprseq <- substr(ecfs.vs.qecfs$qecf, 1, regexpr("_", ecfs.vs.qecfs$qecf)-1)
 setkey(ecfs.vs.qecfs, ecf)
 all.ecfs <- unique(ecfs.vs.qecfs$ecf)
+Ne <- length(all.ecfs)
 
 # Load ECF vs ECOD table
 ecfs.vs.ecod <- fread(ecfs.vs.ecod.output)
@@ -37,7 +40,7 @@ setkey(ecfs.vs.ecod, qname)
 # ecfs.with.ecod.hit <- unique(ecfs.vs.ecod$qname)
 # ecfs.potentially.new <- setdiff(all.ecfs, ecfs.with.ecod.hit)
 
-ecf.classification.table.list <- lapply(1:length(all.ecfs), function(index){
+ecf.classification.table.list <- lapply(1:Ne, function(index){
   # get linked PHROG annotations
   this.ecf <- all.ecfs[index]
   this.ecf.reprseqs <- ecfs.vs.qecfs[.(this.ecf)]$reprseq

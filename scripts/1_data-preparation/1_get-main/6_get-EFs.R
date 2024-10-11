@@ -13,7 +13,8 @@ source(config.filename)
 
 # Load ECF table
 ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
-ecfs.vs.qecfs$reprseq <- substr(ecfs.vs.qecfs$qecf, 1, regexpr("_", ecfs.vs.qecfs$qecf)-1)
+ecfs.vs.qecfs[, c("reprseq", "suffix") := tstrsplit(qecf, "_")]
+ecfs.vs.qecfs[, suffix := NULL]
 setkey(ecfs.vs.qecfs, ecf)
 all.ecfs <- unique(ecfs.vs.qecfs$ecf)
 
@@ -31,6 +32,8 @@ setkey(ecf.lengths, name)
 ecfs.vs.ecfs.cov <- fread(ecfs.vs.ecfs.cov.output)
 ecfs.vs.ecfs.cov$qlength <- ecf.lengths[.(ecfs.vs.ecfs.cov$query)]$length
 ecfs.vs.ecfs.cov$slength <- ecf.lengths[.(ecfs.vs.ecfs.cov$subject)]$length
+ecfs.vs.ecfs.cov[, scov := pmin(scov.min, scov.max)]
+ecfs.vs.ecfs.cov[, qcov := pmin(qcov.min, qcov.max)]
 ecfs.vs.ecfs.cov[, cov.min := pmin(scov.min, qcov.min)]
 ecfs.vs.ecfs.cov[, cov.max := pmax(scov.min, qcov.min)]
 
@@ -39,10 +42,14 @@ ecfs.vs.ecfs.cov <- ecfs.vs.ecfs.cov[!(ecfs.vs.ecfs.cov$qlength*ECF.LENGTH.DIFF.
 # filter by min/max coverage
 ecfs.vs.ecfs.cov <- ecfs.vs.ecfs.cov[ecfs.vs.ecfs.cov$cov.min >= ECF.MIN.COV.THR & ecfs.vs.ecfs.cov$cov.max >= ECF.MAX.COV.THR]
 
-# create a MCL input
-ecf.network <- data.table(from = c(ecfs.vs.ecfs.cov$query, all.ecfs),
-                              to = c(ecfs.vs.ecfs.cov$subject, all.ecfs)
-)
+# create an ECF network
+ecf.network.full.nonself <- ecfs.vs.ecfs.cov %>% 
+  select(query, subject, prob, pident, qcov, scov, cov.min, cov.max)
+ecf.network.full.self <- data.table(query = all.ecfs, subject = all.ecfs, prob = 100, pident = 100, qcov = 1, scov = 1, cov.min = 1, cov.max = 1)
+ecf.network.full <- rbind(ecf.network.full.nonself, ecf.network.full.self)
+
+# create a MCL input from the network
+ecf.network.mcl <- ecf.network.full %>% select(from = query, to = subject)
 
 # create a temp mcl directory
 mcl.run.dir <- file.path(data.tmp.dir, "mcl")
@@ -52,7 +59,7 @@ make.dir(mcl.tmp.dir)
 
 # run MCL
 input.filename <- file.path(mcl.run.dir, "mcl-input.txt")
-fwrite(ecf.network, file = input.filename, sep = " ")
+fwrite(ecf.network.mcl, file = input.filename, sep = " ")
 output.filename <- file.path(mcl.run.dir, "mcl-output.txt")
 run.mcl(input.filename, output.filename, inflation.factor = 2, tmp.dir = mcl.tmp.dir)
 
@@ -68,3 +75,5 @@ ecf.family.table <- mcl.vs.ecf[, .(ecf.family, ecf)]
 
 # Write to file
 fwrite(ecf.family.table, file = ecf.family.table.output)
+fwrite(ecf.network.full, file = ecf.family.network.output)
+

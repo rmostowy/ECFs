@@ -15,10 +15,22 @@ source(config.filename)
 # 1. ECF name conversion
 #########################
 
+# load input data
+reprseq.table <- fread(reprseq.table.filename)
+all.reprseq <- unique(reprseq.table$reprseq)
+
 # load ECF name table
 ecf.name.table <- fread(ecf.name.table.filename, header = F)
 setnames(ecf.name.table, c("er.name", "ecf.name"))
+ecf.name.table[, c("reprseq", "suffix") := tstrsplit(er.name, "_")]
+ecf.name.table[, suffix := NULL]
+ecf.name.table <- ecf.name.table[reprseq %chin% all.reprseq]
 setkey(ecf.name.table, er.name)
+
+# henceforth, ECFs created only from qECFs from corrupted reprseq are removed
+# (even if they were found subsequently in other reprseqs)
+all.ecfs <- unique(ecf.name.table$ecf.name)
+Ne <- length(all.ecfs)
 
 # Read the file efficiently
 ecf.vs.qecf.raw <- fread(ecf.vs.qecf.filename, header = FALSE, sep = "\n")
@@ -27,7 +39,13 @@ ecf.vs.qecf.raw[, c("ecf", "qcfs") := tstrsplit(V1, ",")]
 # Split the 'qcfs' part into individual elements and process
 ecf.vs.qecf <- ecf.vs.qecf.raw[, .(qecf = unlist(strsplit(qcfs, " "))), by = ecf]
 ecf.vs.qecf[, qecf := gsub("ecf_", "", qecf)]
+# Remove all ECFs which are not in the 'all.ecfs' vector
+ecf.vs.qecf <- ecf.vs.qecf[ecf %in% all.ecfs] 
+ecf.vs.qecf[, c("reprseq", "suffix") := tstrsplit(qecf, "_")]
+ecf.vs.qecf[, suffix := NULL]
 fwrite(ecf.vs.qecf, file = ecf.vs.qecf.output)
+
+all.ecfs <- unique(ecf.vs.qecf$ecf)
 
 #####################################
 # 2. Process reprseq to ECF mapping
@@ -38,7 +56,11 @@ reprseq.vs.ecfs.all <- fread(ecf.hits.filename)
 reprseq.vs.ecfs.all[, hit.length := qend - qstart + 1]
 reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
+# remove fishy reprseqs and ecfs
+reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[qname %chin% all.reprseq]
+reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[sname %chin% ecf.name.table$er.name]
 reprseq.vs.ecfs.all$sname <- ecf.name.table[.(reprseq.vs.ecfs.all$sname)]$ecf.name
+
 
 # filter ECF hits
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
@@ -47,17 +69,15 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
   filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
   filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
   filter(hit.length >= MIN.DOMAIN.LENGTH)
-# reprseq.vs.ecfs$sname <- ecf.name.table[.(reprseq.vs.ecfs$sname)]$ecf.name
-
-
-dist.ecfs <- setdiff(unique(reprseq.vs.ecfs.all$sname), unique(reprseq.vs.ecfs$sname))
-
-reprseq.dist <- reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname %in% dist.ecfs]
-
-reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname == "ecf_03242"]
 
 # write to file
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
+
+
+# dist.ecfs <- setdiff(unique(reprseq.vs.ecfs.all$sname), unique(reprseq.vs.ecfs$sname))
+# reprseq.dist <- reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname %in% dist.ecfs]
+# reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname == "ecf_03242"]
+
 
 #####################################
 # 2. Process ECF to ECF mapping
@@ -67,9 +87,14 @@ ecfs.vs.ecfs.all <- fread(ecf.hits.vs.ecf.filename)
 ecfs.vs.ecfs.all[, hit.length := qend - qstart + 1]
 ecfs.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
-# remove weird hits to super long proteins
-ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$sstart<ecfs.vs.ecfs.all$send]
-ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$qstart<ecfs.vs.ecfs.all$qend]
+ecfs.vs.ecfs.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.ecfs.all$sname <- ecf.name.table[.(ecfs.vs.ecfs.all$sname)]$ecf.name
+ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[!is.na(sname)]
+ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[qname %chin% all.ecfs]
+
+# # remove weird hits to super long proteins
+# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$sstart<ecfs.vs.ecfs.all$send]
+# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$qstart<ecfs.vs.ecfs.all$qend]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%
@@ -79,8 +104,6 @@ ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%
 
 # make ecf names consistent
 # all(ecfs.vs.ecfs$sname %in% ecf.name.table$er.name)
-ecfs.vs.ecfs$sname <- ecf.name.table[.(ecfs.vs.ecfs$sname)]$ecf.name
-ecfs.vs.ecfs$qname <- gsub("_final", "", ecfs.vs.ecfs$qname)
 
 # write to file
 fwrite(ecfs.vs.ecfs, file = ecfs.vs.ecfs.output)
@@ -93,6 +116,8 @@ ecfs.vs.ecod.all <- fread(ecf.hits.vs.ecod.filename)
 ecfs.vs.ecod.all[, hit.length := qend - qstart + 1]
 ecfs.vs.ecod.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecod.all[, scov := round((send - sstart + 1)/slength, 4)]
+ecfs.vs.ecod.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.ecod.all <- ecfs.vs.ecod.all[qname %chin% all.ecfs]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecod <- ecfs.vs.ecod.all %>%
@@ -100,8 +125,6 @@ ecfs.vs.ecod <- ecfs.vs.ecod.all %>%
   filter(prob >= MIN.PROB.FOR.ECF) %>%
   filter(hit.length >= MIN.ECF.HIT.LENGTH)
 
-# make ecf names consistent
-ecfs.vs.ecod$qname <- gsub("_final", "", ecfs.vs.ecod$qname)
 
 # write to file
 fwrite(ecfs.vs.ecod, file = ecfs.vs.ecod.output)
@@ -114,15 +137,14 @@ ecfs.vs.pfam.all <- fread(ecf.hits.vs.pfam.filename)
 ecfs.vs.pfam.all[, hit.length := qend - qstart + 1]
 ecfs.vs.pfam.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
+ecfs.vs.pfam.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.pfam.all <- ecfs.vs.pfam.all[qname %chin% all.ecfs]
 
 # filter ECF-to-ECF hits
 ecfs.vs.pfam <- ecfs.vs.pfam.all %>%
   filter(eval <= MAX.EVAL.FOR.ECF) %>% 
   filter(prob >= MIN.PROB.FOR.ECF) %>%
   filter(hit.length >= MIN.ECF.HIT.LENGTH)
-
-# make ecf names consistent
-ecfs.vs.pfam$qname <- gsub("_final", "", ecfs.vs.pfam$qname)
 
 # write to file
 fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
@@ -159,7 +181,7 @@ pair.table.hits.list <- lapply(1:no.iterations, function(iteration.index){
 close(pb)
 
 pair.table.hits <- rbindlist(pair.table.hits.list)
-new.col.names <- c("query", "subject", "prob", "scov.min", "scov.max", "qcov.min", "qcov.max", "pident")
+new.col.names <- c("query", "subject", "prob", "scov.min", "scov.max", "qcov.min", "qcov.max", "pident", "hit.length")
 setnames(pair.table.hits, new = new.col.names)
 pair.table.hits[, prob := prob * 100]
 pair.table.hits[, pident := pident * 100]

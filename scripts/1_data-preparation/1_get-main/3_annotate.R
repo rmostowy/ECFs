@@ -22,12 +22,14 @@ phrog.hhpred.hits <- fread(phrog.hhpred.hits.filename)
 phrog.hhpred.hits[, hit.length := qend - qstart + 1]
 phrog.hhpred.hits[, qcov := round(hit.length/qlength*100)]
 phrog.hhpred.hits[, scov := round((send - sstart + 1)/slength*100)]
+phrog.hhpred.hits <- phrog.hhpred.hits[qname %in% all.reprseq]
 
 # load antidefence tables
 antidefence.hhpred.hits <- fread(antidefence.hhpred.hits.filename)
 antidefence.hhpred.hits[, hit.length := send - sstart + 1]
 antidefence.hhpred.hits[, qcov := round((qend - qstart + 1)/qlength*100)]
 antidefence.hhpred.hits[, scov := round(hit.length/slength*100)]
+antidefence.hhpred.hits <- antidefence.hhpred.hits[sname %in% all.reprseq]
 antidefence.table <- fread(antidefence.table.output)
 
 # filter mapping tables
