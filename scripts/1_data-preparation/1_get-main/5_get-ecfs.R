@@ -19,12 +19,24 @@ source(config.filename)
 reprseq.table <- fread(reprseq.table.filename)
 all.reprseq <- unique(reprseq.table$reprseq)
 
-# load ECF name table
-ecf.name.table <- fread(ecf.name.table.filename, header = F)
-setnames(ecf.name.table, c("er.name", "ecf.name"))
+# extract representative sequences for each ecf (Krzysztof's code is now wrong)
+ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
+ecf.a3m.repr <- sapply(ecf.a3m.list, function(file) readLines(file, n = 1))
+ecf.a3m.repr <- gsub(">", "", ecf.a3m.repr)
+ecf.a3m.list.basename <- basename(ecf.a3m.list)
+ecf.name.table <- data.table(ecf.name = sub("_final\\.a3m$", "", ecf.a3m.list.basename),
+                             er.name = ecf.a3m.repr)
+# Up until now, the code we used was the following (commented out); 
+# we can reintroduce it when Krzysztof fixes his
+# # load ECF name table
+# ecf.name.table <- fread(ecf.name.table.filename, header = F)
+# setnames(ecf.name.table, c("er.name", "ecf.name"))
+# ecf.name.table[, c("reprseq", "suffix") := tstrsplit(er.name, "_")]
+# ecf.name.table[, suffix := NULL]
 ecf.name.table[, c("reprseq", "suffix") := tstrsplit(er.name, "_")]
 ecf.name.table[, suffix := NULL]
 ecf.name.table <- ecf.name.table[reprseq %chin% all.reprseq]
+fwrite(ecf.name.table, file = ecf.name.table.output)
 setkey(ecf.name.table, er.name)
 
 # henceforth, ECFs created only from qECFs from corrupted reprseq are removed
@@ -40,7 +52,7 @@ ecf.vs.qecf.raw[, c("ecf", "qcfs") := tstrsplit(V1, ",")]
 ecf.vs.qecf <- ecf.vs.qecf.raw[, .(qecf = unlist(strsplit(qcfs, " "))), by = ecf]
 ecf.vs.qecf[, qecf := gsub("ecf_", "", qecf)]
 # Remove all ECFs which are not in the 'all.ecfs' vector
-ecf.vs.qecf <- ecf.vs.qecf[ecf %in% all.ecfs] 
+ecf.vs.qecf <- ecf.vs.qecf[ecf %in% all.ecfs]
 ecf.vs.qecf[, c("reprseq", "suffix") := tstrsplit(qecf, "_")]
 ecf.vs.qecf[, suffix := NULL]
 fwrite(ecf.vs.qecf, file = ecf.vs.qecf.output)
@@ -73,12 +85,6 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
 # write to file
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
 
-
-# dist.ecfs <- setdiff(unique(reprseq.vs.ecfs.all$sname), unique(reprseq.vs.ecfs$sname))
-# reprseq.dist <- reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname %in% dist.ecfs]
-# reprseq.vs.ecfs.all[reprseq.vs.ecfs.all$sname == "ecf_03242"]
-
-
 #####################################
 # 2. Process ECF to ECF mapping
 #####################################
@@ -92,18 +98,11 @@ ecfs.vs.ecfs.all$sname <- ecf.name.table[.(ecfs.vs.ecfs.all$sname)]$ecf.name
 ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[!is.na(sname)]
 ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[qname %chin% all.ecfs]
 
-# # remove weird hits to super long proteins
-# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$sstart<ecfs.vs.ecfs.all$send]
-# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[ecfs.vs.ecfs.all$qstart<ecfs.vs.ecfs.all$qend]
-
 # filter ECF-to-ECF hits
 ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%
   filter(eval <= MAX.EVAL.FOR.ECF) %>% 
   filter(prob >= MIN.PROB.FOR.ECF) %>%
   filter(hit.length >= MIN.ECF.HIT.LENGTH)
-
-# make ecf names consistent
-# all(ecfs.vs.ecfs$sname %in% ecf.name.table$er.name)
 
 # write to file
 fwrite(ecfs.vs.ecfs, file = ecfs.vs.ecfs.output)

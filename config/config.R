@@ -82,7 +82,7 @@ ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_202
 ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 # 
-ecf.name.table.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
+# ecf.name.table.raw.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
 ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db-hhsearch.txt")
 ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod-hhsearch.txt")
 ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam-hhsearch.txt")
@@ -93,6 +93,7 @@ ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ec
 pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam-hhsearch.txt")
 qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.txt")
 ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
+ecfs.a3m.dir <- file.path(ecf.raw.data.path, "ecfs")
 
 ####################
 ### Define other data
@@ -147,7 +148,8 @@ reprseq.domains.ecod.output <- file.path(data.domain.dir, "reprseq-domains-ecod.
 reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
 
 # ecfs
-ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt") 
+ecf.name.table.output <- file.path(data.ecfs.dir,  "ecf-name-table.txt")
+ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt")
 
 reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
 
