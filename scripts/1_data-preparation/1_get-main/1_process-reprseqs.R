@@ -69,6 +69,9 @@ setnames(name.table.final, old = "repr.name", new = "reprseq")
 # Write the final name table to a file
 fwrite(name.table.final, file = reprseq.table.filename)
 
+# Write removed reprseqs to a file
+write(reprseqs.to.remove, ncolumns = 1, reprseq.removed.filename)
+
 # Filter sequences based on the final name table
 name.table.final.repr <- name.table.final[name.table.final$cluster.name == name.table.final$ncbi.id]
 filtered_seqs <- all.cds[names(all.cds) %in% name.table.final.repr$cluster.name]

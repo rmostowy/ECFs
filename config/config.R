@@ -78,7 +78,7 @@ metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refse
 ####################
 ### Define ECF data
 ####################
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-10-04")
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-12-19")
 ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 # 
@@ -105,7 +105,7 @@ ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL39_v2.xlsx")
 #######################
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
-main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v2")
+main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v3")
 data.input.dir <- file.path(main.data.dir, "input")
 data.output.dir <- file.path(main.data.dir, "output")
 
@@ -130,6 +130,7 @@ make.dirs(dirs2create)
 # input data
 reprseq.table.filename <- file.path(data.input.dir, "name-table.txt")
 reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
+reprseq.removed.filename <- file.path(data.input.dir, "reprseq-removed.txt")
 
 # annotations/phrogs
 phrogs.functions.output <- file.path(data.phrog.dir, "phrogs-table.txt")
