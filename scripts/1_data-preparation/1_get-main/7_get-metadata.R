@@ -19,7 +19,6 @@ ictv.release <- as.data.table(read_excel(ictv.release.filename, 2))
 setnames(ictv.release, old = "Virus REFSEQ accession", new = "refseq")
 setkey(ictv.release, refseq)
 
-
 ictv.release.bac <- ictv.release[ictv.release$`Host source` == "bacteria"]
 
 metadata2ictv <- ictv.release[.(metadata.table$Accession)]

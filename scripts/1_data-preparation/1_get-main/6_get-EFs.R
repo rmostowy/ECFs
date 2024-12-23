@@ -18,15 +18,15 @@ ecfs.vs.qecfs[, suffix := NULL]
 setkey(ecfs.vs.qecfs, ecf)
 all.ecfs <- unique(ecfs.vs.qecfs$ecf)
 
-# Extract ECF lengths from ECF-ECF comparison
-ecfs.vs.ecfs.all <- fread(ecfs.vs.ecfs.output)
-ecf.lengths <- rbind(
-  ecfs.vs.ecfs.all %>% select(name = qname, length = qlength),
-  ecfs.vs.ecfs.all %>% select(name = sname, length = slength)
-)
-ecf.lengths <- unique(ecf.lengths)
-setorder(ecf.lengths, name)
+# Calculate ECF lengths from a3m files
+ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
+ecf.a3m.list.basename <- basename(ecf.a3m.list)
+ecf.a3m.seqs <- sapply(ecf.a3m.list, function(file) readLines(file, n = 2)[2])
+ecf.lengths <- data.table(name = sub("_final\\.a3m$", "", ecf.a3m.list.basename),
+                             length = sapply(ecf.a3m.seqs, nchar))
+ecf.lengths <- ecf.lengths[name %in% all.ecfs]
 setkey(ecf.lengths, name)
+fwrite(ecf.lengths, file = ecf.lengths.output)
 
 # Calculate coverage
 ecfs.vs.ecfs.cov <- fread(ecfs.vs.ecfs.cov.output)

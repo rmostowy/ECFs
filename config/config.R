@@ -158,6 +158,7 @@ ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")
 ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
 
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
+ecf.lengths.output <- file.path(data.ecfs.dir, "ecf-lengths.txt")
 
 ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-vs-EFs.txt")
 ecf.family.network.output <- file.path(data.ecfs.dir, "ecfs-network.txt")
