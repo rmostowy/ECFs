@@ -16,11 +16,14 @@ source(config.filename)
 ##### 1. Define paths and parameters
 ######################################
 
+reprseqs2rm <- readLines(reprseq.removed.filename)
+
 min.qp.overlap <- 0.8 # minimum overlap between qECF and Pfam
 
 stats <- fread(qecf.stats.filename)
 stats[, qecf.name := sprintf("%s_%s", stats$qname, stats$cluster)]
 stats[, V1 := NULL]
+# stats <- stats[!qname %in% reprseqs2rm]
 
 ######################################
 ##### 2. Define functions
@@ -126,5 +129,5 @@ cutoff.aho.rounded
 
 # stats.qcfs <- stats[stats$]
 # stats[stats$average.frag.overlap >= cutoff.aho]
-stats.qcfs <- stats[avg_hits_overlap >= 0.77 & avg_hit_coverage >= 0.84 & qecf_span >= 20]
+stats.qcfs <- stats[avg_hits_overlap >= cutoff.aho.rounded & avg_hit_coverage >= cutoff.ac.rounded & qecf_span >= 20]
 nrow(stats.qcfs)

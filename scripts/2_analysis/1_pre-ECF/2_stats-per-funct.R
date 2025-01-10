@@ -15,12 +15,14 @@ source(config.filename)
 ######################################
 ##### 1. Load data
 ######################################
+reprseqs2rm <- readLines(reprseq.removed.filename)
 qecf.stats <- fread(qecf.stats.filename)
 qecf.stats[, qecf.name := sprintf("%s_%s", qecf.stats$qname, qecf.stats$cluster)]
 qecf.stats <- qecf.stats[order(qname)]
 qecf.stats[, V1 := NULL]
 qecf.stats[avg_hit_coverage < 0, avg_hit_coverage := 0]
 qecf.stats.filtered <- qecf.stats[qecf_span >= 20 & nb_hits >= 5 & avg_hit_coverage > 0 & avg_hits_overlap > 0]
+qecf.stats.filtered <- qecf.stats.filtered[!qname %in% reprseqs2rm]
 
 # reprseq.domains.ecod <- fread(reprseq.domains.ecod.output)
 # reprseq.ecod <- reprseq.domains.ecod %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)

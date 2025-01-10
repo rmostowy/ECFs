@@ -11,7 +11,11 @@ source(config.filename)
 ####################################################################
 # Load reprseq tables
 reprseq.table <- fread(reprseq.table.filename)
+reprseq.table[, accession := sub("\\.[0-9]+:.*", "", cluster.name)]
 all.reprseq <- unique(reprseq.table$reprseq)
+
+# Load metadata table
+metadata.table <- fread(metadata.table.output)
 
 # Load ECOD domain table
 ecod.domains <- fread(ecod.domains.output)
@@ -22,10 +26,15 @@ reprseq.functions.unique <- fread(reprseq.functions.unique.output)
 setkey(reprseq.functions.unique, reprseq)
 
 # Load ECF table
-ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
-setkey(ecfs.vs.qecfs, ecf)
-all.ecfs <- unique(ecfs.vs.qecfs$ecf)
+ecf.name.table <- fread(ecf.name.table.output)
+all.ecfs <- unique(ecf.name.table$ecf.name)
 Ne <- length(all.ecfs)
+
+# Load ECF vs REPRSEQ table
+reprseq.ecfs <- fread(reprseq.ecfs.output)
+reprseq.ecfs.conf <- reprseq.ecfs %>% filter(scov >= 0.95 & prob >= 0.95) 
+ecf2reprseq <- reprseq.ecfs.conf %>% select(ecf = sname, reprseq = qname)
+setkey(ecf2reprseq, ecf)
 
 # Load ECF vs ECOD table
 ecfs.vs.ecod <- fread(ecfs.vs.ecod.output)
@@ -37,22 +46,41 @@ ecfs.vs.ecod$arch.class <- ecod.domains[.(ecfs.vs.ecod$sname)]$arch.class
 
 setkey(ecfs.vs.ecod, qname)
 
+
+
 # ecfs.with.ecod.hit <- unique(ecfs.vs.ecod$qname)
 # ecfs.potentially.new <- setdiff(all.ecfs, ecfs.with.ecod.hit)
 
 ecf.classification.table.list <- lapply(1:Ne, function(index){
+  # cat(index,"\n")
   # get linked PHROG annotations
   this.ecf <- all.ecfs[index]
-  this.ecf.reprseqs <- ecfs.vs.qecfs[.(this.ecf)]$reprseq
-  this.ecf.linked.annotations <- reprseq.functions.unique[.(this.ecf.reprseqs)]
-  this.ecf.linked.annotations.known <- this.ecf.linked.annotations[this.ecf.linked.annotations$funct != ""]
+  this.ecf.has.reprseqs <- this.ecf %in% ecf2reprseq$ecf
+  
   this.ecf.phrogs.funct <- "unknown"
   this.ecf.phrogs.class <- "unknown"
-  if(nrow(this.ecf.linked.annotations.known)>0){
-    setorder(this.ecf.linked.annotations.known, -score)
-    this.ecf.phrogs.funct <- this.ecf.linked.annotations.known$funct[1]
-    this.ecf.phrogs.class <- this.ecf.linked.annotations.known$class[1]
+  
+  if(this.ecf.has.reprseqs){
+    
+    this.ecf.reprseqs <- ecf2reprseq[.(this.ecf)]$reprseq
+    this.ecf.accessions <- unique(reprseq.table[reprseq %in% this.ecf.reprseqs]$accession)
+    this.ecf.metadata <- metadata.table[accession %in% this.ecf.accessions]
+    
+    # ictv.classes <- unique(this.ecf.metadata$class.ictv)
+    # ictv.classes <- ictv.classes[ictv.classes != ""]
+    # ictv.families <- unique(this.ecf.metadata$family.ncbi)
+    # ictv.classes <- ictv.classes[ictv.classes != ""]
+    
+    this.ecf.linked.annotations <- reprseq.functions.unique[.(this.ecf.reprseqs)]
+    this.ecf.linked.annotations.known <- this.ecf.linked.annotations[this.ecf.linked.annotations$funct != ""]
+    
+    if(nrow(this.ecf.linked.annotations.known)>0){
+      setorder(this.ecf.linked.annotations.known, -score)
+      this.ecf.phrogs.funct <- this.ecf.linked.annotations.known$funct[1]
+      this.ecf.phrogs.class <- this.ecf.linked.annotations.known$class[1]
+    }
   }
+  
 
   # get linked ECODs
   this.ecf.type <- "new"

@@ -105,6 +105,7 @@ x.levels.per.ecf <- lapply(1:nrow(ecf.classification.table), function(ecf.index)
   this.ecf <- ecf.classification.table$ecf[ecf.index]
   this.ecf.hits <- ecfs.full.vs.ecod[.(this.ecf)]
   this.ecf.hits$x.level <- ecod.domains[.(this.ecf.hits$sname)]$x.level
+  # this.ecf.hits$h.id <- ecod.domains[.(this.ecf.hits$sname)]$h_id
   unique(this.ecf.hits$x.level)  
 })
 x.levels.per.ecf.l <- sapply(x.levels.per.ecf, length)
