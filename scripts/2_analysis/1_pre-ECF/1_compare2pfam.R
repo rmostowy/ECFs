@@ -16,7 +16,7 @@ source(config.filename)
 ##### 1. Define paths and parameters
 ######################################
 
-reprseqs2rm <- readLines(reprseq.removed.filename)
+# reprseqs2rm <- readLines(reprseq.removed.filename)
 
 min.qp.overlap <- 0.8 # minimum overlap between qECF and Pfam
 
