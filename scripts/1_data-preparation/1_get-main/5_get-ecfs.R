@@ -2,6 +2,8 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(parallel)))
+suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
+suppressWarnings(suppressPackageStartupMessages(library(stringr)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -11,68 +13,107 @@ source(config.filename)
 ############################### MAIN ###############################
 ####################################################################
 
+
 #########################
-# 1. ECF name conversion
+# 1. Load reprseq and ECF data
 #########################
 
-# load input data
+# load reprseq data
 reprseq.table <- fread(reprseq.table.filename)
 all.reprseq <- unique(reprseq.table$reprseq)
 
-# extract representative sequences for each ecf (Krzysztof's code is now wrong)
+# make an ECF table
 ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
-ecf.a3m.repr <- sapply(ecf.a3m.list, function(file) readLines(file, n = 1))
-ecf.a3m.repr <- gsub(">", "", ecf.a3m.repr)
-ecf.a3m.list.basename <- basename(ecf.a3m.list)
-ecf.name.table <- data.table(ecf.name = sub("_final\\.a3m$", "", ecf.a3m.list.basename),
-                             er.name = ecf.a3m.repr)
-# Up until now, the code we used was the following (commented out); 
-# we can reintroduce it when Krzysztof fixes his
-# # load ECF name table
-# ecf.name.table <- fread(ecf.name.table.filename, header = F)
-# setnames(ecf.name.table, c("er.name", "ecf.name"))
-# ecf.name.table[, c("reprseq", "suffix") := tstrsplit(er.name, "_")]
-# ecf.name.table[, suffix := NULL]
+ecf.full.table.list <- lapply(1:length(ecf.a3m.list), function(ecf.index){
+  this.ecf.file.path <- ecf.a3m.list[ecf.index]
+  this.ecf.file.name <- basename(this.ecf.file.path)
+  this.ecf.name = sub("_final\\.a3m$", "", this.ecf.file.name)
+  this.ecf.a3m <- readAAStringSet(this.ecf.file.path)
+  this.ecf.repr <- names(this.ecf.a3m)[1]
+  this.ecf.seqs <- as.character(this.ecf.a3m)
+  this.ecf.length <- nchar(this.ecf.seqs[1])
+  this.ecf.size <- length(this.ecf.seqs)
+  this.ecf.total.seq.length <- sum(nchar(this.ecf.seqs))
+  this.ecf.total.no.letters <- sum(nchar(gsub("-", "", this.ecf.seqs)))
+  
+  # vector which counts the number of X characters per sequence in the alignment
+  no.x.per.seq <- str_count(this.ecf.seqs, "X")
+  # total number of sequencing with X
+  no.seqs.with.x <- lw(no.x.per.seq>0)
+  # maximum X count per any sequence
+  x.count.max <- max(no.x.per.seq)
+  # X count in the reference sequence
+  x.count.ref <- no.x.per.seq[1]
+  # total X count
+  x.count.total <- sum(no.x.per.seq)
+  
+  data.table(ecf.name = this.ecf.name, er.name = this.ecf.repr,
+             length = this.ecf.length, size = this.ecf.size, 
+             total.seq.length = this.ecf.total.seq.length, total.no.aa = this.ecf.total.no.letters - x.count.total,
+             no.seqs.with.x, x.count.max, x.count.ref, x.count.total)
+})
+ecf.full.table <- rbindlist(ecf.full.table.list)
+
+# extract and edit name table
+ecf.name.table <- ecf.full.table[, .(ecf.name, er.name)]
 ecf.name.table[, c("reprseq", "suffix") := tstrsplit(er.name, "_")]
 ecf.name.table[, suffix := NULL]
-ecf.name.table <- ecf.name.table[reprseq %chin% all.reprseq]
-fwrite(ecf.name.table, file = ecf.name.table.output)
 setkey(ecf.name.table, er.name)
-
-# henceforth, ECFs created only from qECFs from corrupted reprseq are removed
-# (even if they were found subsequently in other reprseqs)
-all.ecfs <- unique(ecf.name.table$ecf.name)
-Ne <- length(all.ecfs)
-
-# Read the file efficiently
-ecf.vs.qecf.raw <- fread(ecf.vs.qecf.filename, header = FALSE, sep = "\n")
-# Separate the 'ecf' and 'qcfs' parts
-ecf.vs.qecf.raw[, c("ecf", "qcfs") := tstrsplit(V1, ",")]
-# Split the 'qcfs' part into individual elements and process
-ecf.vs.qecf <- ecf.vs.qecf.raw[, .(qecf = unlist(strsplit(qcfs, " "))), by = ecf]
-ecf.vs.qecf[, qecf := gsub("ecf_", "", qecf)]
-# Remove all ECFs which are not in the 'all.ecfs' vector
-ecf.vs.qecf <- ecf.vs.qecf[ecf %in% all.ecfs]
-ecf.vs.qecf[, c("reprseq", "suffix") := tstrsplit(qecf, "_")]
-ecf.vs.qecf[, suffix := NULL]
-fwrite(ecf.vs.qecf, file = ecf.vs.qecf.output)
-
-all.ecfs <- unique(ecf.vs.qecf$ecf)
-
-#####################################
-# 2. Process reprseq to ECF mapping
-#####################################
+# ecf.name.table <- ecf.name.table[reprseq %chin% all.reprseq]
+# fwrite(ecf.name.table, file = ecf.name.table.output)
 
 # load reprseq to ecf mapping
 reprseq.vs.ecfs.all <- fread(ecf.hits.filename)
 reprseq.vs.ecfs.all[, hit.length := qend - qstart + 1]
 reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
-# remove fishy reprseqs and ecfs
-reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[qname %chin% all.reprseq]
-reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[sname %chin% ecf.name.table$er.name]
 reprseq.vs.ecfs.all$sname <- ecf.name.table[.(reprseq.vs.ecfs.all$sname)]$ecf.name
 
+# filter reprseq vs ecf data
+reprseq.vs.ecfs.all.filtered <- reprseq.vs.ecfs.all %>%
+  filter(eval <= MAX.EVAL.FOR.ECF.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.ECF.FILTERING) %>%
+  filter(scov >= MIN.SCOV.FOR.ECF.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.ECF.FILTERING)
+
+
+#########################
+# 2. Filter ECFs
+#########################
+
+# A) Identify ECFs with more than 10 unknown characters 
+# in the reference sequence (this requirement should
+# become redundant once Krzysztof fixes the pipeline)
+has.excessive.x.in.ref <- ecf.full.table$x.count.ref > ACCEPTED.NUM.UNKNOWN.AA
+
+# B) Has an informative alignment
+# MIN.PERCENTAGE.OF.INFORMATIVE.BASES <- 0.5
+# MIN.NO.REPRSEQ.PER.ECF <- 1
+ecf.full.table[, prop.informative.bases := total.no.aa/total.seq.length]
+has.informative.alignment <- ecf.full.table$prop.informative.bases >= MIN.PERCENTAGE.OF.INFORMATIVE.BASES
+
+# C) Identify ECFs which do not hit any reprseq
+ecf.reprseq.map <- reprseq.vs.ecfs.all.filtered[, .(ecf = sname, reprseq = qname)]
+reprseq.per.ecf.table <- ecf.reprseq.map[, .N, by = ecf]
+reprseq.per.ecf.table.filtered <- reprseq.per.ecf.table[N >= MIN.NO.REPRSEQ.PER.ECF]
+is.found.in.enough.reprseqs <- ecf.full.table$ecf.name %in% reprseq.per.ecf.table.filtered$ecf
+
+# Make a list of all ECFs which pass these filters
+ecf.passes.filter <- !has.excessive.x.in.ref & has.informative.alignment & is.found.in.enough.reprseqs
+ecf.full.table.filtered <- ecf.full.table[ecf.passes.filter]
+all.ecfs <- ecf.full.table.filtered$ecf.name
+N <- length(all.ecfs)
+
+ecf.full.table.filtered[ , prop.informative.bases := NULL]
+fwrite(ecf.full.table.filtered, file = ecf.table.output)
+
+#####################################
+# 3. Process reprseq to ECF mapping
+#####################################
+
+# remove fishy reprseqs and ecfs
+reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[qname %chin% all.reprseq]
+reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[sname %chin% all.ecfs]
 
 # filter ECF hits
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
@@ -86,7 +127,7 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
 
 #####################################
-# 2. Process ECF to ECF mapping
+# 4. Process ECF to ECF mapping
 #####################################
 
 ecfs.vs.ecfs.all <- fread(ecf.hits.vs.ecf.filename)
@@ -97,18 +138,20 @@ ecfs.vs.ecfs.all[, qname := gsub("_final", "", qname)]
 ecfs.vs.ecfs.all$sname <- ecf.name.table[.(ecfs.vs.ecfs.all$sname)]$ecf.name
 ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[!is.na(sname)]
 ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[qname %chin% all.ecfs]
+ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[sname %chin% all.ecfs]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%
   filter(eval <= MAX.EVAL.FOR.ECF) %>% 
   filter(prob >= MIN.PROB.FOR.ECF) %>%
-  filter(hit.length >= MIN.ECF.HIT.LENGTH)
+  filter(hit.length >= MIN.ECF.HIT.LENGTH | qname == sname) # don't filter by hit length if it's a self-hit
 
 # write to file
 fwrite(ecfs.vs.ecfs, file = ecfs.vs.ecfs.output)
 
+
 #####################################
-# 3. Process ECF to ECOD mapping
+# 5. Process ECF to ECOD mapping
 #####################################
 
 ecfs.vs.ecod.all <- fread(ecf.hits.vs.ecod.filename)
@@ -129,7 +172,7 @@ ecfs.vs.ecod <- ecfs.vs.ecod.all %>%
 fwrite(ecfs.vs.ecod, file = ecfs.vs.ecod.output)
 
 #####################################
-# 4. Process ECF to PFAM mapping
+# 6. Process ECF to PFAM mapping
 #####################################
 
 ecfs.vs.pfam.all <- fread(ecf.hits.vs.pfam.filename)
@@ -150,7 +193,7 @@ fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 
 
 #####################################
-# 5. Calculate ECF qcov/scov
+# 7. Calculate ECF qcov/scov
 #####################################
 
 use.cores <- 8

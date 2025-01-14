@@ -148,7 +148,7 @@ reprseq.domains.ecod.output <- file.path(data.domain.dir, "reprseq-domains-ecod.
 reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.txt") 
 
 # ecfs
-ecf.name.table.output <- file.path(data.ecfs.dir,  "ecf-name-table.txt")
+ecf.table.output <- file.path(data.ecfs.dir,  "ecf-table.txt")
 ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt")
 
 reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
@@ -158,10 +158,10 @@ ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")
 ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
 
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
-ecf.lengths.output <- file.path(data.ecfs.dir, "ecf-lengths.txt")
+# ecf.lengths.output <- file.path(data.ecfs.dir, "ecf-lengths.txt")
 
-ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-vs-EFs.txt")
-ecf.family.network.output <- file.path(data.ecfs.dir, "ecfs-network.txt")
+ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-family-table.txt")
+# ecf.family.network.output <- file.path(data.ecfs.dir, "ecfs-network.txt")
 
 # metadata
 metadata.table.output <- file.path(data.input.dir, "metadata.tsv")
@@ -243,6 +243,14 @@ DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
 DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 1e05
 UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
+# parameters related to ECF filtering
+MIN.PERCENTAGE.OF.INFORMATIVE.BASES <- 0.5
+MIN.HIT.LENGTH.FOR.ECF.FILTERING <- 20
+MIN.SCOV.FOR.ECF.FILTERING <- 0.7
+MIN.PROB.FOR.ECF.FILTERING <- 95
+MAX.EVAL.FOR.ECF.FILTERING <- 1e-3
+MIN.NO.REPRSEQ.PER.ECF <- 1
+
 # parameters related to domain detection
 MIN.DOMAIN.LENGTH <- 20
 MIN.QCOV.FOR.DOMAIN <- 0
@@ -258,12 +266,12 @@ MIN.OVERLAP.LENGTH <- 20
 MIN.PROB.FOR.ECF.QCOV.SCOV <- 95
 MIN.OVERLAP.THRESHOLD <- 0.8
 
-# parameters for comparing ECFs to ECODs:
+# parameters for comparing ECFs to ECOD/PFAM:
 # 1. domain equivalence
 MIN.PROB.FOR.DOMAIN.EQUIVALENCE <- 95
 MIN.QCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
 MIN.SCOV.FOR.DOMAIN.EQUIVALENCE <- 0.9
-MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 10^(-3)
+MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 1e-3
 # 2. subdomain
 MIN.PROB.FOR.SUBDOMAIN <- 95
 MIN.QCOV.FOR.SUBDOMAIN <- 0.7
@@ -271,7 +279,6 @@ MAX.EVAL.FOR.SUBDOMAIN <- 10^(-3)
 MAX.SCOV.FOR.SUBDOMAIN <- 0.6
 
 # parameters for sECFs
-ECF.LENGTH.DIFF.THR <- 5
-ECF.MAX.COV.THR <- 0.9
-ECF.MIN.COV.THR <- 0.1
+ECF.FAMILY.COV.THR <- 0.8
+ECF.SUPERFAMILY.MAX.COV.THR <- 0.9
 
