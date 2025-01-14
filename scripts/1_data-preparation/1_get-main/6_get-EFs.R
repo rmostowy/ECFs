@@ -12,68 +12,81 @@ source(config.filename)
 ####################################################################
 
 # Load ECF table
-ecfs.vs.qecfs <- fread(ecf.vs.qecf.output)
-ecfs.vs.qecfs[, c("reprseq", "suffix") := tstrsplit(qecf, "_")]
-ecfs.vs.qecfs[, suffix := NULL]
-setkey(ecfs.vs.qecfs, ecf)
-all.ecfs <- unique(ecfs.vs.qecfs$ecf)
-
-# Calculate ECF lengths from a3m files
-ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
-ecf.a3m.list.basename <- basename(ecf.a3m.list)
-ecf.a3m.seqs <- sapply(ecf.a3m.list, function(file) readLines(file, n = 2)[2])
-ecf.lengths <- data.table(name = sub("_final\\.a3m$", "", ecf.a3m.list.basename),
-                             length = sapply(ecf.a3m.seqs, nchar))
-ecf.lengths <- ecf.lengths[name %in% all.ecfs]
-setkey(ecf.lengths, name)
-fwrite(ecf.lengths, file = ecf.lengths.output)
+ecf.table <- fread(ecf.table.output)
+all.ecfs <- ecf.table$ecf.name
+setkey(ecf.table, ecf.name)
 
 # Calculate coverage
 ecfs.vs.ecfs.cov <- fread(ecfs.vs.ecfs.cov.output)
-ecfs.vs.ecfs.cov$qlength <- ecf.lengths[.(ecfs.vs.ecfs.cov$query)]$length
-ecfs.vs.ecfs.cov$slength <- ecf.lengths[.(ecfs.vs.ecfs.cov$subject)]$length
-ecfs.vs.ecfs.cov[, scov := pmin(scov.min, scov.max)]
+ecfs.vs.ecfs.cov$qlength <- ecf.table[.(ecfs.vs.ecfs.cov$query)]$length
+ecfs.vs.ecfs.cov$slength <- ecf.table[.(ecfs.vs.ecfs.cov$subject)]$length
 ecfs.vs.ecfs.cov[, qcov := pmin(qcov.min, qcov.max)]
+ecfs.vs.ecfs.cov[, scov := pmin(scov.min, scov.max)]
 ecfs.vs.ecfs.cov[, cov.min := pmin(scov.min, qcov.min)]
 ecfs.vs.ecfs.cov[, cov.max := pmax(scov.min, qcov.min)]
 
-# filter ECF pairs with an extreme length difference
-ecfs.vs.ecfs.cov <- ecfs.vs.ecfs.cov[!(ecfs.vs.ecfs.cov$qlength*ECF.LENGTH.DIFF.THR < ecfs.vs.ecfs.cov$slength | ecfs.vs.ecfs.cov$qlength/ECF.LENGTH.DIFF.THR > ecfs.vs.ecfs.cov$slength)]
-# filter by min/max coverage
-ecfs.vs.ecfs.cov <- ecfs.vs.ecfs.cov[ecfs.vs.ecfs.cov$cov.min >= ECF.MIN.COV.THR & ecfs.vs.ecfs.cov$cov.max >= ECF.MAX.COV.THR]
+# calculate weights for ECF families
+ecfs.vs.ecfs.cov[, weight.fam := scov*qcov*prob/100]
 
-# create an ECF network
-ecf.network.full.nonself <- ecfs.vs.ecfs.cov %>% 
-  select(query, subject, prob, pident, qcov, scov, cov.min, cov.max)
-ecf.network.full.self <- data.table(query = all.ecfs, subject = all.ecfs, prob = 100, pident = 100, qcov = 1, scov = 1, cov.min = 1, cov.max = 1)
-ecf.network.full <- rbind(ecf.network.full.nonself, ecf.network.full.self)
+# calculate weights for ECF superfamilies
+ecfs.vs.ecfs.cov[, weight.sfam := cov.max*prob/100]
 
-# create a MCL input from the network
-ecf.network.mcl <- ecf.network.full %>% select(from = query, to = subject)
+# filter tables as MCL inputs
+ecf.mcl.fam.table <- ecfs.vs.ecfs.cov[qcov >= ECF.FAMILY.COV.THR & scov >= ECF.FAMILY.COV.THR] %>% 
+  select(from = query, to = subject, weight = weight.fam)
+ecf.mcl.sfam.table <- ecfs.vs.ecfs.cov[cov.max >= ECF.SUPERFAMILY.MAX.COV.THR] %>% 
+  select(from = query, to = subject, weight = weight.sfam)
 
+# add self hits
+ecf.self.hits <- data.table(from = all.ecfs, to = all.ecfs, weight = 1)
+ecf.mcl.fam.table <- rbind(ecf.mcl.fam.table, ecf.self.hits)
+ecf.mcl.sfam.table <- rbind(ecf.mcl.sfam.table, ecf.self.hits)
+
+# -- run MCL for families --
 # create a temp mcl directory
 mcl.run.dir <- file.path(data.tmp.dir, "mcl")
-mcl.tmp.dir <- file.path(mcl.run.dir, "tmp")
+mcl.tmp.dir <- file.path(mcl.run.dir, "tmp-fam")
 make.dir(mcl.run.dir)
 make.dir(mcl.tmp.dir)
 
 # run MCL
-input.filename <- file.path(mcl.run.dir, "mcl-input.txt")
-fwrite(ecf.network.mcl, file = input.filename, sep = " ")
-output.filename <- file.path(mcl.run.dir, "mcl-output.txt")
+input.filename <- file.path(mcl.run.dir, "mcl-input-fam.txt")
+fwrite(ecf.mcl.fam.table, file = input.filename, sep = " ")
+output.filename <- file.path(mcl.run.dir, "mcl-output-fam.txt")
 run.mcl(input.filename, output.filename, inflation.factor = 2, tmp.dir = mcl.tmp.dir)
 
 # process MCL output
-mcl.output <- readLines(output.filename)
-Nf <- length(mcl.output)
+mcl.fam.output <- readLines(output.filename)
+Nf <- length(mcl.fam.output)
 
-mcl.output.dt <- data.table(index = 1:Nf, mcl_output = mcl.output)
-mcl.vs.ecf <- mcl.output.dt[, .(ecf = unlist(tstrsplit(mcl_output, "\t", fixed = TRUE))), by = index]
-# Create family names
-mcl.vs.ecf[, ecf.family := sprintf("EF%.*d", nchar(Nf), index)]
-ecf.family.table <- mcl.vs.ecf[, .(ecf.family, ecf)]
+mcl.fam.output.dt <- data.table(index = 1:Nf, mcl_output = mcl.fam.output)
+mcl.fam.output.dt <- mcl.fam.output.dt[, .(ecf = unlist(tstrsplit(mcl_output, "\t", fixed = TRUE))), by = index]
+mcl.fam.output.dt[, ecf.family := sprintf("FAM%.*d", nchar(Nf), index)]
+# ecf.family.table <- mcl.vs.ecf[, .(ecf.family, ecf)]
 
-# Write to file
-fwrite(ecf.family.table, file = ecf.family.table.output)
-fwrite(ecf.network.full, file = ecf.family.network.output)
+# -- run MCL for superfamilies --
+# create a temp mcl directory
+mcl.tmp.dir <- file.path(mcl.run.dir, "tmp-sfam")
+make.dir(mcl.tmp.dir)
+
+# run MCL
+input.filename <- file.path(mcl.run.dir, "mcl-input-sfam.txt")
+fwrite(ecf.mcl.sfam.table, file = input.filename, sep = " ")
+output.filename <- file.path(mcl.run.dir, "mcl-output-sfam.txt")
+run.mcl(input.filename, output.filename, inflation.factor = 2, tmp.dir = mcl.tmp.dir)
+
+# process MCL output
+mcl.sfam.output <- readLines(output.filename)
+Nsf <- length(mcl.sfam.output)
+
+mcl.sfam.output.dt <- data.table(index = 1:Nsf, mcl_output = mcl.sfam.output)
+mcl.sfam.output.dt <- mcl.sfam.output.dt[, .(ecf = unlist(tstrsplit(mcl_output, "\t", fixed = TRUE))), by = index]
+mcl.sfam.output.dt[, ecf.superfamily := sprintf("SFAM%.*d", nchar(Nsf), index)]
+
+# merge the tables
+ecf.family.table <- mcl.fam.output.dt %>% select(ecf, fam = ecf.family)
+ecf.superfamily.table <- mcl.sfam.output.dt %>% select(ecf, sfam = ecf.superfamily)
+
+ecf.family.table.final <- merge(ecf.family.table, ecf.superfamily.table, by = "ecf")
+fwrite(ecf.family.table.final, file = ecf.family.table.output)
 
