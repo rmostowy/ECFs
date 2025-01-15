@@ -43,6 +43,21 @@ setkey(arch.dt, arch)
 
 ecod.domains$arch.class <- arch.dt[.(ecod.domains$arch_name)]$arch.class
 
+# Calculation of total length of each ECOD
+ecod.domains[, length := sum(
+  sapply(strsplit(seqid_range, ","), function(range) {
+    sum(sapply(range, function(r) {
+      # Extract start and end positions using a robust regex pattern
+      if (grepl(":", r) && grepl("-", r)) {
+        positions <- as.numeric(unlist(strsplit(sub(".*:(\\d+-\\d+)", "\\1", r), "-")))
+        positions[2] - positions[1] + 1  # Calculate length
+      } else {
+        0  # If pattern doesn't match, return 0
+      }
+    }))
+  })
+), by = seqid_range]
+
 # write to a file
 fwrite(ecod.domains, file = ecod.domains.output)
 
