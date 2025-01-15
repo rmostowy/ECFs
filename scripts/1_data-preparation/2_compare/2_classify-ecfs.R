@@ -26,8 +26,8 @@ reprseq.functions.unique <- fread(reprseq.functions.unique.output)
 setkey(reprseq.functions.unique, reprseq)
 
 # Load ECF table
-ecf.name.table <- fread(ecf.name.table.output)
-all.ecfs <- unique(ecf.name.table$ecf.name)
+ecf.table <- fread(ecf.table.output)
+all.ecfs <- unique(ecf.table$ecf.name)
 Ne <- length(all.ecfs)
 
 # Load ECF vs REPRSEQ table
