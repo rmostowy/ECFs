@@ -107,7 +107,7 @@ setkey(reprseq.functions, reprseq)
 # 1: visualse direct comparison of the two proteins
 for(pair.index in 1:no.pairs){
   this.pair.output.dir <- file.path(output.dir, sprintf("pair%.*d", nchar(no.pairs), pair.index))
-  make.dir(this.pair.output)
+  make.dir(this.pair.output.dir)
   protein1_name <- rrr$qname[pair.index]
   protein2_name <- rrr$sname[pair.index]
   protein1_length <- rrr$qlength[pair.index]
@@ -128,37 +128,45 @@ for(pair.index in 1:no.pairs){
   
   
   # 2: visualise domains within each protein
-  # get ECOD hits
+  ### get ECOD hits
   protein1.ecod.hits <- reprseq.ecod[.(protein1_name)]
   protein2.ecod.hits <- reprseq.ecod[.(protein2_name)]
+  # 
   protein1.ecod.hits.best <- select.best.ecod.hits(protein1.ecod.hits)
   protein2.ecod.hits.best <- select.best.ecod.hits(protein2.ecod.hits)
   
-  # get ECF hits
+  ### get ECF hits
   protein1.ecf.hits <- reprseq.ecfs[.(protein1_name)]
   protein2.ecf.hits <- reprseq.ecfs[.(protein2_name)]
+  # 
+  protein1.ecf.hits.all <- select.all.ecf.hits(protein1.ecf.hits)
+  protein2.ecf.hits.all <- select.all.ecf.hits(protein2.ecf.hits)
+  # 
   protein1.ecf.hits.best <- select.best.ecf.hits(protein1.ecf.hits)
   protein2.ecf.hits.best <- select.best.ecf.hits(protein2.ecf.hits)
   
   
   # Combine tables
-  protein1.domain.hits <- combine_domain_hits( protein1.ecod.hits.best, protein1.ecf.hits.best, types = c("ECOD", "ECF"))
-  protein2.domain.hits <- combine_domain_hits( protein2.ecod.hits.best, protein2.ecf.hits.best, types = c("ECOD", "ECF"))
+  protein1.domain.hits <- combine_domain_hits(protein1.ecod.hits.best, protein1.ecf.hits.best, types = c("ECOD", "ECF"))
+  protein2.domain.hits <- combine_domain_hits(protein2.ecod.hits.best, protein2.ecf.hits.best, types = c("ECOD", "ECF"))
+  
+  p.ecfs1 <- plot_ecf_domains_with_alignment(protein1_name, protein1_length, aln1_start, aln1_end, protein1.ecf.hits.all)
+  p.ecfs2 <- plot_ecf_domains_with_alignment(protein2_name, protein2_length, aln2_start, aln2_end, protein2.ecf.hits.all)
   
   p.domains1 <- plot_protein_domains_compact(protein1_length, protein1.domain.hits, protein1_name)
   p.domains2 <- plot_protein_domains_compact(protein2_length, protein2.domain.hits, protein2_name)
   
-  
-  
   p.align.fn <- file.path(this.pair.output.dir, "alignment.png")
+  p.ecfs1.fn <- file.path(this.pair.output.dir, "ecfs1.png")
+  p.ecfs2.fn <- file.path(this.pair.output.dir, "ecfs2.png")
   p.domains1.fn <- file.path(this.pair.output.dir, "domains1.png")
   p.domains2.fn <- file.path(this.pair.output.dir, "domains2.png")
   ggsave(p.align.fn, p.align, width = 6, height = 4)
+  if(!is.null(p.domains1)) ggsave(p.ecfs1.fn, p.ecfs1, width = 6, height = 4)
+  if(!is.null(p.domains2)) ggsave(p.ecfs2.fn, p.ecfs2, width = 6, height = 4)
   if(!is.null(p.domains1)) ggsave(p.domains1.fn, p.domains1, width = 6, height = 4)
-  if(!is.null(p.domains2)) ggsave(p.domains2.fn, p.domains2, width = 6, height = 4)  
+  if(!is.null(p.domains2)) ggsave(p.domains2.fn, p.domains2, width = 6, height = 4)
 }
-
-
 
 ###############################################
 ################## FUNCTIONS ##################
@@ -181,22 +189,22 @@ plot_protein_alignment <- function(protein1_name, protein2_name,
   # Create a base plot with horizontal lines for proteins
   p <- ggplot() +
     # Draw Protein 1 and Protein 2 as black horizontal lines
-    geom_segment(aes(x = 0, xend = protein1_length, y = 1, yend = 1), linewidth = 2, color = "black") +
-    geom_segment(aes(x = 0, xend = protein2_length, y = 2, yend = 2), linewidth = 2, color = "black")
+    geom_segment(aes(x = 0, xend = protein1_length, y = 2, yend = 2), linewidth = 2, color = "black") +
+    geom_segment(aes(x = 0, xend = protein2_length, y = 1, yend = 1), linewidth = 2, color = "black")
   
   # Add the connecting rectangle for the alignment
   p <- p + geom_polygon(data = data.frame(
     x = c(aln1_start, aln1_end, aln2_end, aln2_start),
-    y = c(1, 1, 2, 2)
+    y = c(2, 2, 1, 1)
   ), aes(x = x, y = y), fill = aln_colour, alpha = aln_identity) +
     # Add text annotations for protein descriptions
-    annotate("text", x = 0, y = 1.03, label = protein1_description, hjust = 0, size = 5, vjust = 0) +
-    annotate("text", x = 0, y = 1.97, label = protein2_description, hjust = 0, size = 5, vjust = 1)
+    annotate("text", x = 0, y = 1.03, label = protein2_description, hjust = 0, size = 5, vjust = 0) +
+    annotate("text", x = 0, y = 1.97, label = protein1_description, hjust = 0, size = 5, vjust = 1)
   
   # Customize plot
   p <- p +
     labs(x = "Position", y = "") +
-    scale_y_continuous(breaks = c(1, 2), labels = c(protein1_name, protein2_name)) +
+    scale_y_continuous(breaks = c(2, 1), labels = c(protein1_name, protein2_name)) +
     theme(axis.text.y = element_text(size = 12),
           plot.margin = margin(20, 30, 20, 30))  # Adjust margins to fit text
   
@@ -214,6 +222,15 @@ select.best.ecod.hits <- function(ecod.hits){
     ecod.hits.out <- ecod.hits %>% select(qstart, qend, name = t.id)
   }
   return(ecod.hits.out)
+}
+
+select.all.ecf.hits <- function(ecf.hits){
+  ecf.hits.out <- NULL
+  all.ecf.names <- ecf.hits$sname
+  all.ecf.names <- all.ecf.names[!is.na(all.ecf.names)]
+  n <- length(all.ecf.names)
+  if(n > 0) ecf.hits.out <- ecf.hits %>% select(qstart, qend, name = sname, family = EF)
+  return(ecf.hits.out)
 }
 
 select.best.ecf.hits <- function(ecf.hits){
@@ -253,7 +270,53 @@ combine_domain_hits <- function(..., types) {
   )
 }
 
-
+# Function to visualise ECF domains and alignment on the query
+plot_ecf_domains_with_alignment <- function(protein_name, protein_length, aln1_start, aln1_end, protein_ecf_hits_all) {
+  
+  # Check if domain_data is NULL or empty
+  if (is.null(protein_ecf_hits_all) || nrow(protein_ecf_hits_all) == 0) {
+    message("No domains detected for this protein.")
+    return(NULL)
+  }
+  
+  # Add a y-axis level for each ECF domain, reducing vertical spread for clarity
+  protein_ecf_hits_all$y_level <- seq_len(nrow(protein_ecf_hits_all)) * 0.5
+  
+  # Define colors for families
+  family_colors <- unique(protein_ecf_hits_all$family)
+  color_palette <- setNames(RColorBrewer::brewer.pal(length(family_colors), "Set3"), family_colors)
+  
+  # Create the plot
+  p <- ggplot() +
+    # Plot the query protein as a black line with the aligned segment in red
+    geom_segment(aes(x = 0, xend = protein_length, y = 0, yend = 0), linewidth = 2, color = "black") +
+    geom_segment(aes(x = aln1_start, xend = aln1_end, y = 0, yend = 0), linewidth = 2, color = "red") +
+    # Plot each ECF domain as a coloured segment, positioned on its y_level
+    geom_segment(data = protein_ecf_hits_all, aes(x = qstart, xend = qend, y = y_level, yend = y_level, color = family),
+                 linewidth = 4) +
+    # Add labels for each ECF domain
+    geom_text(data = protein_ecf_hits_all, aes(x = (qstart + qend) / 2, y = y_level + 0.1, label = name),
+              size = 3, hjust = 0.5, color = "black") +
+    # Define custom colours for families
+    scale_color_manual(values = color_palette) +
+    # Customise the plot
+    labs(
+      x = sprintf("Position along protein: %s", protein_name),
+      y = "",
+      title = "ECF Domains and Query Alignment",
+      color = "Family"
+    ) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      plot.margin = margin(20, 30, 20, 30)
+    ) +
+    coord_cartesian(xlim = c(0, protein_length))
+  
+  return(p)
+}
 
 # Function to visualise protein domains with protein name in x-axis label
 plot_protein_domains_compact <- function(protein_length, domain_data, protein_name) {
