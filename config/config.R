@@ -165,6 +165,7 @@ ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-family-table.txt")
 
 # metadata
 metadata.table.output <- file.path(data.input.dir, "metadata.tsv")
+accessions.cds.output <- file.path(data.input.dir, "ncbi-accessions-cds.tsv")
 
 # comparisons
 reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
