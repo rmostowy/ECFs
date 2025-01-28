@@ -29,6 +29,19 @@ setkey(ecod.domains, full.id)
 ecf.family.table <- fread(ecf.family.table.output)
 setkey(ecf.family.table, ecf)
 
+# Load ECF table
+ecf.class.table <- fread(ecf.classification.table.output)
+ecf.class.table$family <- ecf.family.table[.(ecf.class.table$ecf)]$family
+ecf2ecod <- ecf.class.table %>% select(ecf, family, t.id)
+ecf2ecod$t.name <- sapply(1:nrow(ecf2ecod), function(k){
+  out <- "unknown"
+  this.t.id <- ecf2ecod$t.id[k]
+  if(this.t.id != "unknown") out <- ecod.domains[t_id == this.t.id]$t_name[1]  
+  return(out)
+})
+setorder(ecf2ecod, family)
+
+
 # Load all-by-all reprseq
 reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
 reprseq.vs.reprseq[, qcov := round((qend - qstart + 1)/qlength, d = 4)]
@@ -94,8 +107,13 @@ rr[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
 ggplot(rr, aes(y = pident, x = cov.max.full)) + geom_bin2d(bins = 100)
 
 rrr <- rr[pident > 90 & cov.max.full < 0.5 & hit.length >= 30]
+# rrr <- rr[pident > 60 & cov.max.full < 0.8 & hit.length >= 10]
 no.pairs <- nrow(rrr)
 setkey(rrr, qname, sname)
+
+# all.shared <- unique(c(rrr$qname, rrr$sname))
+# my.table(reprseq.functions[.(all.shared)]$funct)[1:30]
+
 
 # VISUALISATION
 
@@ -162,8 +180,8 @@ for(pair.index in 1:no.pairs){
   p.domains1.fn <- file.path(this.pair.output.dir, "domains1.png")
   p.domains2.fn <- file.path(this.pair.output.dir, "domains2.png")
   ggsave(p.align.fn, p.align, width = 6, height = 4)
-  if(!is.null(p.domains1)) ggsave(p.ecfs1.fn, p.ecfs1, width = 6, height = 4)
-  if(!is.null(p.domains2)) ggsave(p.ecfs2.fn, p.ecfs2, width = 6, height = 4)
+  if(!is.null(p.ecfs1)) ggsave(p.ecfs1.fn, p.ecfs1, width = 6, height = 4)
+  if(!is.null(p.ecfs2)) ggsave(p.ecfs2.fn, p.ecfs2, width = 6, height = 4)
   if(!is.null(p.domains1)) ggsave(p.domains1.fn, p.domains1, width = 6, height = 4)
   if(!is.null(p.domains2)) ggsave(p.domains2.fn, p.domains2, width = 6, height = 4)
 }
