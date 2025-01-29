@@ -124,5 +124,3 @@ for (i in seq_along(accession_batches)) {
 accession.table <- rbindlist(results, use.names = TRUE, fill = TRUE)
 fwrite(accession.table, file = accessions.cds.output)
 
-
-
