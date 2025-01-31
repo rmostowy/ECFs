@@ -53,7 +53,7 @@ fwrite(metadata.table.final, file = metadata.table.output)
 
 # Extract all accessions in which reprseqs were found 
 # (some of these are missing from the metadata table)
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(name.table.filename)
 reprseq.table[, accession := gsub("\\.(\\d+):.*", "", ncbi.id)]
 all.accessions <- unique(reprseq.table$accession)
 
