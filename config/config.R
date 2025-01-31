@@ -178,7 +178,7 @@ ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifi
 ecf.sharing.pairs.output <- file.path(data.comparisons.dir, "ecf-sharing-pairs.txt")
 
 # list of reprseqs filtered by NCBI coordinates
-# reprseq.table.ncbi.filtered.filename <- file.path(data.input.dir, "name-table-ncbi-filt.txt")
+reprseq.recent.rec.table.output <- file.path(data.comparisons.dir, "recent-recs.txt")
 
 #################
 ## Labels
@@ -287,7 +287,17 @@ ECF.FAMILY.QCOV.THR <- 0.5
 ECF.FAMILY.SCOV.THR <- 0.5
 ECF.FAMILY.INFLATION.FACTOR <- 1.3
 
+# recent recombination parameters
+RECENT.REC.MIN.PIDENT <- 50
+RECENT.REC.MAX.QCOV <- 0.7
+RECENT.REC.MAX.SCOV <- 0.7
+RECENT.REC.MIN.Q.HIT.LENGTH <- 20
+RECENT.REC.MIN.S.HIT.LENGTH <- 20
+
 # other parameters
 DOMAIN.CONTAINMENT.COV.THR <- 0.9
 MIN.CDS.OVERLAP.WITH.NCBI <- 0.5
+
+
+
 
