@@ -18,7 +18,7 @@ output.dir <- "vis-rec-pairs"
 make.dir(output.dir)
 
 # Load refseq table
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.ncbi.filtered.filename)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load ECOD domain table
