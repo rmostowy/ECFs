@@ -109,6 +109,7 @@ data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v3")
 data.input.dir <- file.path(main.data.dir, "input")
 data.output.dir <- file.path(main.data.dir, "output")
+visual.dir <- file.path(main.data.dir, "visualisations")
 
 data.phrog.dir <- file.path(data.output.dir, "annotation", "phrogs")
 data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
@@ -118,7 +119,7 @@ data.comparisons.dir <- file.path(data.output.dir, "comparisons")
 ecf.network.dir <- file.path(data.comparisons.dir, "networks")
 
 dirs2create <- c(data.tmp.dir,
-                 main.data.dir, data.input.dir, data.output.dir,
+                 main.data.dir, data.input.dir, data.output.dir, visual.dir,
                  data.phrog.dir, data.domain.dir, data.ecfs.dir,
                  data.comparisons.dir, ecf.network.dir)
 
