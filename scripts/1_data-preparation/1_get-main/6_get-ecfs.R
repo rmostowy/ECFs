@@ -68,6 +68,7 @@ reprseq.vs.ecfs.all[, hit.length := qend - qstart + 1]
 reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
 reprseq.vs.ecfs.all$sname <- ecf.name.table[.(reprseq.vs.ecfs.all$sname)]$ecf.name
+reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[qname %in% all.reprseq]
 
 # filter reprseq vs ecf data
 reprseq.vs.ecfs.all.filtered <- reprseq.vs.ecfs.all %>%
