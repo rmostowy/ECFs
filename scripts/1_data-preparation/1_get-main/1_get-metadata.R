@@ -51,18 +51,11 @@ metadata.table.final <- cbind(metadata.table.filtered, metadata.table.ictv)
 
 fwrite(metadata.table.final, file = metadata.table.output)
 
-# Extract CDSs using RENTREZ
-
-# all.accessions <- metadata.table.final$accession
-# accessions.gff3.text <- entrez_fetch(db = "nuccore", id = all.accessions, rettype = "gff3", retmode = "text")
-# temp.gff3 <- tempfile(fileext = ".gff3")
-# writeLines(accessions.gff3.text, temp.gff3)
-# accessions.gff3 <- import(temp.gff3)
-# accessions.gff3.cds <- accessions.gff3[accessions.gff3$type == "CDS"]
-# accessions.gff3.cds.dt <- as.data.table(accessions.gff3.cds)
-# accessions.gff3.cds.dt[, accession := gsub("\\.\\d+$", "", seqnames)]
-# 
-# accession.table <- accessions.gff3.cds.dt %>% select(accession, start, end, width, strand)
+# Extract all accessions in which reprseqs were found 
+# (some of these are missing from the metadata table)
+reprseq.table <- fread(reprseq.table.filename)
+reprseq.table[, accession := gsub("\\.(\\d+):.*", "", ncbi.id)]
+all.accessions <- unique(reprseq.table$accession)
 
 
 # Define the batch size and delay
@@ -70,7 +63,6 @@ batch_size <- 300
 delay <- 1  # 1 second between batch requests
 
 # Split accessions into batches
-all.accessions <- metadata.table.final$accession
 accession_batches <- split(all.accessions, ceiling(seq_along(all.accessions) / batch_size))
 
 # Initialise an empty list to store results

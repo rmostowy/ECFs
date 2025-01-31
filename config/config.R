@@ -177,6 +177,9 @@ ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifi
 # ecf-sharing pairs
 ecf.sharing.pairs.output <- file.path(data.comparisons.dir, "ecf-sharing-pairs.txt")
 
+# list of reprseqs filtered by NCBI coordinates
+reprseq.table.ncbi.filtered.filename <- file.path(data.input.dir, "name-table-ncbi-filt.txt")
+
 #################
 ## Labels
 #################
@@ -286,5 +289,5 @@ ECF.FAMILY.INFLATION.FACTOR <- 1.3
 
 # other parameters
 DOMAIN.CONTAINMENT.COV.THR <- 0.9
-
+MIN.CDS.OVERLAP.WITH.NCBI <- 0.9
 
