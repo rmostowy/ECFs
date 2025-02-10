@@ -38,6 +38,8 @@ setkey(ecf.family.table, ecf)
 
 # Load ECF table
 ecf.class.table <- fread(ecf.classification.table.output)
+setkey(ecf.class.table, ecf)
+
 ecf.class.table$family <- ecf.family.table[.(ecf.class.table$ecf)]$family
 ecf2ecod <- ecf.class.table %>% select(ecf, family, t.id)
 ecf2ecod$t.name <- sapply(1:nrow(ecf2ecod), function(k){
@@ -150,6 +152,206 @@ ggplot(overlap.scores.long, aes(x = Score_Value, fill = Score_Type)) +
   labs(title = "Distribution of ECOD and ECF Scores",
        x = "Score Value", y = "Frequency") +
   theme_minimal()
+
+
+
+#############################
+### Relative overlap distribution
+#############################
+
+rel.pos <- function(pos, length) (pos-1)/(length-1)
+rr <- recent.rec.table[pident>=95]
+pairs.rel.pos.list <- lapply(1:nrow(rr), function(pair.index){
+  # this.rr <- recent.rec.table[pair.index]
+  this.rr <- rr[pair.index]
+  protein1.name <- this.rr$qname
+  protein2.name <- this.rr$sname
+  
+  protein1.length <- this.rr$qlength
+  aln1.start <- this.rr$qstart
+  aln1.end <- this.rr$qend
+  aln1.length <- aln1.end - aln1.start + 1
+  
+  prot1.rel.start <- round(rel.pos(aln1.start, protein1.length), d = 2)
+  prot1.rel.end <- round(rel.pos(aln1.end, protein1.length), d = 2)
+  
+  protein2.length <- this.rr$slength
+  aln2.start <- this.rr$sstart
+  aln2.end <- this.rr$send
+  aln2.length <- aln2.end - aln2.start + 1
+  
+  prot2.rel.start <- round(rel.pos(aln2.start, protein2.length), d = 2)
+  prot2.rel.end <- round(rel.pos(aln2.end, protein2.length), d = 2)
+  
+  data.table(protein1.name, prot1.rel.start, prot1.rel.end,
+             protein2.name, prot2.rel.start, prot2.rel.end)
+})
+pairs.rel.pos <- rbindlist(pairs.rel.pos.list)
+
+
+
+# Function to assign multiple bins for each protein region
+assign_bins <- function(start, end, bins = 99) {
+  breakpoints <- seq(0, 1, length.out = bins + 1)  # Define bin boundaries
+  
+  # Find all bins that the start and end fall into
+  start_bin <- findInterval(start, breakpoints, rightmost.closed = TRUE)
+  end_bin <- findInterval(end, breakpoints, rightmost.closed = TRUE)
+  
+  # Assign to all bins in the range
+  return(sprintf("Bin_%.*d", 2, start_bin:end_bin))
+  # return(paste0("Bin_", start_bin:end_bin))
+}
+
+# Apply function row-wise and store as lists
+pairs.rel.pos[, prot1_bins := lapply(seq_len(.N), function(i) 
+  assign_bins(prot1.rel.start[i], prot1.rel.end[i]))]
+
+pairs.rel.pos[, prot2_bins := lapply(seq_len(.N), function(i) 
+  assign_bins(prot2.rel.start[i], prot2.rel.end[i]))]
+
+# Expand `prot1_bins` and `prot2_bins` while ensuring equal row repetition
+pairs.rel.pos.expanded <- pairs.rel.pos[
+  , .(protein1.name = rep(protein1.name, times = lengths(prot1_bins)),
+      protein2.name = rep(protein2.name, times = lengths(prot2_bins)),
+      prot1_bin = unlist(prot1_bins),
+      prot2_bin = unlist(prot2_bins))
+]
+
+# Count occurrences of each (prot1_bin, prot2_bin) combination
+heatmap_data <- pairs.rel.pos.expanded[, .N, by = .(prot1_bin, prot2_bin)]
+
+
+# heatmap_data$prot1_bin <- factor(heatmap_data$prot1_bin, levels = )
+ggplot(heatmap_data, aes(x = prot1_bin, y = prot2_bin, fill = N)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(title = "Heatmap of Overlapping Regions",
+       x = "Protein 1 Bins",
+       y = "Protein 2 Bins",
+       fill = "Count")
+
+
+#############################
+### N/C/other assignment
+#############################
+
+MY.MAX.DIST <- 6
+
+assign.class <- function(start, end, length, max.dist.from.edge = 3){
+  # is.nterm <- is.cterm <- is.other <- FALSE
+  category <- NA
+  rel.start <- rel.pos(start, length)
+  rel.end <- rel.pos(end, length)
+  
+  is.upstream <- rel.end<0.5
+  is.downstream <- rel.start>0.5
+  
+  if(is.upstream){
+    dist.from.edge <- abs(start)
+    if(dist.from.edge <= max.dist.from.edge){
+      category <- "N"
+    } else{
+      category <- "o"
+    }
+  } else if(is.downstream){
+    dist.from.edge <- abs(length - end + 1)
+    if(dist.from.edge <= max.dist.from.edge){
+      category <- "C"
+    } else{ category <- "o" }
+  } else{
+    category <- "o"
+  }
+  return(category)
+}
+
+
+# rel.pos <- function(pos, length) (pos-1)/(length-1)
+rr <- recent.rec.table[pident >= 95]
+relative.classes.list <- lapply(1:nrow(rr), function(pair.index){
+  
+  this.rr <- rr[pair.index]
+  protein1.name <- this.rr$qname
+  protein2.name <- this.rr$sname
+  
+  protein1.length <- this.rr$qlength
+  aln1.start <- this.rr$qstart
+  aln1.end <- this.rr$qend
+  protein1.class <- assign.class(aln1.start, aln1.end, protein1.length, max.dist.from.edge = MY.MAX.DIST)
+  
+  protein2.length <- this.rr$slength
+  aln2.start <- this.rr$sstart
+  aln2.end <- this.rr$send
+  protein2.class <- assign.class(aln2.start, aln2.end, protein2.length, max.dist.from.edge = MY.MAX.DIST)
+
+  data.table(protein1.name, aln1.start, aln1.end, protein1.length, protein1.class,
+             protein2.name, aln2.start, aln2.end, protein2.length, protein2.class)
+})
+relative.classes <- rbindlist(relative.classes.list)
+
+relative.classes[, class12 := sprintf("%s-%s", protein1.class, protein2.class)]
+
+#############################
+### ECFs associated with overlaps
+#############################
+
+# rr <- recent.rec.table[pident >= 95]
+rr <- recent.rec.table
+overlapping.ecf.pairs.list <- lapply(1:nrow(rr), function(pair.index){
+  this.rr <- rr[pair.index]
+  protein1.name <- this.rr$qname
+  protein2.name <- this.rr$sname
+  
+  protein1.length <- this.rr$qlength
+  aln1.start <- this.rr$qstart
+  aln1.end <- this.rr$qend
+  aln1.length <- aln1.end - aln1.start + 1
+  
+  protein1.ecf.hits <- reprseq.ecfs[.(protein1.name)]
+  protein1.ecf.hits[, rr.overlap.jaccard := calculate_overlap_jaccard(aln1.start, aln1.end, qstart, qend)]
+  setorder(protein1.ecf.hits, -rr.overlap.jaccard)
+  protein1.ecf.best.overlap <- protein1.ecf.hits[1]
+  ecf.overlap.parms <- calculate_overlap_parms(aln1.start, aln1.end, protein1.ecf.best.overlap$qstart, protein1.ecf.best.overlap$qend)
+  ecf.aln.length <- protein1.ecf.best.overlap$qend - protein1.ecf.best.overlap$qstart + 1
+  prop.of.ecf.hit.that.overlaps.with.rec <- ecf.overlap.parms$overlap.length/ecf.aln.length
+  prop.of.full.ecf.covered.by.overlap <- prop.of.ecf.hit.that.overlaps.with.rec*protein1.ecf.best.overlap$scov
+  protein1.ecf.score <- prop.of.full.ecf.covered.by.overlap
+  protein1.best.overlapping.ecf <- protein1.ecf.best.overlap$sname
+  protein1.best.overlapping.ef <- ecf.family.table[.(protein1.best.overlapping.ecf)]$family
+  
+  protein2.length <- this.rr$slength
+  aln2.start <- this.rr$sstart
+  aln2.end <- this.rr$send
+  aln2.length <- aln2.end - aln2.start + 1
+  
+  protein2.ecf.hits <- reprseq.ecfs[.(protein2.name)]
+  protein2.ecf.hits[, rr.overlap.jaccard := calculate_overlap_jaccard(aln2.start, aln2.end, qstart, qend)]
+  setorder(protein2.ecf.hits, -rr.overlap.jaccard)
+  protein2.ecf.best.overlap <- protein2.ecf.hits[1]
+  ecf.overlap.parms <- calculate_overlap_parms(aln2.start, aln2.end, protein2.ecf.best.overlap$qstart, protein2.ecf.best.overlap$qend)
+  ecf.aln.length <- protein2.ecf.best.overlap$qend - protein2.ecf.best.overlap$qstart + 1
+  prop.of.ecf.hit.that.overlaps.with.rec <- ecf.overlap.parms$overlap.length/ecf.aln.length
+  prop.of.full.ecf.covered.by.overlap <- prop.of.ecf.hit.that.overlaps.with.rec*protein2.ecf.best.overlap$scov
+  protein2.ecf.score <- prop.of.full.ecf.covered.by.overlap
+  protein2.best.overlapping.ecf <- protein2.ecf.best.overlap$sname
+  protein2.best.overlapping.ef <- ecf.family.table[.(protein2.best.overlapping.ecf)]$family
+  
+  data.table(protein1.name, protein2.name,
+             protein1.ecf.score, protein1.best.overlapping.ecf, protein1.best.overlapping.ef,
+             protein2.ecf.score, protein2.best.overlapping.ecf, protein2.best.overlapping.ef)
+})
+overlapping.ecf.pairs <- rbindlist(overlapping.ecf.pairs.list)
+
+recombination.ecfs <- overlapping.ecf.pairs[protein1.ecf.score >= 0.8 | protein2.ecf.score > 0.8]
+rec.ecfs.prot1 <- overlapping.ecf.pairs[protein1.ecf.score >= 0.9]$protein1.best.overlapping.ecf
+
+rec.ecfs.prot1.metadata <- ecf.class.table[.(rec.ecfs.prot1)]
+
+
+
+
+
 
 
 
