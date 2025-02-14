@@ -17,7 +17,7 @@ source(config.filename)
 # Load visualisation functions
 source("functions.R")
 
-output.dir <- file.path(visual.dir, "part5_recent-rec")
+output.dir <- file.path(visual.dir, "analysis_01-31", "part5_recent-rec")
 make.dir(output.dir)
 
 # Load refseq table

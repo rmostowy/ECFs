@@ -152,7 +152,8 @@ reprseq.domains.pfam.output <- file.path(data.domain.dir, "reprseq-domains-pfam.
 ecf.table.output <- file.path(data.ecfs.dir,  "ecf-table.txt")
 ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt")
 
-reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt") 
+reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt")
+reprseq.ecfs.all.output <- file.path(data.ecfs.dir, "reprseq-ecfs-all.txt") 
 
 ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt")
 ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")

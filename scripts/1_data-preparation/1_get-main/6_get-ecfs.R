@@ -116,6 +116,12 @@ fwrite(ecf.full.table.filtered, file = ecf.table.output)
 reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[qname %chin% all.reprseq]
 reprseq.vs.ecfs.all <- reprseq.vs.ecfs.all[sname %chin% all.ecfs]
 
+# filter ECF hits without SCOV threshold
+reprseq.vs.ecfs.all.relaxed <- reprseq.vs.ecfs.all %>%
+  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
+  filter(qcov >= MIN.QCOV.FOR.DOMAIN)
+
 # filter ECF hits
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
   filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
@@ -125,6 +131,7 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
   filter(hit.length >= MIN.DOMAIN.LENGTH)
 
 # write to file
+fwrite(reprseq.vs.ecfs.all.relaxed, file = reprseq.ecfs.all.output)
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
 
 #####################################
