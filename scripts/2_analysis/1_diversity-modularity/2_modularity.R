@@ -30,8 +30,8 @@ ecfs.vs.ecfs.cov[, cov.min := pmin(scov.min, qcov.min)]
 ecfs.vs.ecfs.cov[, cov.max := pmax(scov.min, qcov.min)]
 
 # Make a plot of qcov/scov values from ECF vs ECF table
-ecfs.vs.ecfs.cov.high.prob <- ecfs.vs.ecfs.cov[prob == 100]
-p.qscov <- ggplot(ecfs.vs.ecfs.cov.high.prob, aes(x = qcov, y = scov)) + geom_bin2d(bins = 200)
+ecfs.vs.ecfs.cov.high.prob <- ecfs.vs.ecfs.cov[prob >= 99.9]
+p.qscov <- ggplot(ecfs.vs.ecfs.cov.high.prob, aes(x = qcov, y = scov)) + geom_bin2d(bins = 100)
 p.qscov.fn <- file.path(results.dir, "plot1_ecf-certain-qscov.png")
 ggsave(p.qscov.fn, p.qscov, width = 6, height = 5)
 
@@ -99,7 +99,7 @@ p.qij <- ggplot(data2plot, aes(x = value)) +
     x = "Value",
     y = "Frequency"
   ) +
-  theme_minimal(base_size = 14) +
+  theme_bw(base_size = 14) +
   theme(
     strip.text = element_text(face = "bold", size = 12),
     panel.grid.major = element_line(color = "grey80"),
