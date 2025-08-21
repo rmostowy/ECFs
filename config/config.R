@@ -47,9 +47,9 @@ manual.phrog.mapping.filename <- file.path(phrogs.db.path, "custom", "v4_phrogs-
 #############################
 ### Define ECOD data
 #############################
-ecod.db.path <- file.path(mgg.db, "hhpred", "ECOD", "ECOD_F70_20220613")
-ecod.domains.filename <- file.path(ecod.db.path, "ecod.latest.F70.domains.txt")
-ecod.domains.fasta.filename <- file.path(ecod.db.path, "ecod.latest.F70.fasta.txt")
+ecod.db.path <- file.path(mgg.db, "hhpred", "ECOD", "ECOD_F70_20230309")
+ecod.domains.filename <- file.path(ecod.db.path, "ecod.develop288.F70.domains.txt")
+ecod.domains.fasta.filename <- file.path(ecod.db.path, "ecod.develop288.F70.fasta.txt")
 
 ecod.headers <- c("uid", "ecod_domain_id","manual_rep","f_id","pdb","chain","pdb_range","seqid_range","unp_acc",
   "arch_name","x_name","h_name","t_name","f_name", "asm_status", "ligand")
@@ -57,37 +57,49 @@ ecod.headers <- c("uid", "ecod_domain_id","manual_rep","f_id","pdb","chain","pdb
 #############################
 ### Define PFAM data
 #############################
-pfam.db.path <- file.path(mgg.db, "hhpred", "pfamA", "Pfam35")
+pfam.db.path <- file.path(mgg.db, "hhpred", "pfamA", "Pfam37")
 pfam.domains.filename <- file.path(pfam.db.path, "pfamA.txt")
 pfam.sql.filename <- file.path(pfam.db.path, "pfamA.sql")
 
 #############################
-### Define Smug et al. data
+### Define main data paths
 #############################
-minimal.input.data.path <- file.path(mgg.projects, "divRBP/minimal-input-data")
 
-all.cds.filename <- file.path(minimal.input.data.path, "coding-seqs/cds-aa.fa") 
-reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out")
-name.table.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "name-table-full.txt")
-reprseq.lengths.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "representative", "repr-seqs-lengths.txt")
-phrog.hhpred.hits.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "functional", "hhblits-phrogs.txt")
-antidefence.descr.filename <- file.path(minimal.input.data.path, "other", "media-4-simplified_2023_04.xlsx")
-antidefence.hhpred.hits.filename <- file.path(minimal.input.data.path, "other", "table-hhr-ad-rseq.txt")
-metadata.table.filename <- file.path(minimal.input.data.path, "metadata", "refseq_metadata_updated_v3.csv")
+ecf.projects.datasets <- file.path(mgg.projects, "ECFs", "datasets")
+antidefence.data.path <- file.path(ecf.projects.datasets, "antidefence")
+refseq.input.data.path <- file.path(ecf.projects.datasets, "refseq-input", "ecf-input-dataset")
+
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2025-08-20")
+ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
+ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
+
+
+#############################
+### Define reprseq/rHMM data
+#############################
+
+all.cds.filename <- file.path(refseq.input.data.path, "refseq-aa.fa")
+metadata.table.filename <- file.path(refseq.input.data.path, "refseq-metadata.tsv")
+refseq.protein.stats.table.filename <- file.path(refseq.input.data.path, "refseq-protein-stats.txt")
+name.table.origin.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "name-table.txt")
+refseq.protein.clustering.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "clustering.tsv")
+
+reprseq.lengths.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "repr-seqs-lengths.txt")
+phrog.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-reprseq_phrogs-hhsearch.txt')
+antidefence.descr.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq_v2.tsv")
+antidefence.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-ad_reprseq_db-hhsearch.txt')
+
+# reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out") # this needs to be recreated
 
 ####################
 ### Define ECF data
 ####################
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2024-12-19")
-ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
-ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
-# 
-# ecf.name.table.raw.filename <- file.path(ecf.raw.data.path,  "scan-ecf-dict.txt")
+
 ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db-hhsearch.txt")
 ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod-hhsearch.txt")
 ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam-hhsearch.txt")
 ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf-hhsearch.txt")
-reprseq.vs.reprseq.filename <- file.path(ecf.raw.input.path, "table-hhr.txt")
+reprseq.vs.reprseq.filename <- file.path(ecf.raw.input.path, "table-rseq-hhr.txt")
 reprseq.vs.reprseq.clust.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
 ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod-hhsearch.txt")
 pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam-hhsearch.txt")
@@ -106,7 +118,7 @@ ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL39_v2.xlsx")
 #######################
 data.tmp.dir <- file.path(main.path, "Data", "tmp-ecfs")
 
-main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v3")
+main.data.dir <- file.path(main.path, "Dropbox", "Projects", "Data", "ECFs", "v4")
 data.input.dir <- file.path(main.data.dir, "input")
 data.output.dir <- file.path(main.data.dir, "output")
 visual.dir <- file.path(main.data.dir, "visualisations")
@@ -130,9 +142,10 @@ make.dirs(dirs2create)
 #######################
 
 # input data
-reprseq.table.filename <- file.path(data.input.dir, "name-table.txt")
-reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
-reprseq.removed.filename <- file.path(data.input.dir, "reprseq-removed.txt")
+reprseq.table.output <- file.path(data.input.dir, "protein-name-table.txt")
+reprseq.vs.reprseq.cov.output <- file.path(data.input.dir, "reprseq-vs-reprseq-cov.txt")
+# reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
+# reprseq.removed.filename <- file.path(data.input.dir, "reprseq-removed.txt")
 
 # annotations/phrogs
 phrogs.functions.output <- file.path(data.phrog.dir, "phrogs-table.txt")
@@ -240,7 +253,12 @@ file.status.list <- sapply(files.to.check.full.path, check.file)
 #####################
 
 # annotation parameters used also in Smug et al
-ACCEPTED.NUM.UNKNOWN.AA <- 10
+# ACCEPTED.NUM.UNKNOWN.AA <- 10
+MIN.PROB.FOR.REPRSEQ.FAM <- 95
+REPRSEQ.FAMILY.QCOV.THR <- 0.5
+REPRSEQ.FAMILY.SCOV.THR <- 0.5
+REPRSEQ.FAMILY.INFLATION.FACTOR <- 1.3
+
 MINIMUM.ALIGNMENT.LENGTH.FOR.ANNOTATION <- 30
 MIN.NUM.PHROG.SEQ.PER.ANNOT <- 500
 MIN.NUM.PROT.PER.ANNOT <- 100 # Bogna had MIN.NUM.PROT
@@ -299,7 +317,7 @@ RECENT.REC.MIN.S.HIT.LENGTH <- 20
 
 # other parameters
 DOMAIN.CONTAINMENT.COV.THR <- 0.9
-MIN.CDS.OVERLAP.WITH.NCBI <- 0.5
+# MIN.CDS.OVERLAP.WITH.NCBI <- 0.5
 
 
 
