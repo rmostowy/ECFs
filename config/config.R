@@ -86,7 +86,8 @@ refseq.protein.clustering.filename <- file.path(ecf.raw.data.path, "prot-familie
 
 reprseq.lengths.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "repr-seqs-lengths.txt")
 phrog.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-reprseq_phrogs-hhsearch.txt')
-antidefence.descr.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq_v2.tsv")
+antidefence.descr.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq_v2-RM.tsv")
+antidefence.seqs.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq.fasta")
 antidefence.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-ad_reprseq_db-hhsearch.txt')
 
 # reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out") # this needs to be recreated
