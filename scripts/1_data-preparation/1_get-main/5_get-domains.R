@@ -12,13 +12,13 @@ source(config.filename)
 ####################################################################
 
 # load reprseq tables
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 ###########################################
 # 1. Load and modify ECOD reference table
 ###########################################
-ecod.domains <- fread(ecod.domains.filename, header = F, colClasses = list(character = "V1"))
+ecod.domains <- fread(ecod.domains.filename, colClasses = list(character = "#uid"))
 setnames(ecod.domains, ecod.headers)
 
 # Separate 'f_id' into 'x.level', 'h.level', 't.level', 'f.level'
@@ -65,10 +65,10 @@ fwrite(ecod.domains, file = ecod.domains.output)
 # 2. Load and filter ECOD hits
 ################################
 reprseq.domains.ecod.all <- fread(ecod.domain.hits.filename)
+reprseq.domains.ecod.all[, qname := sub("-hhsearch$", "", qname)]
 reprseq.domains.ecod.all[, hit.length := qend - qstart + 1]
 reprseq.domains.ecod.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.domains.ecod.all[, scov := round((send - sstart + 1)/slength, 4)]
-reprseq.domains.ecod.all <- reprseq.domains.ecod.all[qname %in% all.reprseq]
 
 # filter ECOD hits
 reprseq.domains.ecod <- reprseq.domains.ecod.all %>%
@@ -105,11 +105,11 @@ fwrite(pfam.domains, file = pfam.domains.output)
 # 4. Load and filter PFAM hits
 ################################
 reprseq.domains.pfam.all <- fread(pfam.domain.hits.filename)
+reprseq.domains.pfam.all[, qname := sub("-hhsearch$", "", qname)]
 reprseq.domains.pfam.all[, hit.length := qend - qstart + 1]
 reprseq.domains.pfam.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.domains.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
 reprseq.domains.pfam.all[, accession := sub("\\..*", "", sname)]
-reprseq.domains.pfam.all <- reprseq.domains.pfam.all[qname %in% all.reprseq]
 
 # filter PFAM hits
 reprseq.domains.pfam <- reprseq.domains.pfam.all %>%

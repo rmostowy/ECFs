@@ -35,7 +35,7 @@ ecf.mcl.table <- rbind(ecf.nonself.hits, ecf.self.hits)
 
 # -- run MCL --
 # create a temp mcl directory
-mcl.run.dir <- file.path(data.tmp.dir, "mcl")
+mcl.run.dir <- file.path(data.tmp.dir, "mcl-ecf")
 mcl.tmp.dir <- file.path(mcl.run.dir, "tmp")
 make.dir(mcl.tmp.dir)
 
