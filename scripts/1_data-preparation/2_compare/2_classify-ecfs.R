@@ -9,9 +9,10 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
+
 # Load reprseq tables
-reprseq.table <- fread(reprseq.table.filename)
-reprseq.table[, accession := sub("\\.[0-9]+:.*", "", cluster.name)]
+reprseq.table <- fread(reprseq.table.output)
+reprseq.table[, accession := sub(":.*$", "", cluster.name)]
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load metadata table

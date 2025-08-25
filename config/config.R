@@ -145,7 +145,7 @@ make.dirs(dirs2create)
 # input data
 reprseq.table.output <- file.path(data.input.dir, "protein-name-table.txt")
 reprseq.vs.reprseq.cov.output <- file.path(data.input.dir, "reprseq-vs-reprseq-cov.txt")
-# reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
+reprseq.seqs.filename <- file.path(data.input.dir, "reprseq-seq.fa")
 # reprseq.removed.filename <- file.path(data.input.dir, "reprseq-removed.txt")
 
 # annotations/phrogs

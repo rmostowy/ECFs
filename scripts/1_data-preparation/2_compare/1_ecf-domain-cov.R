@@ -19,7 +19,7 @@ source(config.filename)
 # 1. Load data
 #########################
 
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 reprseq.ecfs.all <- fread(reprseq.ecfs.output)

@@ -31,6 +31,26 @@ setorder(name.table, reprseq, ncbi.id)
 # Add gene confidence from Prodigal
 name.table$prodigal.conf <- refseq.protein.stats.table[.(name.table$ncbi.id)]$conf
 
+##########################################
+# 3. Save reprseq sequences
+##########################################
+
+all.reprseqs <- unique(name.table$reprseq)
+N <- length(all.reprseqs)
+
+all.cds <- readAAStringSet(all.cds.filename)
+all.cds.n <- names(all.cds)
+
+protname2seq <- data.table(prot.name = all.cds.n, index = 1:length(all.cds.n))
+setkey(protname2seq, prot.name)
+
+repr2clust <- unique(name.table %>% select(reprseq, cluster.name))
+repr2clust$seq.index <- protname2seq[.(repr2clust$cluster.name)]$index
+
+reprseq.seqs <- all.cds[repr2clust$seq.index]
+names(reprseq.seqs) <- repr2clust$reprseq
+
+writeXStringSet(reprseq.seqs, filepath = reprseq.seqs.filename)
 
 ##########################################
 # 2. Calculate reprseq qcov/scov
