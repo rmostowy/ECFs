@@ -12,7 +12,7 @@ source(config.filename)
 ####################################################################
 
 # Load refseq table filtered by NCBI
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load reprseq sequences
@@ -32,7 +32,7 @@ system(mmseqs.createdb.cmd)
 # Step 2: Run MMseqs2 All-vs-All Search
 mmseqs.search.cmd <- paste(
   "mmseqs search", mmseqs.db, mmseqs.db, mmseqs.res, mmseqs.tmp.dir,
-  "--min-seq-id 0.3 -s 7.5 --threads 12"  # Adjust parameters as needed
+  "--min-seq-id 0.3 -s 7.5 --alt-ali 10 --cov-mode 0 -c 0.0 -e 1e-3 --max-seqs 2000 --threads 12"
 )
 system(mmseqs.search.cmd)
 
@@ -45,6 +45,7 @@ system(mmseqs.convert.cmd)
 
 # Step 4: Load BLAST-like results into a data.table
 reprseq.vs.reprseq <- fread(mmseqs.res.m8, header = FALSE, sep = "\t")
+setorder(reprseq.vs.reprseq, qname, sname)
 
 # Assign meaningful column names
 setnames(reprseq.vs.reprseq, c(
@@ -55,6 +56,38 @@ setnames(reprseq.vs.reprseq, c(
 fwrite(reprseq.vs.reprseq, file = reprseq.vs.reprseq.blast.output)
 
 # Load reprseq all-by-all cov table
+reprseq.aba.cov <- fread(reprseq.vs.reprseq.cov.output)
+
+##########################################################
+#| 
+
+# ap <- reprseq.vs.reprseq %>% select(qname, sname)
+ap <- reprseq.vs.reprseq %>% filter(pident >= 50) %>% select(qname, sname) 
+
+ap.duplicated <- ap[duplicated(ap)]
+
+no.occur <- sapply(1:nrow(ap.duplicated), function(pair.index){
+  this.pair <- ap.duplicated[pair.index]
+  nrow(ap[(qname == this.pair$qname) & (sname == this.pair$sname)])
+})
+ap.duplicated$no.occur <- no.occur
+
+
+pair.index=32
+this.pair <- ap.duplicated[pair.index]
+reprseq.vs.reprseq[qname == this.pair$qname & sname == this.pair$sname]
+
+
+
+
+#|
+##########################################################
+######################################################################
+######################################################################
+######################################################################
+######################################################################
+
+
 # !!! This needs to be calculated from scratch in the new data release
 reprseq.cov.filename <- '/Users/rmostowy/MGG Dropbox/Projects/divRBP/phage-pp-workdir-refseq-hhblits/output/prot-families/families/dataset-full/repr-hits-pairwise-prob95.csv'
 reprseq.cov.orig <- fread(reprseq.cov.filename)
@@ -76,7 +109,10 @@ reprseq.vs.reprseq.prefiltered <- reprseq.vs.reprseq[qname != sname]
 setorder(reprseq.vs.reprseq.prefiltered, qname, sname, bitscore)
 all.pairs <- reprseq.vs.reprseq.prefiltered %>% select(qname, sname)
 some.pairs.are.duplicated <- any(duplicated(all.pairs))
-if(some.pairs.are.duplicated) cat("Some pairs are duplicated!\n")
+if(some.pairs.are.duplicated){
+  # all.pairs <- unique(all.pairs)
+  cat("Some pairs are duplicated!\n")
+}
 
 # assign a unique pair.index per pair
 all.pairs[, reprseq.a := pmin(qname, sname)]
@@ -95,6 +131,7 @@ all.ba <- reprseq.vs.reprseq.prefiltered[qname > sname]$pair.index
 bidirectional.pairs <- intersect(all.ab, all.ba)
 reprseq.vs.reprseq.filtered <- reprseq.vs.reprseq.prefiltered[pair.index %chin% bidirectional.pairs]
 reprseq.vs.reprseq.filtered <- reprseq.vs.reprseq.filtered[qname < sname]
+setkey(reprseq.vs.reprseq.filtered, qname, sname)
 
 # adjust qcov/scov table to match the high pident table
 reprseq.vs.reprseq.filtered.qcov.scov <- reprseq.cov[.(reprseq.vs.reprseq.filtered[, .(qname, sname)])]
