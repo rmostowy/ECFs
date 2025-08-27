@@ -185,17 +185,19 @@ accessions.cds.output <- file.path(data.input.dir, "ncbi-accessions-cds.tsv")
 
 # comparisons
 reprseq.vs.reprseq.blast.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast.txt")
-reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
-reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
-reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod-and-pfam.txt")
+# reprseq.vs.reprseq.blast.filtered.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast-filtered.txt")
+reprseq.vs.reprseq.blast.filtered.unordered.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast-filt-unord.txt")
+# reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
+# reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
+# reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod-and-pfam.txt")
 
 ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifications.txt")
 
 # ecf-sharing pairs
 ecf.sharing.pairs.output <- file.path(data.comparisons.dir, "ecf-sharing-pairs.txt")
 
-# list of reprseqs filtered by NCBI coordinates
-reprseq.recent.rec.table.output <- file.path(data.comparisons.dir, "recent-recs.txt")
+# REM table
+rem.table.output <- file.path(data.comparisons.dir, "rem-table.txt")
 
 #################
 ## Labels
