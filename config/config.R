@@ -69,7 +69,7 @@ ecf.projects.datasets <- file.path(mgg.projects, "ECFs", "datasets")
 antidefence.data.path <- file.path(ecf.projects.datasets, "antidefence")
 refseq.input.data.path <- file.path(ecf.projects.datasets, "refseq-input", "ecf-input-dataset")
 
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2025-08-20")
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2025-10-24")
 ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 
@@ -85,10 +85,10 @@ name.table.origin.filename <- file.path(ecf.raw.data.path, "prot-families", "rep
 refseq.protein.clustering.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "clustering.tsv")
 
 reprseq.lengths.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "repr-seqs-lengths.txt")
-phrog.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-reprseq_phrogs-hhsearch.txt')
+phrog.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-rseq_phrogs.txt')
 antidefence.descr.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq_v2-RM.tsv")
 antidefence.seqs.filename <- file.path(antidefence.data.path, "8_Bruria2024_seq.fasta")
-antidefence.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-ad_reprseq_db-hhsearch.txt')
+antidefence.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-ad_rseq.txt')
 
 # reprseq.families.raw.filename <- file.path(minimal.input.data.path, "python_pipeline", "output", "prot-families", "families", "dataset-full", "mcl", "repr-hits-pairwise-prob95-cov80-mcl-I20.out") # this needs to be recreated
 
@@ -96,14 +96,14 @@ antidefence.hhpred.hits.filename <- file.path(ecf.raw.data.path, 'table-scan-ad_
 ### Define ECF data
 ####################
 
-ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecf_db-hhsearch.txt")
-ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_ecod-hhsearch.txt")
-ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_pfam-hhsearch.txt")
-ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecf_vs_ecf-hhsearch.txt")
+ecf.hits.filename <- file.path(ecf.raw.data.path, "table-scan-rseq_ecf.txt")
+ecf.hits.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ecfs_ecod.txt")
+ecf.hits.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ecfs_pfam.txt")
+ecf.hits.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ecfs_ecf.txt")
 reprseq.vs.reprseq.filename <- file.path(ecf.raw.input.path, "table-rseq-hhr.txt")
 reprseq.vs.reprseq.clust.filename <- file.path(ecf.raw.data.path, "reprseq-all-clust.txt")
-ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_ecod-hhsearch.txt")
-pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-reprseq_pfam-hhsearch.txt")
+ecod.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-rseq_ecod.txt")
+pfam.domain.hits.filename <- file.path(ecf.raw.data.path, "table-scan-rseq_pfam.txt")
 qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.txt")
 ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
 ecfs.a3m.dir <- file.path(ecf.raw.data.path, "ecfs")
