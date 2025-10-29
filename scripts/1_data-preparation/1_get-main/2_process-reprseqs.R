@@ -56,7 +56,7 @@ writeXStringSet(reprseq.seqs, filepath = reprseq.seqs.filename)
 # 2. Calculate reprseq qcov/scov
 ##########################################
 
-use.cores <- 8
+use.cores <- 18
 no.iterations <- 20
 
 reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
@@ -117,7 +117,8 @@ make.dir(mcl.tmp.dir)
 input.filename <- file.path(mcl.run.dir, "mcl-input.txt")
 fwrite(reprseq.mcl.table, file = input.filename, sep = " ")
 output.filename <- file.path(mcl.run.dir, "mcl-output.txt")
-run.mcl(input.filename, output.filename, inflation.factor = REPRSEQ.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir)
+# run.mcl(input.filename, output.filename, inflation.factor = REPRSEQ.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir)
+run.mcl(input.filename, output.filename, inflation.factor = REPRSEQ.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir, mcl.path = "/opt/bio/mcl/bin")
 
 # process MCL output
 mcl.output <- readLines(output.filename)
