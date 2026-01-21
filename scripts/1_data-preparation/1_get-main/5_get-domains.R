@@ -96,8 +96,8 @@ column_names <- str_replace_all(column_names, "`", "")
 # Extract relevant columns
 pfam.domains.full <- fread(pfam.domains.filename) 
 setnames(pfam.domains.full, column_names)
-pfam.domains <- pfam.domains.full %>% select(accession = pfamA_acc, id = pfamA_id, description, length = average_length)
-
+# Simplify and assign the length based on model_length (average_length is problematic)
+pfam.domains <- pfam.domains.full %>% select(accession = pfamA_acc, id = pfamA_id, description, length = model_length)
 # Write to file
 fwrite(pfam.domains, file = pfam.domains.output)
 
