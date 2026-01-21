@@ -24,6 +24,7 @@ reprseq.vs.ecfs <- fread(reprseq.ecfs.output)
 
 ecod.domains <- fread(ecod.domains.output)
 pfam.domains <- fread(pfam.domains.output)
+pfam.domains[, length := as.numeric(length)]
 
 reprseq.vs.ecod <- fread(reprseq.domains.ecod.output)
 reprseq.vs.ecod <- reprseq.vs.ecod %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
@@ -38,11 +39,13 @@ reprseq.seqs.l <- width(reprseq.seqs)
 reprseqs.with.domains <- union(unique(reprseq.vs.ecfs$qname), unique(reprseq.vs.ecod$qname))
 reprseqs.with.domains <- union(reprseqs.with.domains, unique(reprseq.vs.pfam$qname))
 
+this.visual.dir <- file.path(visual.dir, "part1_diversity")
+make.dir(this.visual.dir)
 
 ###############################################################
 ### 1. Plot the distribution of the number of reprseqs per ECF
 ###############################################################
-this.results.dir <- "analysis1_distr"
+this.results.dir <- file.path(this.visual.dir, "analysis1_distr")
 make.dir(this.results.dir)
 
 reprseq.per.ecf <- reprseq.vs.ecfs[, .(no.reprseqs = uniqueN(qname)), by = sname]
@@ -103,7 +106,6 @@ ecf.lengths[, db := "ECF"]
 ecod.lengths <- ecod.domains %>% select(name = full.id, length)
 ecod.lengths[, db := "ECOD"]
 pfam.lengths <- pfam.domains %>% select(name = accession, length)
-pfam.lengths[, length := round(length, d = 0)]
 pfam.lengths[, db := "PFAM"]
 
 all.lengths <- rbind(reprseq.lengths.filtered, ecf.lengths, ecod.lengths, pfam.lengths)
@@ -118,11 +120,11 @@ means$db <- factor(means$db, levels = unique(all.lengths$db))
 all.lengths$db <- factor(all.lengths$db, levels = unique(all.lengths$db))
 # Create the plot
 p.length.distr <- ggplot(all.lengths, aes(x = length, fill = db)) +
-  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.6, bins = 80) +  # Histogram with transparency
-  # geom_vline(data = medians, aes(xintercept = median_length, color = db), 
+  geom_histogram(aes(y = after_stat(density)), position = "identity", alpha = 0.6, bins = 80) +  # Histogram with transparency
+  # geom_vline(data = medians, aes(xintercept = median_length, color = db),
   #            linetype = "dashed", size = 1) +  # Median line
   geom_vline(data = means, aes(xintercept = mean_length, color = db), 
-             linetype = "dashed", size = 1) +  # Median line
+             linetype = "dashed", linewidth = 1) +  # Median line
   facet_grid(db ~ ., scales = "free_x") +  # Align distributions vertically
   scale_fill_manual(values = c("rHMMs" = "red", "ECF" = "#1f77b4", "PFAM" = "#ff7f0e", "ECOD" = "#2ca02c")) +  # Custom colors
   scale_color_manual(values = c("rHMMs" = "red", "ECF" = "#1f77b4", "PFAM" = "#ff7f0e", "ECOD" = "#2ca02c")) +  # Matching colors
