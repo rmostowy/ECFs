@@ -12,7 +12,8 @@ source(config.filename)
 ############################### MAIN ###############################
 ####################################################################
 
-results.dir <- "analysis2_modularity"
+
+results.dir <- file.path(visual.dir, "part1_diversity", "analysis2_modularity")
 make.dir(results.dir)
 
 # Load ECF tables
