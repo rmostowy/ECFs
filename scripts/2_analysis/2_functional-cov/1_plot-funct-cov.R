@@ -15,6 +15,10 @@ source(config.filename)
 ############################### MAIN ###############################
 ####################################################################
 
+# Define output directories
+this.visual.dir <- file.path(visual.dir, "part2_funct-cov")
+make.dir(this.visual.dir)
+
 # Load all datasets
 ecf.table <- fread(ecf.table.output)
 all.ecfs <- unique(ecf.table$ecf.name)
@@ -41,11 +45,11 @@ setkey(reprseq.functions.all, annotation)
 top.annotations <- reprseq.functions.all[reprseq.functions.all$top.annotation] %>% select(funct, class, annotation) %>% distinct()
 
 # ecf.family.table <- ecf.family.table[ecf.family.table$ecf %in% all.ecfs]
-no.families <- length(unique(ecf.family.table$ecf.family))
+no.families <- length(unique(ecf.family.table$family))
 
-reprseq.table <- fread(reprseq.table.filename)
-reprseq.table[, accession := tstrsplit(cluster.name, ":")[[1]]]
-reprseq.table[, accession := tstrsplit(accession, ".", fixed = T)[[1]]]
+reprseq.table <- fread(reprseq.table.output)
+# reprseq.table[, accession := tstrsplit(cluster.name, ":")[[1]]]
+# reprseq.table[, accession := tstrsplit(accession, ".", fixed = T)[[1]]]
 
 metadata.table <- fread(metadata.table.output)
 setkey(metadata.table, accession)
@@ -53,72 +57,14 @@ setkey(metadata.table, accession)
 ecod.domains <- fread(ecod.domains.output)
 pfam.domains <- fread(pfam.domains.output)
 
-
-# ###############################################################
-# ### 1. Plot the distribution of the number of reprseqs per ECF
-# ###############################################################
-# this.results.dir <- "analysis1_distr"
-# make.dir(this.results.dir)
-# 
-# reprseq.per.ecf <- reprseq.ecfs[, .(no.reprseqs = uniqueN(qname)), by = sname]
-# 
-# p.repr.per.ecf <- ggplot(reprseq.per.ecf, aes(x = no.reprseqs)) +
-#   geom_histogram(bins = 100, fill = "blue", color = "black", alpha = 0.7) + scale_x_continuous(limits = c(1,200))
-# 
-# p.repr.per.ecf.logx <- ggplot(reprseq.per.ecf, aes(x = no.reprseqs)) +
-#   geom_histogram(bins = 20, fill = "blue", color = "black", alpha = 0.7) + scale_x_log10()
-# 
-# p.repr.per.ecf.fn <- file.path(this.results.dir, "plot1a_repr-per-ecf.png")
-# p.repr.per.ecf.logx.fn <- file.path(this.results.dir, "plot1b_repr-per-ecf-log.png")
-# # ggsave(p.repr.per.ecf.fn, p.repr.per.ecf, width = 6, height = 5)
-# # ggsave(p.repr.per.ecf.logx.fn, p.repr.per.ecf.logx, width = 5, height = 5)
-# 
-# ###############################################################
-# ### 2. Plot the distribution of the number of ECFs per EF
-# ###############################################################
-# 
-# ecfs.per.family <- ecf.family.table[, .(no.ecfs = uniqueN(ecf)), by = ecf.family]
-# 
-# p.ecfs.per.fam.logx <- ggplot(ecfs.per.family, aes(x = no.ecfs)) +
-#   geom_histogram(bins = 15, fill = "darkblue", color = "black", alpha = 0.7) + scale_x_log10() + scale_y_log10()
-# 
-# p.ecfs.per.fam.logx.fn <- file.path(this.results.dir, "plot2a_ecfs-per-fam.png")
-# # ggsave(p.ecfs.per.fam.logx.fn, p.ecfs.per.fam.logx, width = 6, height = 5)
-# 
-# ###############################################################
-# ### 3. Plot the distribution of ECF lengths (as well as for ECODs and Pfams)
-# ###############################################################
-# 
-# ecf.lengths <- reprseq.ecfs %>% select(ecf = sname, length = slength) %>% distinct()
-# 
-# p.ecf.lengths <- ggplot(ecf.lengths, aes(x = length)) +
-#   geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
-# p.ecf.lengths.fn <- file.path(this.results.dir, "plot3a_ecf-lengths.png")
-# # ggsave(p.ecf.lengths.fn, p.ecf.lengths, width = 6, height = 5)
-# 
-# ecod.domains.seqs <- read.fasta(ecod.domains.fasta.filename)
-# ecod.domains.lengths <- sapply(ecod.domains.seqs, length)
-# # hist(ecod.domains.lengths, breaks = 30)
-# ecod.lengths <- data.table(ecod = names(ecod.domains.seqs), length = ecod.domains.lengths)
-# 
-# p.ecod.lengths <- ggplot(ecod.lengths, aes(x = length)) +
-#   geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
-# p.ecod.lengths.fn <- file.path(this.results.dir, "plot3b_ecod-lengths.png")
-# # ggsave(p.ecod.lengths.fn, p.ecod.lengths, width = 6, height = 5)
-# 
-# p.pfam.lengths <- ggplot(pfam.domains, aes(x = length)) +
-#   geom_histogram(bins = 30, fill = "darkred", color = "black", alpha = 0.7) + scale_x_log10()
-# p.pfam.lengths.fn <- file.path(this.results.dir, "plot3c_pfam-lengths.png")
-# # ggsave(p.pfam.lengths.fn, p.pfam.lengths, width = 6, height = 5)
-
 ###############################################################
 ### 4. Plot the domain coverage (ECFs vs Pfam/ECODs) per function:
 ###    a) number of proteins with any hit
 ###    b) proportion of aa space with a domain hit
 ###############################################################
 
-this.results.dir <- "analysis1_funct-cov"
-make.dir(this.results.dir)
+this.results.dir <- this.visual.dir
+# make.dir(this.results.dir)
 
 funct.cov.list <- lapply(1:nrow(top.annotations), function(annotation.index){
   this.annotation <- top.annotations$annotation[annotation.index]
