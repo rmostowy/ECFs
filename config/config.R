@@ -108,11 +108,17 @@ qecf.stats.filename <- file.path(ecf.raw.data.path, "reprseq-all-stat-coverage.t
 ecf.vs.qecf.filename <- file.path(ecf.raw.data.path, "ecf2qecfs.csv")
 ecfs.a3m.dir <- file.path(ecf.raw.data.path, "ecfs")
 
+ps.vs.ecf.filename <- file.path(ecf.raw.data.path, "table-scan-ps_ecf.txt")
+ps.vs.ecod.filename <- file.path(ecf.raw.data.path, "table-scan-ps_ecod.txt")
+ps.vs.pfam.filename <- file.path(ecf.raw.data.path, "table-scan-ps_pfam.txt")
+
 ####################
 ### Define other data
 ####################
 
 ictv.release.filename <- file.path(mgg.db, "ICTV", "VMR", "VMR_MSL39_v2.xlsx")
+phagescope.protein.metadata.filename <- file.path(ecf.projects.datasets, "phagescope-random", "used-in-paper", "PhageScope_protein_metadata_2000.tsv")
+phagescope.protein.seqs.filename <- file.path(ecf.projects.datasets, "phagescope-random", "used-in-paper", "PhageScope_protein_2000.fasta")
 
 #######################
 ### Data directories
@@ -126,6 +132,7 @@ visual.dir <- file.path(main.data.dir, "visualisations")
 
 data.phrog.dir <- file.path(data.output.dir, "annotation", "phrogs")
 data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
+data.ps.dir <- file.path(data.output.dir, "annotation", "phagescope")
 data.ecfs.dir <- file.path(data.output.dir, "ecfs")
 
 data.comparisons.dir <- file.path(data.output.dir, "comparisons")
@@ -133,7 +140,7 @@ ecf.network.dir <- file.path(data.comparisons.dir, "networks")
 
 dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir, visual.dir,
-                 data.phrog.dir, data.domain.dir, data.ecfs.dir,
+                 data.phrog.dir, data.domain.dir, data.ps.dir, data.ecfs.dir,
                  data.comparisons.dir, ecf.network.dir)
 
 make.dirs(dirs2create)
@@ -182,6 +189,13 @@ ecf.family.table.output <- file.path(data.ecfs.dir, "ecfs-family-table.txt")
 # metadata
 metadata.table.output <- file.path(data.input.dir, "metadata.tsv")
 accessions.cds.output <- file.path(data.input.dir, "ncbi-accessions-cds.tsv")
+
+# phagescope
+phagescope.sequences.output <- file.path(data.ps.dir, "phagescope-seqs.fasta")
+phagescope.metadata.output <- file.path(data.ps.dir, "phagescope-metadata.txt")
+phagescope.vs.ecod <- file.path(data.ps.dir, "phagescope-vs-ecod.txt")
+phagescope.vs.pfam <- file.path(data.ps.dir, "phagescope-vs-pfam.txt")
+phagescope.vs.ecf <- file.path(data.ps.dir, "phagescope-vs-ecf.txt")
 
 # comparisons
 reprseq.vs.reprseq.blast.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast.txt")
