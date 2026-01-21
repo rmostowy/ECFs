@@ -68,7 +68,7 @@ setkey(ecf.name.table, er.name)
 
 # load reprseq to ecf mapping
 reprseq.vs.ecfs.all <- fread(ecf.hits.filename)
-reprseq.vs.ecfs.all[, qname := sub("-hhsearch$", "", qname)]
+# reprseq.vs.ecfs.all[, qname := sub("-hhsearch$", "", qname)]
 reprseq.vs.ecfs.all[, hit.length := qend - qstart + 1]
 reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
@@ -172,7 +172,7 @@ fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 # 6. Calculate ECF qcov/scov
 #####################################
 
-use.cores <- 8
+use.cores <- 20
 no.iterations <- 20
 ecfs.vs.ecfs.cov <- ecfs.vs.ecfs %>% filter(prob >= MIN.PROB.FOR.ECF.QCOV.SCOV)
 

@@ -94,7 +94,7 @@ system(mmseqs.createdb.cmd)
 # Step 2: Run MMseqs2 All-vs-All Search
 mmseqs.search.cmd <- paste(
   "mmseqs search", mmseqs.db, mmseqs.db, mmseqs.res, mmseqs.tmp.dir,
-  "-s 7.5 --alt-ali 10 --cov-mode 0 -c 0.0 -e 1e-3 --max-seqs 2000 --threads 12"
+  "-s 7.5 --alt-ali 10 --cov-mode 0 -c 0.0 -e 1e-3 --max-seqs 2000 --threads 20"
 )
 system(mmseqs.search.cmd)
 
