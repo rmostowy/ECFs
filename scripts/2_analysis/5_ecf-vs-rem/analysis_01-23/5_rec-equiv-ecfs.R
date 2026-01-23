@@ -19,28 +19,21 @@ source("functions.R")
 
 # Define output folder
 table.dir <- "tables"
-output.dir <- file.path(visual.dir, "analysis_02-21", "rec-equiv-ecfs")
+output.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs")
 make.dir(output.dir)
 
 # Load refseq table
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 setkey(reprseq.table, reprseq)
 all.reprseq <- unique(reprseq.table$reprseq)
 
-# Calculate NCBI overlaps per reprseq
-max.overlap.per.reprseq <- reprseq.table[, .(reprseq, ncbi.overlap)]
-setorder(max.overlap.per.reprseq, reprseq, -ncbi.overlap)
-max.overlap.per.reprseq <- max.overlap.per.reprseq[, .SD[1], by = reprseq]
-setkey(max.overlap.per.reprseq, reprseq)
-
 # Load recent recombination table
-recent.rec.table <- fread(reprseq.recent.rec.table.output)
-recent.rec.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
+rem.table <- fread(rem.table.output)
+rem.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
 
 # Load recombination domain overlap table
-rec.domain.overlap.table.outfile <- file.path(table.dir, "rec-domain-overlaps.txt")
-rec.domain.overlaps <- fread(rec.domain.overlap.table.outfile)
-rec.domain.overlaps[, row.id := .I]
+rem.domain.overlap.table.outfile <- file.path(table.dir, "rem-domain-overlaps.txt")
+rem.domain.overlaps <- fread(rem.domain.overlap.table.outfile)
 
 # Load ECF table
 ecf.table <- fread(ecf.table.output)
@@ -62,14 +55,13 @@ setkey(ecf.family.table, ecf)
 ecf.class.table <- fread(ecf.classification.table.output)
 setkey(ecf.class.table, ecf)
 
+# Translate ECFs to ECODs
 ecf.class.table$family <- ecf.family.table[.(ecf.class.table$ecf)]$family
 ecf2ecod <- ecf.class.table %>% select(ecf, family, t.id)
-ecf2ecod$t.name <- sapply(1:nrow(ecf2ecod), function(k){
-  out <- "unknown"
-  this.t.id <- ecf2ecod$t.id[k]
-  if(this.t.id != "unknown") out <- ecod.domains[t_id == this.t.id]$t_name[1]  
-  return(out)
-})
+ecod.tid2tname <- unique(ecod.domains %>% select(t.id = t_id, t.name = t_name))
+setkey(ecod.tid2tname, t.id)
+ecf2ecod$t.name <- ecod.tid2tname[.(ecf2ecod$t.id)]$t.name
+ecf2ecod[is.na(t.name), t.name := "unknown"]
 setorder(ecf2ecod, family)
 
 # Load functional annotations
@@ -110,40 +102,44 @@ ecfs.vs.ecod <- fread(ecfs.vs.ecod.output)
 setkey(ecfs.vs.ecod, qname)
 
 ##################################################
-### Select Recombination-Equivalent ECFs (RE-ECFs)
+### Select REM-Equivalent ECFs (RE-ECFs)
 ##################################################
 
 # Get ECF recombination overlap table
 ECF.OVERLAP.SCORE.THR <- 0.9
 ECF.MIN.OVERLAP.SCORE.THR <- 0.9
 MIN.NO.PROTEINS.WITH.HIGH.OVERLAPPING.ECF <- 3
+RE.ECF.NO.PAIRS.THR <- 20
 
-rows.from <- rec.domain.overlaps %>% select(reprseq = protein1.name, domain = protein1.ecf.best, score = protein1.ecf.score)
-rows.to <- rec.domain.overlaps %>% select(reprseq = protein2.name, domain = protein2.ecf.best, score = protein2.ecf.score)
-protein.rec.ecf.overlaps <- rbind(rows.from, rows.to)
-protein.rec.ecf.overlaps <- protein.rec.ecf.overlaps[is.na(score), score := 0]
-protein.rec.ecf.overlaps.nonzero <- protein.rec.ecf.overlaps[score > 0]
+rows.from <- rem.domain.overlaps %>% select(reprseq = protein1.name, domain = protein1.ecf.best, score = protein1.ecf.score)
+rows.to <- rem.domain.overlaps %>% select(reprseq = protein2.name, domain = protein2.ecf.best, score = protein2.ecf.score)
+protein.rem.ecf.overlaps <- rbind(rows.from, rows.to)
+protein.rem.ecf.overlaps <- protein.rem.ecf.overlaps[is.na(score), score := 0]
+protein.rem.ecf.overlaps.nonzero <- protein.rem.ecf.overlaps[score > 0]
 
 # To select recombination-equivalent ECFs, we need to do two things:
-# a) consider only ECFs which qualify as RE (recombination-equivalent) in at least MIN.NO.PROTEINS.WITH.HIGH.OVERLAPPING.ECF proteins
+# a) consider only ECFs which qualify as RE (REM-equivalent) in at least MIN.NO.PROTEINS.WITH.HIGH.OVERLAPPING.ECF proteins
 # b) consider only ECFs which have an average overlap score of at least 0.9
 
 # Hence we first need to count the number of reprseq per ECF with high score
-protein.rec.ecf.overlaps.high <- protein.rec.ecf.overlaps[score >= ECF.OVERLAP.SCORE.THR]
-ecf.vs.reprseq.high <- protein.rec.ecf.overlaps.high %>% select(domain, reprseq)
+protein.rem.ecf.overlaps.high <- protein.rem.ecf.overlaps[score >= ECF.OVERLAP.SCORE.THR]
+ecf.vs.reprseq.high <- protein.rem.ecf.overlaps.high %>% select(domain, reprseq)
 ecf.high.overlap.freq <- ecf.vs.reprseq.high[, .N, by = domain]
 re.ecf.shortlist <- ecf.high.overlap.freq[N >= MIN.NO.PROTEINS.WITH.HIGH.OVERLAPPING.ECF]$domain
 
 # Then we need to calculate mean overlap for those ECFs for pre-filtering overlap scores
-filtered_data <- protein.rec.ecf.overlaps.nonzero[domain %in% re.ecf.shortlist]
+filtered_data <- protein.rem.ecf.overlaps.nonzero[domain %in% re.ecf.shortlist]
 mean.overlap.per.ecf <- filtered_data[, .(mean.score = mean(score, na.rm = TRUE)), by = domain]
 
 # Then we obtain RE ECFs
 re.ecfs <- sort(mean.overlap.per.ecf[mean.score >= ECF.MIN.OVERLAP.SCORE.THR]$domain)
 re.ecf.associated.pairs <- lapply(1:length(re.ecfs), function(index){
   this.ecf <- re.ecfs[index]
-  this.ecf.pair.indices <- sort(union(rec.domain.overlaps[protein1.ecf.best == this.ecf]$row.id, rec.domain.overlaps[protein2.ecf.best == this.ecf]$row.id))
-  this.ecf.pair.indices
+  this.ecf.rem.indices <- union(rem.domain.overlaps[protein1.ecf.best == this.ecf]$this.rr.pair.index,
+                                rem.domain.overlaps[protein2.ecf.best == this.ecf]$this.rr.pair.index
+  )
+  this.ecf.rem.indices <- sort(this.ecf.rem.indices)
+  this.ecf.rem.indices
 })
 re.ecf.associated.pairs.n <- sapply(re.ecf.associated.pairs, length)
 
@@ -161,8 +157,7 @@ setkey(reprseq.lengths, name)
 subseq.outpath <- file.path(output.dir, "ecf-subseqs")
 make.dir(subseq.outpath)
 
-
-re.ecf.common <- re.ecfs.metadata[no.pairs > 20]
+re.ecf.common <- re.ecfs.metadata[no.pairs >= RE.ECF.NO.PAIRS.THR]
 re.ecf.common.outfile <- file.path(output.dir, "re-ecf-common.txt")
 fwrite(re.ecf.common, file = re.ecf.common.outfile)
 
@@ -173,27 +168,27 @@ iq.extensions2remove <- c("bionj", "ckp.gz", "iqtree", "log", "mldist")
 for(index in 1:nrow(re.ecf.common)){
   cat(index,"\n")
   this.ecf <- re.ecf.common[index]$ecf
-  this.ecf.associated.reprseqs <- rbind(rec.domain.overlaps[protein1.ecf.best == this.ecf, .(qname = protein1.name, row.id)], 
-                                        rec.domain.overlaps[protein2.ecf.best == this.ecf, .(qname = protein2.name, row.id)])
-  setorder(this.ecf.associated.reprseqs, qname, row.id)
+  this.ecf.associated.reprseqs <- rbind(rem.domain.overlaps[protein1.ecf.best == this.ecf, .(qname = protein1.name, rem.index)], 
+                                        rem.domain.overlaps[protein2.ecf.best == this.ecf, .(qname = protein2.name, rem.index)])
+  setorder(this.ecf.associated.reprseqs, qname, rem.index)
   this.ecf.associated.reprseqs.unique <- this.ecf.associated.reprseqs[, .SD[1], by = qname]
   
   this.ecf.reprseq.hits.list <- lapply(1:nrow(this.ecf.associated.reprseqs.unique), function(i){
-    this.row.id <- this.ecf.associated.reprseqs.unique$row.id[i]
-    this.pair.reprseq <- this.ecf.associated.reprseqs.unique$qname[i]
-    this.pair.rec.table <- recent.rec.table[this.row.id]
-    is.query <- this.pair.reprseq == this.pair.rec.table$qname
-    is.subject <- this.pair.reprseq == this.pair.rec.table$sname
+    this.rem.index <- this.ecf.associated.reprseqs.unique$rem.index[i]
+    this.rem.reprseq <- this.ecf.associated.reprseqs.unique$qname[i]
+    this.pair.rem.table <- rem.table[this.rem.index]
+    is.query <- this.rem.reprseq == this.pair.rem.table$qname
+    is.subject <- this.rem.reprseq == this.pair.rem.table$sname
     if(is.query){
-      start <- this.pair.rec.table$qstart
-      end <- this.pair.rec.table$qend
+      start <- this.pair.rem.table$qstart
+      end <- this.pair.rem.table$qend
     } else if(is.subject){
-      start <- this.pair.rec.table$sstart
-      end <- this.pair.rec.table$send
+      start <- this.pair.rem.table$sstart
+      end <- this.pair.rem.table$send
     } else{
       cat("reprseq missing!\n")
     }
-    data.table(name = this.pair.reprseq, start, end)  
+    data.table(name = this.rem.reprseq, start, end)  
   })
   this.ecf.reprseq.hits <- rbindlist(this.ecf.reprseq.hits.list)
   setkey(this.ecf.reprseq.hits, name)
@@ -223,9 +218,9 @@ for(index in 1:nrow(re.ecf.common)){
   cat("Aligning ECF sequences...\n")
   system(clustalo.cmd)
   cat("Done!\n\n")
-  
+
   cat("Running IQ-tree...\n")
-  iqtree.cmd <- sprintf("iqtree2 -s %s -m LG -nt AUTO -redo --quiet", this.ecf.aln.outfile)
+  iqtree.cmd <- sprintf("iqtree3 -s %s -m LG -T 8 --redo --quiet --fast", this.ecf.aln.outfile)
   system(iqtree.cmd)
   cat("Done!\n\n")
   
@@ -245,7 +240,7 @@ for(index in 1:nrow(re.ecf.common)){
   setorder(best.ecod.hits, name, start)
   
   # Find all PFAM domains associated with those reprseqs
-  this.ecf.associated.reprseq.pfam.hits <- reprseq.pfam[qname %in% this.ecf.associated.reprseqs.unique$qname & scov >= MIN.SCOV.FOR.DOMAIN]
+  this.ecf.associated.reprseq.pfam.hits <- reprseq.pfam[qname %in% this.ecf.associated.reprseqs.unique$qname]
   this.ecf.associated.reprseq.pfam.hits$id <- pfam.domains[.(this.ecf.associated.reprseq.pfam.hits$accession)]$id
   this.ecf.associated.reprseq.pfam.hits$descr <- pfam.domains[.(this.ecf.associated.reprseq.pfam.hits$accession)]$description
   best.pfam.hits <- this.ecf.associated.reprseq.pfam.hits[, .(qname, sname, qstart, qend, id, descr)]

@@ -19,27 +19,21 @@ source("functions.R")
 
 # Define output folder
 table.dir <- "tables"
-output.dir <- file.path(visual.dir, "analysis_02-21", "rec-equiv-ecfs")
+output.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs", "plots")
 make.dir(output.dir)
 
 # Load refseq table
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 setkey(reprseq.table, reprseq)
 all.reprseq <- unique(reprseq.table$reprseq)
 
-# Calculate NCBI overlaps per reprseq
-max.overlap.per.reprseq <- reprseq.table[, .(reprseq, ncbi.overlap)]
-setorder(max.overlap.per.reprseq, reprseq, -ncbi.overlap)
-max.overlap.per.reprseq <- max.overlap.per.reprseq[, .SD[1], by = reprseq]
-setkey(max.overlap.per.reprseq, reprseq)
-
 # Load recent recombination table
-recent.rec.table <- fread(reprseq.recent.rec.table.output)
-recent.rec.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
+rem.table <- fread(rem.table.output)
+rem.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
 
 # Load recombination domain overlap table
-rec.domain.overlap.table.outfile <- file.path(table.dir, "rec-domain-overlaps.txt")
-rec.domain.overlaps <- fread(rec.domain.overlap.table.outfile)
+rem.domain.overlap.table.outfile <- file.path(table.dir, "rem-domain-overlaps.txt")
+rem.domain.overlaps <- fread(rem.domain.overlap.table.outfile)
 rec.domain.overlaps[, row.id := .I]
 
 # Load ECF table
@@ -62,14 +56,13 @@ setkey(ecf.family.table, ecf)
 ecf.class.table <- fread(ecf.classification.table.output)
 setkey(ecf.class.table, ecf)
 
+# Translate ECFs to ECODs
 ecf.class.table$family <- ecf.family.table[.(ecf.class.table$ecf)]$family
 ecf2ecod <- ecf.class.table %>% select(ecf, family, t.id)
-ecf2ecod$t.name <- sapply(1:nrow(ecf2ecod), function(k){
-  out <- "unknown"
-  this.t.id <- ecf2ecod$t.id[k]
-  if(this.t.id != "unknown") out <- ecod.domains[t_id == this.t.id]$t_name[1]  
-  return(out)
-})
+ecod.tid2tname <- unique(ecod.domains %>% select(t.id = t_id, t.name = t_name))
+setkey(ecod.tid2tname, t.id)
+ecf2ecod$t.name <- ecod.tid2tname[.(ecf2ecod$t.id)]$t.name
+ecf2ecod[is.na(t.name), t.name := "unknown"]
 setorder(ecf2ecod, family)
 
 # Load functional annotations
@@ -131,8 +124,7 @@ match2type <- function(qcov.value, scov.value){
   return(final.type)
 }
 
-
-re.ecf.common.outfile <- file.path(output.dir, "re-ecf-common.txt")
+re.ecf.common.outfile <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs", "re-ecf-common.txt")
 re.ecf.common <- fread(re.ecf.common.outfile)
 
 # Compare ECFs to domains
@@ -189,7 +181,7 @@ setorder(ecf.best.match.parms, family, ecf)
 #############################################
 
 # Define number of top ECFs to retain
-top_n_ecfs <- 30  # Change as needed
+top_n_ecfs <- 40  # Change as needed
 
 # Filter for the top N most frequent ECFs
 top_ecfs <- ecf.best.match.parms %>%
@@ -210,7 +202,7 @@ p.most.freq.re.ecfs <- ggplot(heatmap_data, aes(x = ecf, y = factor(ecod.type, l
   scale_fill_manual(values = fill_colors, na.value = "grey") +
   theme_bw() +
   labs(
-    title = "Heatmap of Top ECFs by ECOD Type",
+    title = sprintf("Heatmap of Top ECFs by ECOD Type (top %d)", top_n_ecfs),
     x = "ECF",
     y = "Category",
     fill = "ECOD (T-Name)"
@@ -250,148 +242,3 @@ plot.unknown.sankey <- ggplot(sankey_data, aes(axis1 = pfam.name, axis2 = funct,
 
 p.unknown.outfile <- file.path(output.dir, "plot2_unknown-RE-ECFs.png")
 ggsave(p.unknown.outfile, plot.unknown.sankey, width = 10, height = 6)
-
-
-##############################################################################
-##############################################################################
-##############################################################################
-##############################################################################
-
-
-# # # Compare ECFs to PHROGs
-# # ecf2funct.list <- lapply(1:nrow(ecf.best.match.parms), function(index){
-# #   this.ecf <- ecf.best.match.parms$ecf[index]
-# #   this.family <- ecf.best.match.parms$family[index]
-# #   this.ecf.ecod.id <- ecf.best.match.parms$ecod.id[index]
-# #   this.ecf.ecod.name <- ecf.best.match.parms$ecod.name[index]
-# #   this.ecf.reprseqs <- reprseq.ecfs[.(this.ecf)]$qname
-# #   data.table(ecf = this.ecf, family = this.family, ecod.id = this.ecf.ecod.id, ecod.name = this.ecf.ecod.name, reprseq = this.ecf.reprseqs)  
-# # })
-# # ecf2funct <- rbindlist(ecf2funct.list)
-# # ecf2funct$funct <- reprseq.functions[.(ecf2funct$reprseq)]$funct
-# # ecf2funct$class <- reprseq.functions[.(ecf2funct$reprseq)]$class
-# # ecf2funct[funct == "", funct := "unknown"]
-# # ecf2funct[class == "", class := "unknown"]
-# # setorder(ecf2funct, reprseq)
-# 
-# 
-# #############################################
-# ## Plot: compare ECOD types with PFAM types
-# #############################################
-# 
-# # Filter out NA values
-# sankey_data <- ecf.best.match.parms %>%
-#   filter(!is.na(ecod.type), !is.na(pfam.type)) %>%
-#   count(ecod.type, pfam.type)
-# 
-# # Sankey plot
-# plot.type.assignment.ecod.pfam <- ggplot(sankey_data, aes(axis1 = ecod.type, axis2 = pfam.type, y = n)) +
-#   geom_alluvium(aes(fill = ecod.type), alpha = 0.8) +
-#   geom_stratum(fill = "grey") +
-#   geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 4) +
-#   scale_x_discrete(limits = c("ECOD Type", "PFAM Type")) +
-#   theme_minimal() +
-#   labs(title = "Sankey Diagram: Mapping ECOD Types to PFAM Types",
-#        x = NULL,
-#        y = "Count",
-#        fill = "ECOD Type") +
-#   theme(axis.text.x = element_text(size = 12, face = "bold"))
-# 
-# #############################################
-# ## Plot: domain types with their functions
-# #############################################
-# 
-# # Aggregate count
-# heatmap_data_ecod <- ecf.best.match.parms %>%
-#   count(ecod.type, ecod.name)
-# heatmap_data_pfam <- ecf.best.match.parms %>%
-#   count(pfam.type, pfam.name)
-# 
-# # Plot
-# p.heatmap.ecod <- ggplot(heatmap_data, aes(x = ecod.type, y = ecod.name, fill = n)) +
-#   geom_tile() +
-#   scale_fill_viridis_c() +
-#   theme_minimal() +
-#   labs(title = "Heatmap of ECF Type Frequency per Domain Function",
-#        x = "ECF Type",
-#        y = "Domain Function",
-#        fill = "Count")
-# 
-# p.heatmap.pfam <- ggplot(heatmap_data_pfam, aes(x = pfam.type, y = pfam.name, fill = n)) +
-#   geom_tile() +
-#   scale_fill_viridis_c() +
-#   theme_minimal() +
-#   labs(title = "Heatmap of ECF Type Frequency per Domain Function",
-#        x = "ECF Type",
-#        y = "Domain Function",
-#        fill = "Count")
-# 
-# #############################################
-# ## Plot: relationship between domains and functions of RE-ECFs
-# #############################################
-# 
-# 
-# # ###########################################################################
-# # ###########################################################################
-# # ###########################################################################
-# # ###########################################################################
-# # 
-# # # ecf.list <- re.ecf.common[type != 'new']$ecf
-# # 
-# # 
-# # make.qcov.scov.plot <- function(table){
-# #   plot <- ggplot(table, aes(x = qcov, y = scov)) + geom_point(size = 4) 
-# #   plot <- plot + scale_x_continuous(limits = c(0, 1)) + scale_y_continuous(limits = c(0, 1))
-# #   plot <- plot + theme_bw()
-# #   return(plot)
-# # }
-# # 
-# # index=5
-# # # this.ecf <- ecf.list[index]
-# # 
-# # 
-# # # 1. Find all ECODs linked to this ECF
-# # ecf.best.match.parms.list <- lapply(1:nrow(re.ecf.common), function(index){
-# #   this.ecf <- re.ecf.common$ecf[index]
-# #   this.family <- re.ecf.common$family[index]
-# #   this.ecf.has.ecod.hits <- this.ecf %in% ecfs.vs.ecod$qname
-# #   best.match.scov <- best.match.qcov <- best.match.ecod <- NA
-# #   if(this.ecf.has.ecod.hits){
-# #     this.ecf.vs.ecod <- ecfs.vs.ecod[.(this.ecf)]  
-# #     this.ecf.vs.ecod.max.scov <- this.ecf.vs.ecod[which.max(scov)]  
-# #     best.match.qcov <- this.ecf.vs.ecod.max.scov$qcov
-# #     best.match.scov <- this.ecf.vs.ecod.max.scov$scov
-# #     best.match.ecod <- this.ecf.vs.ecod.max.scov$sname
-# #   }
-# #   data.table(ecf = this.ecf, family = this.family, best.match.qcov, best.match.scov, best.match.ecod)  
-# # })
-# # ecf.best.match.parms <- rbindlist(ecf.best.match.parms.list)
-# # ecf.best.match.parms$id <- ecod.domains[.(ecf.best.match.parms$best.match.ecod)]$t_id
-# # ecf.best.match.parms$name <- ecod.domains[.(ecf.best.match.parms$best.match.ecod)]$t_name
-# # setorder(ecf.best.match.parms, family)
-# # 
-# # 
-# # # Plot best matches with the corresponding scov/qcov values
-# # ecf.best.match.parms[, shape := ifelse(best.match.scov >= 0.8, 22, 21)]  # Square = 22, Circle = 21
-# # ecf.best.match.parms[, ecf := factor(ecf, levels = unique(ecf))]
-# # 
-# # # Generate distinct colors for all unique ECOD IDs
-# # set.seed(42)  # Ensures consistent color assignment
-# # unique_ecod_ids <- unique(na.omit(ecf.best.match.parms$id))  # Remove NA IDs
-# # ecod_colors <- setNames(colorRampPalette(RColorBrewer::brewer.pal(8, "Set1"))(length(unique_ecod_ids)), unique_ecod_ids)
-# # 
-# # # Plot
-# # ggplot(ecf.best.match.parms, aes(x = ecf, y = best.match.qcov, shape = factor(shape), fill = id)) +
-# #   geom_point(size = 4, alpha = 0.6, na.rm = FALSE) + 
-# #   scale_shape_manual(values = c("21" = 21, "22" = 22), labels = c("S < 0.8", "S ≥ 0.8")) +
-# #   scale_fill_manual(values = ecod_colors, na.translate = FALSE) +  # Assign colors to IDs
-# #   scale_y_continuous(limits = c(0,1)) +
-# #   theme_minimal() +
-# #   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-# #   labs(title = "Best Q-Coverage Matches for Each ECF",
-# #        x = "ECF",
-# #        y = "Best Match Q-Coverage",
-# #        shape = "S-Coverage Threshold",
-# #        fill = "ECOD ID") +
-# #   guides(fill = guide_legend(override.aes = list(size = 4)))  # Adjust legend size for readability
-# # 

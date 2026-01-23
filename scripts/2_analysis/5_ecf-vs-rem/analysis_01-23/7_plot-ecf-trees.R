@@ -22,7 +22,7 @@ source("functions.R")
 
 # Define output folder
 table.dir <- "tables"
-output.dir <- file.path(visual.dir, "analysis_02-21", "rec-equiv-ecfs")
+output.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs")
 ecf.subseqs.dir <- file.path(output.dir, "ecf-subseqs")
 ecf.trees.dir <- file.path(output.dir, "ecf-trees")
 make.dir(ecf.trees.dir)
