@@ -20,6 +20,14 @@ main.path <- "/Users/rmostowy"
 mgg.db <- file.path(main.path, "MGG Dropbox/Databases")
 mgg.projects <- file.path(main.path, "MGG Dropbox/Projects")
 
+#####################
+## Update PATH
+#####################
+bio_bin_dirs <- list.dirs("/opt/bio", recursive = FALSE, full.names = TRUE)
+bio_bin_dirs <- file.path(bio_bin_dirs, "bin")
+bio_bin_dirs <- bio_bin_dirs[dir.exists(bio_bin_dirs)]
+Sys.setenv(PATH = paste(Sys.getenv("PATH"), paste(bio_bin_dirs, collapse = ":"), sep = ":"))
+
 ##############################
 ### Load functions
 ##############################
