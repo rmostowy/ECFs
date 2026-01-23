@@ -46,7 +46,6 @@ setkey(ecf.class.table, ecf)
 # Translate ECFs to ECODs
 ecf.class.table$family <- ecf.family.table[.(ecf.class.table$ecf)]$family
 ecf2ecod <- ecf.class.table %>% select(ecf, family, t.id)
-
 ecod.tid2tname <- unique(ecod.domains %>% select(t.id = t_id, t.name = t_name))
 setkey(ecod.tid2tname, t.id)
 ecf2ecod$t.name <- ecod.tid2tname[.(ecf2ecod$t.id)]$t.name

@@ -18,21 +18,16 @@ source(config.filename)
 
 # Define output folder
 table.dir <- "tables"
-output.dir <- file.path(visual.dir, "analysis_02-21", "rr-network")
+output.dir <- file.path(visual.dir, "part5_rem", "rr-network")
 make.dir(output.dir)
 
 # Load reprseq table
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load recent recombination table
-recent.rec.table <- fread(reprseq.recent.rec.table.output)
-recent.rec.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
-
-# Load relative classes
-relative.classes.filename <- file.path(table.dir, "relative-classes.txt")
-relative.classes <- fread(relative.classes.filename)
-
+rem.table <- fread(rem.table.output)
+rem.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
 
 # Load functional annotations
 reprseq.functions <- fread(reprseq.functions.unique.output)
@@ -63,8 +58,8 @@ reprseq.metadata.outfile <- file.path(output.dir, "reprseq-table.txt")
 fwrite(reprseq.metadata, file = reprseq.metadata.outfile, sep = "\t")
 # setkey(reprseq.metadata, reprseq)
 
-rr.network <- recent.rec.table %>% select(qname, sname, qcov, scov, pident, hit.length = hit.length.query)
-rr.network.outfile <- file.path(output.dir, "rr-network.txt")
+rr.network <- rem.table %>% select(qname, sname, qcov, scov, pident, hit.length = hit.length.query)
+rr.network.outfile <- file.path(output.dir, "rem-network.txt")
 fwrite(rr.network, file = rr.network.outfile, sep = "\t")
 
 ########################################
@@ -73,7 +68,7 @@ fwrite(rr.network, file = rr.network.outfile, sep = "\t")
 # recent-rec dataset
 ########################################
 
-rr.reprseq <- sort(unique(recent.rec.table$qname, recent.rec.table$sname))
+rr.reprseq <- sort(unique(rem.table$qname, rem.table$sname))
 
 # Function to plot top N categories
 plot_top_n <- function(data, column, n = 20, title) {
@@ -86,16 +81,17 @@ plot_top_n <- function(data, column, n = 20, title) {
     theme_minimal() +
     theme(legend.position = "none") +
     labs(title = title, x = column, y = "Frequency")
+  
 }
 
 funct.plot.all <- plot_top_n(reprseq.metadata[funct != "Unknown"], "funct", 20, "Top 20 Functions (all proteins)")
-funct.plot.rr <- plot_top_n(reprseq.metadata[funct != "Unknown" & reprseq %chin% rr.reprseq], "funct", 20, "Top 20 Functions (RR proteins)")
+funct.plot.rr <- plot_top_n(reprseq.metadata[funct != "Unknown" & reprseq %chin% rr.reprseq], "funct", 20, "Top 20 Functions (REM proteins)")
 funct.plots <- funct.plot.all / funct.plot.rr  # Stack function plots
 funct.plots.outname <- file.path(output.dir, "plot1_funct-plot.png")
 ggsave(funct.plots.outname, funct.plots, width = 6, height = 12)
 
 ecod.plot.all <- plot_top_n(reprseq.metadata[t.name != "Unknown"], "t.name", 20, "Top 20 ECODs (all proteins)")
-ecod.plot.rr <- plot_top_n(reprseq.metadata[t.name != "Unknown" & reprseq %chin% rr.reprseq], "t.name", 20, "Top 20 ECODs (RR proteins)")
+ecod.plot.rr <- plot_top_n(reprseq.metadata[t.name != "Unknown" & reprseq %chin% rr.reprseq], "t.name", 20, "Top 20 ECODs (REM proteins)")
 ecod.plots <- ecod.plot.all / ecod.plot.rr  # Stack function plots
 ecod.plots.outname <- file.path(output.dir, "plot2_ecod-plot.png")
 ggsave(ecod.plots.outname, ecod.plots, width = 8, height = 12)

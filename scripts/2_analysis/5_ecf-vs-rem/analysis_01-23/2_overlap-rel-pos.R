@@ -2,6 +2,7 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
+suppressWarnings(suppressPackageStartupMessages(library(ggupset)))
 # suppressWarnings(suppressPackageStartupMessages(library(seqinr)))
 # suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
 # suppressWarnings(suppressPackageStartupMessages(library(parallel)))
@@ -16,17 +17,17 @@ source(config.filename)
 
 # Define output folders
 table.dir <- "tables"
-output.dir <- file.path(visual.dir, "analysis_02-21", "overlaps")
+output.dir <- file.path(visual.dir, "part5_rem", "overlaps")
 make.dir(output.dir)
 
 # Load refseq table
-reprseq.table <- fread(reprseq.table.filename)
+reprseq.table <- fread(reprseq.table.output)
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load recent recombination table
-recent.rec.table <- fread(reprseq.recent.rec.table.output)
-recent.rec.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
-recent.rec.table[, row.id := .I]
+rem.table <- fread(rem.table.output)
+rem.table[, cov.max.full := pmax(qcov.full, scov.full, na.rm = T)]
+rem.table[, row.id := .I]
 
 # Define functions
 rel.pos <- function(pos, length) (pos-1)/(length-1)
@@ -48,7 +49,7 @@ assign_bins <- function(start, end, bins = 99) {
 ###############################################
 
 # Calculate relative positions per rec pairs
-rr <- recent.rec.table
+rr <- rem.table
 pairs.rel.pos.list <- lapply(1:nrow(rr), function(pair.index){
   # this.rr <- recent.rec.table[pair.index]
   this.rr <- rr[pair.index]
@@ -149,7 +150,7 @@ assign.class <- function(start, end, length, max.dist.from.edge = 3){
 }
 
 
-rr <- recent.rec.table
+rr <- rem.table
 
 # MAX.DIST=
 relative.classes.list <- lapply(1:nrow(rr), function(pair.index){
@@ -191,7 +192,7 @@ p.relative.classes <- ggplot(long_format, aes(x = class_list)) +
 p.relative.classes.outfile <- file.path(output.dir, "plot2_rel-classes-upset.png")
 ggsave(p.relative.classes.outfile, p.relative.classes, width = 7, height = 5)
 
-p.relative.classes.p95 <- ggplot(long_format[recent.rec.table[pident >= 95]$row.id], aes(x = class_list)) +
+p.relative.classes.p95 <- ggplot(long_format[rem.table[pident >= 95]$row.id], aes(x = class_list)) +
   geom_bar() +  # Creates the intersection counts
   scale_x_upset(sets = c("N", "o", "C")) +  # Use UpSet-style X axis
   labs(title = "UpSet Plot of Recent recombinations",
