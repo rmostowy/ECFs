@@ -3,7 +3,8 @@ suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(stringr)))
-# suppressWarnings(suppressPackageStartupMessages(library(seqinr)))
+suppressWarnings(suppressPackageStartupMessages(library(ape)))
+suppressWarnings(suppressPackageStartupMessages(library(phangorn)))
 suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
 # suppressWarnings(suppressPackageStartupMessages(library(parallel)))
 
@@ -227,6 +228,17 @@ for(index in 1:nrow(re.ecf.common)){
   iqfiles2rm <- sprintf("%s.%s", this.ecf.aln.outfile, iq.extensions2remove)
   delete.dir(iqfiles2rm)
   
+  this.ecf.tree.unrooted <- read.tree(sprintf("%s.treefile", this.ecf.aln.outfile))
+  this.ecf.tree <- midpoint(this.ecf.tree.unrooted)
+  this.ecf.tree.no.tips <- length(this.ecf.tree$tip.label)
+  this.ecf.tree.taxa.order <- this.ecf.tree$edge[this.ecf.tree$edge[,2] <= this.ecf.tree.no.tips,2]
+  this.ecf.tree.taxa.reordered <- this.ecf.tree$tip.label[this.ecf.tree.taxa.order]
+  this.ecf.aln <- readAAStringSet(this.ecf.aln.outfile)
+  this.ecf.aln.n <- names(this.ecf.aln)
+  this.ecf.aln.reordered <- this.ecf.aln[match(this.ecf.tree.taxa.reordered, this.ecf.aln.n)]
+  writeXStringSet(this.ecf.aln.reordered, filepath = this.ecf.aln.outfile)
+  
+  
   # Find all ECOD domains associated with those reprseqs
   this.ecf.associated.reprseq.ecod.hits <- reprseq.ecod[qname %in% this.ecf.associated.reprseqs.unique$qname]
   this.ecf.associated.reprseq.ecod.hits.best <- this.ecf.associated.reprseq.ecod.hits[
@@ -257,111 +269,3 @@ for(index in 1:nrow(re.ecf.common)){
   
 }
 
-# 
-# 
-# 
-# ################
-# 
-# ecf.vs.ecf.cov <- fread(ecfs.vs.ecfs.cov.output)
-# 
-# 
-# # Load reprseq sequences
-# reprseq.seqs <- readAAStringSet(reprseq.seqs.filename)
-# reprseq.seqs.n <- names(reprseq.seqs)
-# reprseq.seqs.l <- nchar(reprseq.seqs)
-# reprseq.lengths <- data.table(name = reprseq.seqs.n, length = reprseq.seqs.l)
-# setkey(reprseq.lengths, name)
-# 
-# subseq.outpath <- file.path(output.dir, "EF-subseqs")
-# make.dir(subseq.outpath)
-# 
-# all.efs <- unique(re.ecfs.metadata$family)
-# 
-# for(index in 1:length(all.efs)){
-#   cat(index,"\n")
-#   this.ef <- all.efs[index]
-#   this.ef.ecfs <- re.ecfs.metadata[family == this.ef]$ecf
-#   
-#   ecf.vs.ecf.cov[query %chin% this.ef.ecfs & subject %chin% this.ef.ecfs]
-# 
-#   this.ef.associated.reprseqs <- rbindlist(lapply(this.ef.ecfs, function(ecf){
-#     rbind(rec.domain.overlaps[protein1.ecf.best == ecf, .(qname = protein1.name, row.id)],
-#           rec.domain.overlaps[protein2.ecf.best == ecf, .(qname = protein2.name, row.id)])
-#   }))
-#   setorder(this.ef.associated.reprseqs, qname, row.id)
-#   this.ef.associated.reprseqs.unique <- this.ef.associated.reprseqs[, .SD[1], by = qname]
-# 
-# 
-#   this.ef.reprseq.hits.list <- lapply(1:nrow(this.ef.associated.reprseqs.unique), function(i){
-#     this.row.id <- this.ef.associated.reprseqs.unique$row.id[i]
-#     this.pair.reprseq <- this.ef.associated.reprseqs.unique$qname[i]
-#     this.pair.rec.table <- recent.rec.table[this.row.id]
-#     is.query <- this.pair.reprseq == this.pair.rec.table$qname
-#     is.subject <- this.pair.reprseq == this.pair.rec.table$sname
-#     if(is.query){
-#       start <- this.pair.rec.table$qstart
-#       end <- this.pair.rec.table$qend
-#     } else if(is.subject){
-#       start <- this.pair.rec.table$sstart
-#       end <- this.pair.rec.table$send
-#     } else{
-#       cat("reprseq missing!\n")
-#     }
-#     data.table(name = this.pair.reprseq, start, end)
-#   })
-#   this.ef.reprseq.hits <- rbindlist(this.ef.reprseq.hits.list)
-#   setkey(this.ef.reprseq.hits, name)
-# 
-#   this.ef.reprseq.hits$length <- reprseq.lengths[.(this.ef.reprseq.hits$name)]$length
-#   this.ef.reprseq.seqs <- reprseq.seqs[reprseq.seqs.n %in% this.ef.reprseq.hits$name]
-# 
-#   # Extract subsequences using Biostrings' efficient subseq function
-#   extracted.subseqs <- this.ef.reprseq.hits[, {
-#     # Extract full sequence from AAStringSet
-#     full_seq <- as.character(this.ef.reprseq.seqs[[name]])
-# 
-#     # Extract the sub-sequence using `subseq()`
-#     sub_seq <- subseq(full_seq, start = start, end = end)
-# 
-#     # Return as a list to keep structure
-#     .(sub_seq)
-#   }, by = name]
-# 
-#   this.ef.reprseq.subseqs <- AAStringSet(extracted.subseqs$sub_seq)
-#   names(this.ef.reprseq.subseqs) <- this.ef.reprseq.hits$name
-#   this.ef.outfile <- file.path(subseq.outpath, sprintf("%s.fasta", this.ef))
-#   writeXStringSet(this.ef.reprseq.subseqs, this.ef.outfile)
-# 
-#   # Find all ECOD domains associated with those reprseqs
-#   this.ef.associated.reprseq.ecod.hits <- reprseq.ecod[qname %in% this.ef.associated.reprseqs.unique$qname]
-#   this.ef.associated.reprseq.ecod.hits.best <- this.ef.associated.reprseq.ecod.hits[
-#     order(-scov),  # Sort by scov in descending order
-#     .SD[1],  # Select the first (best) hit per group
-#     by = .(qname, t.id)
-#   ]
-#   best.ecod.hits <- this.ef.associated.reprseq.ecod.hits.best[, .(qname, sname, qstart, qend, t.id)]
-#   best.ecod.hits$t.name <- ecod.domains[.(best.ecod.hits$sname)]$t_name
-#   setnames(best.ecod.hits, c("name", "domain", "start", "end", "id", "description"))
-#   setorder(best.ecod.hits, name, start)
-# 
-#   # Find all PFAM domains associated with those reprseqs
-#   this.ef.associated.reprseq.pfam.hits <- reprseq.pfam[qname %in% this.ef.associated.reprseqs.unique$qname & scov >= MIN.SCOV.FOR.DOMAIN]
-#   this.ef.associated.reprseq.pfam.hits$id <- pfam.domains[.(this.ef.associated.reprseq.pfam.hits$accession)]$id
-#   this.ef.associated.reprseq.pfam.hits$descr <- pfam.domains[.(this.ef.associated.reprseq.pfam.hits$accession)]$description
-#   best.pfam.hits <- this.ef.associated.reprseq.pfam.hits[, .(qname, sname, qstart, qend, id, descr)]
-#   setnames(best.pfam.hits, c("name", "domain", "start", "end", "id", "description"))
-#   setorder(best.pfam.hits, name, start)
-# 
-#   ecod.data.outfile <- file.path(subseq.outpath, sprintf("%s-ecod.txt", this.ef))
-#   pfam.data.outfile <- file.path(subseq.outpath, sprintf("%s-pfam.txt", this.ef))
-#   fragment.data.outfile <- file.path(subseq.outpath, sprintf("%s-frag.txt", this.ef))
-# 
-#   fwrite(best.ecod.hits, file = ecod.data.outfile)
-#   fwrite(best.pfam.hits, file = pfam.data.outfile)
-#   fwrite(this.ef.reprseq.hits, file = fragment.data.outfile)
-# }
-# 
-# 
-# 
-# 
-# 
