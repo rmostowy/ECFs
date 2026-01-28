@@ -9,6 +9,10 @@ suppressWarnings(suppressPackageStartupMessages(library(ggtreeExtra)))
 suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
 suppressWarnings(suppressPackageStartupMessages(library(ape)))
 suppressWarnings(suppressPackageStartupMessages(library(phangorn)))
+suppressWarnings(suppressPackageStartupMessages(library(phytools)))
+suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
+suppressWarnings(suppressPackageStartupMessages(library(DECIPHER)))
+
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -40,7 +44,26 @@ for(index in 1:length(all.ecfs)){
     tree_file <- file.path(ecf.subseqs.dir, sprintf("%s.aln.treefile", ecf.name))
     tree.unrooted <- read.tree(tree_file)
     tree <- midpoint(tree.unrooted)
+    p <- ggtree(tree)
+    tree.taxa.order <- get_taxa_name(p)
     
+    # Load alignment
+    aln_file <- file.path(ecf.subseqs.dir, sprintf("%s.aln", ecf.name))
+    aln <- readAAStringSet(aln_file)  # must be aligned
+    
+    # Cluster closely related sequences
+    D <- DistanceMatrix(aln, minCoverage = RE.MIN.OVERLAP, verbose = F)
+    D[is.na(D)] <- 1
+    hc <- hclust(as.dist(D), method = "complete")
+    cl <- cutree(hc, h = RE.MAX.DISTANCE)
+    cl.sizes <- table(cl)
+    cluster.names.above.thr <- which(cl.sizes >= RE.MIN.CLUSTER.SIZE)
+    closely.related.taxa <- names(cl[which(cl %in% cluster.names.above.thr)])
+    tip_metadata <- data.frame(
+      label = tree$tip.label,
+      highlight = tree$tip.label %in% closely.related.taxa
+    )
+
     # Load ECOD domain data
     ecod_file <- file.path(ecf.subseqs.dir, sprintf("%s-ecod.txt", ecf.name))
     ecod_data <- read.csv(ecod_file, stringsAsFactors = FALSE)
@@ -54,13 +77,18 @@ for(index in 1:length(all.ecfs)){
     fragment_data <- read.csv(frag_file, stringsAsFactors = FALSE)
     
     # Convert tree into a tibble for alignment
-    tree_data <- tibble(label = tree$tip.label)
+    tree_data <- tibble(label = tree.taxa.order)
     
     # Ensure domain & fragment data align with tree
-    pfam_data$y <- match(pfam_data$name, tree$tip.label)
-    ecod_data$y <- match(ecod_data$name, tree$tip.label)
-    fragment_data$y <- match(fragment_data$name, tree$tip.label)
+    pfam_data$y <- match(pfam_data$name, tree.taxa.order)
+    ecod_data$y <- match(ecod_data$name, tree.taxa.order)
+    fragment_data$y <- match(fragment_data$name, tree.taxa.order)
     
+    # Ensure Y axis names align with the tree
+    pfam_data$name <- factor(pfam_data$name, levels = rev(tree.taxa.order))
+    ecod_data$name <- factor(ecod_data$name, levels = rev(tree.taxa.order))
+    fragment_data$name <- factor(fragment_data$name, levels = rev(tree.taxa.order))
+
     # Generate distinct colors for all unique ECOD and PFAM IDs
     set.seed(42)  # Ensures consistent color assignment
     unique_ecod_ids <- unique(ecod_data$id)
@@ -71,9 +99,17 @@ for(index in 1:length(all.ecfs)){
     pfam_colors <- setNames(colorRampPalette(RColorBrewer::brewer.pal(8, "Set2"))(length(unique_pfam_ids)), unique_pfam_ids)
     
     # Create Phylogenetic Tree Plot
-    tree_plot <- ggtree(tree) +
-      theme_tree2()
-    
+    tree_depth <- max(nodeHeights(tree))
+    tree_plot <- ggtree(tree) %<+% tip_metadata +
+      theme_tree2() + geom_tiplab(
+        aes(color = highlight),
+        size = 3
+      ) + scale_color_manual(
+        values = c("FALSE" = "black", "TRUE" = "red"),
+        guide = "none"
+      ) + 
+      xlim(0, tree_depth*1.35)
+
     # **PFAM domain plot with protein length as a grey line**
     pfam_plot <- ggplot(pfam_data, aes(xmin = start, xmax = end, y = name, fill = id)) +
       # Grey line for full protein length
@@ -89,6 +125,7 @@ for(index in 1:length(all.ecfs)){
       theme_minimal() +
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + 
       labs(x = "PFAM Domains", fill = "PFAM ID")
+    
     
     # **ECOD domain plot with protein length as a grey line**
     ecod_plot <- ggplot(ecod_data, aes(xmin = start, xmax = end, y = name, fill = id)) +
