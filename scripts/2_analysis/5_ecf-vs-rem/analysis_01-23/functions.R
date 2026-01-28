@@ -200,3 +200,29 @@ get.domain.overlap.score <- function(rec.start, rec.end, domain.start, domain.en
   domain.overlap.score <- prop.of.domain.hit.that.overlaps.with.rec * domain.cov
   return(domain.overlap.score)
 }
+
+extract.aln.subset <- function(aln, members) {
+  stopifnot(inherits(aln, "AAStringSet"))
+  stopifnot(is.character(members))
+  
+  # keep only sequences present in the alignment (preserve alignment order)
+  idx <- which(names(aln) %in% members)
+  if (!length(idx)) {
+    stop("None of the requested 'members' were found in the alignment names().")
+  }
+  
+  sub_aln <- aln[idx]
+  
+  # matrix: rows = sequences, cols = alignment columns
+  m <- as.matrix(sub_aln)
+  
+  # keep columns where at least one sequence is not a gap
+  keep_cols <- colSums(m != "-") > 0L
+  m <- m[, keep_cols, drop = FALSE]
+  
+  # back to AAStringSet, preserving names
+  out <- AAStringSet(apply(m, 1, paste0, collapse = ""))
+  names(out) <- names(sub_aln)
+  
+  out
+}
