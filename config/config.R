@@ -89,6 +89,7 @@ ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 all.cds.filename <- file.path(refseq.input.data.path, "refseq-aa.fa")
 metadata.table.filename <- file.path(refseq.input.data.path, "refseq-metadata.tsv")
 refseq.protein.stats.table.filename <- file.path(refseq.input.data.path, "refseq-protein-stats.txt")
+refseq.genomes.filename <- file.path(refseq.input.data.path, "refseq-genomes.fa")
 name.table.origin.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "name-table.txt")
 refseq.protein.clustering.filename <- file.path(ecf.raw.data.path, "prot-families", "representative", "clustering.tsv")
 
@@ -221,6 +222,9 @@ ecf.sharing.pairs.output <- file.path(data.comparisons.dir, "ecf-sharing-pairs.t
 # REM table
 rem.table.output <- file.path(data.comparisons.dir, "rem-table.txt")
 
+# Genome all-by-all megablast table
+genomes.aba.table.output <- file.path(data.comparisons.dir, "genomes-aba.txt")
+
 #################
 ## Labels
 #################
@@ -341,6 +345,7 @@ RECENT.REC.MIN.Q.HIT.LENGTH <- 20
 RECENT.REC.MIN.S.HIT.LENGTH <- 20
 
 # other parameters
+GENOME.MEGABLAST.EVALUE=1e-5
 DOMAIN.CONTAINMENT.COV.THR <- 0.9
 RE.MAX.DISTANCE=0.5
 RE.MIN.CLUSTER.SIZE=5
