@@ -2,7 +2,7 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(gggenomes)))
-
+suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -17,7 +17,9 @@ source("plot-ecf-genomes-functs.R")
 # Define parms
 NO.GENES.TO.EXTEND <- 4
 
-ecf.subseqs.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs", "ecf-subseqs")
+output.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs")
+ecf.subseqs.dir <- file.path(output.dir, "ecf-subseqs")
+ecf.clusters.dir <- file.path(output.dir, "ecf-clusters")
 
 # Load data
 metadata.table <- fread(metadata.table.output)
@@ -37,14 +39,24 @@ reprseq.functions.unique <- fread(reprseq.functions.unique.output)
 reprseq2funct <- setNames(reprseq.functions.unique$funct, reprseq.functions.unique$reprseq)
 reprseq2funct[reprseq2funct==""] <- "unknown"
 
+reprseq.seqs <- readAAStringSet(reprseq.seqs.filename)
+reprseq.seqs.n <- names(reprseq.seqs)
+
 # Define input pamrs
 # input.reprseq.names <- c("reprseq141902", "reprseq098632", "reprseq000317",
 #                          "reprseq031519", "reprseq095134", "reprseq091785")
 # input.ecf <- "ecf_00381"
 
 input.reprseq.names <- c("reprseq109697","reprseq058101","reprseq094488",
-                         "reprseq081403","reprseq032135","reprseq103340")
+                         "reprseq081403","reprseq037135","reprseq103340")
 input.ecf <- "ecf_00076"
+input.ecf.dir <- file.path(ecf.clusters.dir, input.ecf)
+make.dir(input.ecf.dir)
+
+input.reprseq.seqs <- reprseq.seqs[reprseq.seqs.n %in% input.reprseq.names]
+input.reprseq.seqs.outfile <- file.path(input.ecf.dir, "custom-reprseqs.fa")
+writeXStringSet(input.reprseq.seqs, filepath = input.reprseq.seqs.outfile)
+
 
 ecf.coords.table.fn <- file.path(ecf.subseqs.dir, sprintf("%s-frag.txt", input.ecf))
 ecf.coords.table <- fread(ecf.coords.table.fn)
@@ -134,5 +146,15 @@ gggenomes(
   geom_link() + 
   scale_fill_brewer(palette="Set1")
 
-
-
+p <- gggenomes(
+  seqs  = as_tibble(seqs_zoom),
+  genes = as_tibble(genes_zoom),
+  feats = as_tibble(feats_zoom)
+) %>%
+  add_clusters(ggg.funct.table) +
+  geom_seq() + geom_bin_label() +
+  geom_feat(size=8, col = "red") +
+  geom_gene(aes(fill = cluster_id)) +
+  scale_fill_brewer(palette="Set1")
+p.outfile <- file.path(input.ecf.dir, "custom-plot.pdf")
+ggsave(p.outfile, p, width = 8, height = 5)
