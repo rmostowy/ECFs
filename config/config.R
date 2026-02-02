@@ -40,8 +40,11 @@ safe_source(functions.basic.filename)
 functions.custom.cov.filename <- file.path(functions.repo.path, "custom", "hhr-cov.R")
 safe_source(functions.custom.cov.filename)
 
-scripts.functions.filename <- file.path(scripts.functions.path, "helper.R")
-safe_source(scripts.functions.filename)
+helper.functions.filename <- file.path(scripts.functions.path, "helper.R")
+safe_source(helper.functions.filename)
+
+gggenomes.functions.filename <- file.path(scripts.functions.path, "gggenomes.R")
+safe_source(gggenomes.functions.filename)
 
 #############################
 ### Define PHROGs data
@@ -347,7 +350,7 @@ RECENT.REC.MIN.S.HIT.LENGTH <- 20
 # other parameters
 GENOME.MEGABLAST.EVALUE=1e-5
 DOMAIN.CONTAINMENT.COV.THR <- 0.9
-RE.MAX.DISTANCE=0.5
+RE.MAX.DISTANCE=0.3
 RE.MIN.CLUSTER.SIZE=5
 RE.MIN.OVERLAP=0.8
 # MIN.CDS.OVERLAP.WITH.NCBI <- 0.5
