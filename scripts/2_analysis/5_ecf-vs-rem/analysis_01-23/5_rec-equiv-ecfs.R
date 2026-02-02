@@ -6,6 +6,7 @@ suppressWarnings(suppressPackageStartupMessages(library(stringr)))
 suppressWarnings(suppressPackageStartupMessages(library(ape)))
 suppressWarnings(suppressPackageStartupMessages(library(phangorn)))
 suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
+suppressWarnings(suppressPackageStartupMessages(library(DECIPHER)))
 # suppressWarnings(suppressPackageStartupMessages(library(parallel)))
 
 ### load config
@@ -107,10 +108,7 @@ setkey(ecfs.vs.ecod, qname)
 ##################################################
 
 # Get ECF recombination overlap table
-ECF.OVERLAP.SCORE.THR <- 0.9
-ECF.MIN.OVERLAP.SCORE.THR <- 0.9
-MIN.NO.PROTEINS.WITH.HIGH.OVERLAPPING.ECF <- 3
-RE.ECF.NO.PAIRS.THR <- 20
+
 
 rows.from <- rem.domain.overlaps %>% select(reprseq = protein1.name, domain = protein1.ecf.best, score = protein1.ecf.score)
 rows.to <- rem.domain.overlaps %>% select(reprseq = protein2.name, domain = protein2.ecf.best, score = protein2.ecf.score)
@@ -228,6 +226,7 @@ for(index in 1:nrow(re.ecf.common)){
   iqfiles2rm <- sprintf("%s.%s", this.ecf.aln.outfile, iq.extensions2remove)
   delete.dir(iqfiles2rm)
   
+  # Reorder the aligment file based on the tree taxa layout (to facilitate visual sequence comparison)   
   this.ecf.tree.unrooted <- read.tree(sprintf("%s.treefile", this.ecf.aln.outfile))
   this.ecf.tree <- midpoint(this.ecf.tree.unrooted)
   this.ecf.tree.no.tips <- length(this.ecf.tree$tip.label)
@@ -238,6 +237,14 @@ for(index in 1:nrow(re.ecf.common)){
   this.ecf.aln.reordered <- this.ecf.aln[match(this.ecf.tree.taxa.reordered, this.ecf.aln.n)]
   writeXStringSet(this.ecf.aln.reordered, filepath = this.ecf.aln.outfile)
   
+  # Find RE-ECF clusters and save them to a file
+  this.ecf.dist.matrix <- DistanceMatrix(this.ecf.aln, minCoverage = RE.MIN.OVERLAP, verbose = F)
+  this.ecf.dist.matrix[is.na(this.ecf.dist.matrix)] <- 1
+  this.ecf.hc <- hclust(as.dist(this.ecf.dist.matrix), method = "complete")
+  this.ecf.cl <- cutree(this.ecf.hc, h = RE.MAX.DISTANCE)
+  this.ecf.cl.dt <- data.table(reprseq = names(this.ecf.cl), cluster = this.ecf.cl)
+  this.ecf.cl.dt.outfile <- file.path(subseq.outpath, sprintf("%s-cl.txt", this.ecf))
+  fwrite(this.ecf.cl.dt, file = this.ecf.cl.dt.outfile)
   
   # Find all ECOD domains associated with those reprseqs
   this.ecf.associated.reprseq.ecod.hits <- reprseq.ecod[qname %in% this.ecf.associated.reprseqs.unique$qname]

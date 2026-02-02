@@ -110,7 +110,7 @@ prepare.gggenomes.tables <- function(reprseq.names,
   ecf.feature.table.list <- lapply(1:length(reprseq.names), function(index){
     this.reprseq <- reprseq.names[index]
     this.reprseq.accession <- input.reprseq.genomes[index]
-    this.reprseq.ecf.table <- ecf.coords.table[name == this.reprseq]
+    this.reprseq.ecf.table <- ecf.coords.dt[name == this.reprseq]
     this.reprseq.ecf.start <- this.reprseq.ecf.table$start
     this.reprseq.ecf.end <- this.reprseq.ecf.table$end
     this.reprseq.length <- this.reprseq.ecf.table$length

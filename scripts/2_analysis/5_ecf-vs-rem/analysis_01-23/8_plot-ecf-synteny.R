@@ -3,14 +3,7 @@ suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
-suppressWarnings(suppressPackageStartupMessages(library(DECIPHER)))
-# suppressWarnings(suppressPackageStartupMessages(library(gggenes)))
-# suppressWarnings(suppressPackageStartupMessages(library(ggtree)))
-# suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-# suppressWarnings(suppressPackageStartupMessages(library(ggtreeExtra)))
-# suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
-# suppressWarnings(suppressPackageStartupMessages(library(ape)))
-# suppressWarnings(suppressPackageStartupMessages(library(phangorn)))
+suppressWarnings(suppressPackageStartupMessages(library(gggenomes)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -22,17 +15,87 @@ source(config.filename)
 
 source("functions.R")
 
-
-
-RE.MAX.DISTANCE=0.5
-RE.MIN.CLUSTER.SIZE=5
-
-
 # Define output folder
-table.dir <- "tables"
 output.dir <- file.path(visual.dir, "part5_rem", "rem-equiv-ecfs")
 ecf.clusters.dir <- file.path(output.dir, "ecf-clusters")
+ecf.subseqs.dir <- file.path(output.dir, "ecf-subseqs")
 make.dir(ecf.clusters.dir)
+
+#### Load data
+metadata.table <- fread(metadata.table.output)
+refseq.protein.stats.table <- fread(refseq.protein.stats.table.filename)
+reprseq.table <- fread(reprseq.table.output)
+genomes.aba.table <- fread(genomes.aba.table.output)
+reprseq.functions.unique <- fread(reprseq.functions.unique.output)
+reprseq.seqs <- readAAStringSet(reprseq.seqs.filename)
+reprseq.seqs.n <- names(reprseq.seqs)
+
+all.ecfs <- list.files(ecf.subseqs.dir)
+all.ecfs <- unique(substr(all.ecfs, 1, 9))
+
+
+# for(index in 1:length(all.ecfs)){
+index=2
+this.ecf.name <- all.ecfs[index]
+this.ecf.dir <- file.path(ecf.clusters.dir, this.ecf.name)
+this.ecf.aln.filename <- file.path(ecf.subseqs.dir, sprintf("%s.aln", this.ecf.name))
+this.ecf.cl.filename <- file.path(ecf.subseqs.dir, sprintf("%s-cl.txt", this.ecf.name))
+
+this.ecf.aln <- readAAStringSet(this.ecf.aln.filename)
+
+this.ecf.coords.table.fn <- file.path(ecf.subseqs.dir, sprintf("%s-frag.txt", this.ecf.name))
+this.ecf.coords.table <- fread(this.ecf.coords.table.fn)
+
+this.ecf.cl <- fread(this.ecf.cl.filename)
+this.ecf.cl.sizes <- table(this.ecf.cl$cluster)
+no.suffiently.large.clusters <- lw(this.ecf.cl.sizes >= RE.MIN.CLUSTER.SIZE)
+suffiently.large.clusters.exist <- no.suffiently.large.clusters>0
+suffiently.large.clusters.exist
+
+if(suffiently.large.clusters.exist){
+  make.dir(this.ecf.dir)
+  cl.indices <- which(this.ecf.cl.sizes >= RE.MIN.CLUSTER.SIZE)
+  
+  ci=3
+  this.cluster.index <- cl.indices[ci]
+  this.cluster.members <- this.ecf.cl[cluster == this.cluster.index]$reprseq
+  this.cluster.aln <- extract.aln.subset(this.ecf.aln, this.cluster.members)
+  this.cluster.aln.outfile <- file.path(this.ecf.dir, sprintf("cl%d-ecf.aln", ci))
+  writeXStringSet(this.cluster.aln, filepath = this.cluster.aln.outfile)
+  
+  this.cluster.reprseqs.index <- match(this.cluster.members, reprseq.seqs.n)
+  this.cluster.reprseqs.seqs <- reprseq.seqs[this.cluster.reprseqs.index]
+  this.cluster.reprseqs.seqs.outfile <- file.path(this.ecf.dir, sprintf("cl%d-reprseqs.fa", ci))
+  writeXStringSet(this.cluster.reprseqs.seqs, filepath = this.cluster.reprseqs.seqs.outfile)
+  
+  # Prepare gggenomes inputs
+  gggenomes.inputs <- prepare.gggenomes.tables(reprseq.names = this.cluster.members,
+                                               ecf.coords.dt = this.ecf.coords.table,
+                                               metadata.table,
+                                               refseq.protein.stats.table,
+                                               reprseq.table,
+                                               genomes.aba.table,
+                                               reprseq.functions.unique,
+                                               no.genes.upstream.downstream = NO.GENES.TO.EXTEND)
+  
+  gggenomes.inputs.zoom <- prepare.gggenomes.tables.zoomed(gggenomes.inputs, pad = PAD.PARM)
+  
+  this.cluster.synteny.plot <- plot.ecf.synteny(gggenomes.inputs.zoom, palette = "Set3")
+  this.cluster.synteny.plot.outfile <- file.path(this.ecf.dir, sprintf("cl%d-plot.pdf", ci))
+  ggsave(this.cluster.synteny.plot.outfile, this.cluster.synteny.plot, width = 8, height = 5)
+  
+
+
+# this.ecf.subseqs.dir <- 
+
+this.ecf.dir <- file.path(ecf.clusters.dir, ecf.name)
+make.dir(this.ecf.dir)
+
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+
 
 reprseq.vs.reprseq.blast <- fread(reprseq.vs.reprseq.blast.filtered.unordered.output)
 setkey(reprseq.vs.reprseq.blast, qname, sname)

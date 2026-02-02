@@ -34,17 +34,6 @@ get.fragment.domain.overlap <- function(fragment_start, fragment_end, domain_sta
   return(overlap)
 }
 
-library(data.table)
-
-#' Round all double columns in a data.table to N significant digits
-#'
-#' @param DT   A data.table. Modified by reference by default.
-#' @param digits Integer, number of significant digits (default 4).
-#' @param byref Logical, modify in place (TRUE) or return a modified copy (FALSE).
-#' @param cols  Optional character vector of column names to limit rounding to.
-#' @param include_integer64 Logical, whether to also round bit64::integer64 columns (default FALSE).
-#'                          Rounding these coerces to double and may lose precision.
-#' @return The (invisibly) modified data.table if byref=TRUE, otherwise a new data.table.
 dt.round.digits <- function(DT, digits = 4, byref = TRUE, cols = NULL, include_integer64 = FALSE) {
   if (!is.data.table(DT)) stop("DT must be a data.table")
   
@@ -76,4 +65,64 @@ dt.round.digits <- function(DT, digits = 4, byref = TRUE, cols = NULL, include_i
     out[, (target) := lapply(.SD, signif, digits = digits), .SDcols = target]
     out
   }
+}
+
+map_ecf_to_genome <- function(aa_start, aa_end,
+                             gene_start, gene_end,
+                             strand, protlen) {
+
+  # convert AA coords to nucleotide offsets inside CDS
+  nt_start <- (aa_start - 1) * 3 + 1
+  nt_end   <- (aa_end   - 1) * 3 + 3
+
+  # quick sanity check vs protein length
+  if (aa_end > protlen)
+    warning("ECF exceeds protein length")
+
+  # gene bounds on genome
+  gmin <- min(gene_start, gene_end)
+  gmax <- max(gene_start, gene_end)
+
+  # map to genome coordinates
+  if (strand == "+") {
+    ecf_start <- gmin + nt_start - 1
+    ecf_end   <- gmin + nt_end   - 1
+  } else {
+    ecf_start <- gmax - nt_start + 1
+    ecf_end   <- gmax - nt_end   + 1
+  }
+
+  # return genome interval (start < end)
+  c(start = min(ecf_start, ecf_end),
+    end   = max(ecf_start, ecf_end))
+}
+
+map.ecf.coords.to.genome <- function(aa_start, aa_end,
+                             gene_start, gene_end,
+                             strand, protlen) {
+
+  # convert AA coords to nucleotide offsets inside CDS
+  nt_start <- (aa_start - 1) * 3 + 1
+  nt_end   <- (aa_end   - 1) * 3 + 3
+
+  # quick sanity check vs protein length
+  if (aa_end > protlen)
+    warning("ECF exceeds protein length")
+
+  # gene bounds on genome
+  gmin <- min(gene_start, gene_end)
+  gmax <- max(gene_start, gene_end)
+
+  # map to genome coordinates
+  if (strand == "+") {
+    ecf_start <- gmin + nt_start - 1
+    ecf_end   <- gmin + nt_end   - 1
+  } else {
+    ecf_start <- gmax - nt_start + 1
+    ecf_end   <- gmax - nt_end   + 1
+  }
+
+  # return genome interval (start < end)
+  c(start = min(ecf_start, ecf_end),
+    end   = max(ecf_start, ecf_end))
 }
