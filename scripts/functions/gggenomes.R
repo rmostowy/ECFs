@@ -1,3 +1,52 @@
+# plot.ecf.synteny <- function(x,
+#                              palette = "Set1",
+#                              feat_col = "red",
+#                              feat_size = 8) {
+# 
+#   stopifnot(is.list(x))
+#   stopifnot(all(c("seq.table", "gene.table", "funct.table", "feat.table") %in% names(x)))
+# 
+#   seqs  <- tibble::as_tibble(x$seq.table)
+#   genes <- tibble::as_tibble(x$gene.table)
+#   feats <- tibble::as_tibble(x$feat.table)
+#   funct <- tibble::as_tibble(x$funct.table)
+# 
+#   has_links <- ("link.table" %in% names(x)) &&
+#     !is.null(x$link.table) &&
+#     nrow(x$link.table) > 0
+# 
+#   if (has_links) {
+#     links <- tibble::as_tibble(x$link.table)
+# 
+#     p <- gggenomes::gggenomes(
+#       seqs  = seqs,
+#       genes = genes,
+#       links = links,
+#       feats = feats
+#     ) %>%
+#       gggenomes::add_clusters(funct) +
+#       gggenomes::geom_seq() + gggenomes::geom_bin_label() +
+#       gggenomes::geom_feat(size = feat_size, col = feat_col) +
+#       gggenomes::geom_gene(ggplot2::aes(fill = cluster_id)) +
+#       gggenomes::geom_link() +
+#       ggplot2::scale_fill_brewer(palette = palette)
+# 
+#   } else {
+#     p <- gggenomes::gggenomes(
+#       seqs  = seqs,
+#       genes = genes,
+#       feats = feats
+#     ) %>%
+#       gggenomes::add_clusters(funct) +
+#       gggenomes::geom_seq() + gggenomes::geom_bin_label() +
+#       gggenomes::geom_feat(size = feat_size, col = feat_col) +
+#       gggenomes::geom_gene(ggplot2::aes(fill = cluster_id)) +
+#       ggplot2::scale_fill_brewer(palette = palette)
+#   }
+# 
+#   p
+# }
+
 plot.ecf.synteny <- function(x,
                              palette = "Set1",
                              feat_col = "red",
@@ -11,17 +60,40 @@ plot.ecf.synteny <- function(x,
   feats <- tibble::as_tibble(x$feat.table)
   funct <- tibble::as_tibble(x$funct.table)
   
-  has_links <- ("link.table" %in% names(x)) &&
+  # base check: link table exists and has rows
+  has_links_raw <- ("link.table" %in% names(x)) &&
     !is.null(x$link.table) &&
     nrow(x$link.table) > 0
   
-  if (has_links) {
+  links_adj <- NULL
+  
+  if (has_links_raw) {
     links <- tibble::as_tibble(x$link.table)
     
+    # genome order as plotted
+    ord <- as.character(seqs$seq_id)
+    pos <- setNames(seq_along(ord), ord)
+    
+    # keep only links between adjacent genomes in this order
+    links_adj <- links %>%
+      dplyr::mutate(
+        .i = pos[.data$seq_id],
+        .j = pos[.data$seq_id2]
+      ) %>%
+      dplyr::filter(!is.na(.i), !is.na(.j), abs(.i - .j) == 1L) %>%
+      dplyr::select(-.i, -.j)
+    
+    if (nrow(links_adj) == 0) links_adj <- NULL
+  }
+  
+  # NEW criterion: only use links if there are adjacent links
+  has_links <- !is.null(links_adj)
+  
+  if (has_links) {
     p <- gggenomes::gggenomes(
       seqs  = seqs,
       genes = genes,
-      links = links,
+      links = links_adj,
       feats = feats
     ) %>%
       gggenomes::add_clusters(funct) +
@@ -86,7 +158,6 @@ prepare.gggenomes.tables <- function(reprseq.names,
   reprseq2funct <- setNames(reprseq2functs$funct, reprseq2functs$reprseq)
   reprseq2funct[reprseq2funct==""] <- "unknown"
   
-  
   # 1. Make a table of gene coordinates for the focal region
   gene.table.list <- lapply(1:length(reprseq.names), function(index){
     this.input.seq <- reprseq.names[index]
@@ -143,6 +214,23 @@ prepare.gggenomes.tables <- function(reprseq.names,
        gene.table = gene.table, link.table = link.table,
        funct.table = funct.table,
        feat.table = ecf.feature.table)
+}
+
+keep_adjacent_links <- function(links, seqs, seq_id_col = "seq_id", seq_id2_col = "seq_id2") {
+  # order of genomes as plotted
+  ord <- seqs %>% dplyr::pull(seq_id) %>% as.character()
+  
+  pos <- setNames(seq_along(ord), ord)
+  
+  links2 <- links %>%
+    mutate(
+      .i = pos[.data[[seq_id_col]]],
+      .j = pos[.data[[seq_id2_col]]]
+    ) %>%
+    filter(!is.na(.i), !is.na(.j), abs(.i - .j) == 1L) %>%
+    select(-.i, -.j)
+  
+  links2
 }
 
 
