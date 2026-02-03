@@ -67,36 +67,6 @@ dt.round.digits <- function(DT, digits = 4, byref = TRUE, cols = NULL, include_i
   }
 }
 
-map_ecf_to_genome <- function(aa_start, aa_end,
-                             gene_start, gene_end,
-                             strand, protlen) {
-
-  # convert AA coords to nucleotide offsets inside CDS
-  nt_start <- (aa_start - 1) * 3 + 1
-  nt_end   <- (aa_end   - 1) * 3 + 3
-
-  # quick sanity check vs protein length
-  if (aa_end > protlen)
-    warning("ECF exceeds protein length")
-
-  # gene bounds on genome
-  gmin <- min(gene_start, gene_end)
-  gmax <- max(gene_start, gene_end)
-
-  # map to genome coordinates
-  if (strand == "+") {
-    ecf_start <- gmin + nt_start - 1
-    ecf_end   <- gmin + nt_end   - 1
-  } else {
-    ecf_start <- gmax - nt_start + 1
-    ecf_end   <- gmax - nt_end   + 1
-  }
-
-  # return genome interval (start < end)
-  c(start = min(ecf_start, ecf_end),
-    end   = max(ecf_start, ecf_end))
-}
-
 map.ecf.coords.to.genome <- function(aa_start, aa_end,
                              gene_start, gene_end,
                              strand, protlen) {
