@@ -2,6 +2,7 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
+suppressWarnings(suppressPackageStartupMessages(library(parallel)))
 
 ### locate the RStudio project root and load the configuration file
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -12,125 +13,133 @@ source(config.filename)
 ####################################################################
 
 ##########################################
-# 1. Identify reprseqs to remove 
-#    based on missing characters
+# 1. Create a reference table of all
+#    proteins used in the study
 ##########################################
 
-# Read all coding sequences from the specified path using Biostrings
-all.cds <- readAAStringSet(all.cds.filename, format = "fasta")
-# Convert the AAStringSet object to a character vector
-all.cds.s <- as.character(all.cds)
+# Load tables
+name.table.origin <- fread(name.table.origin.filename)
+refseq.protein.clustering <- fread(refseq.protein.clustering.filename, header = F)
+refseq.protein.stats.table <- fread(refseq.protein.stats.table.filename)
+setkey(refseq.protein.stats.table, name)
 
-# count the number of times unknown characters (X) occur
-count.number.of.x <- function(sequence) length(gregexpr("X", sequence)[[1]])
-num.of.x <- sapply(all.cds.s, count.number.of.x)
-# Identify sequences with more than the allowed number of 'X' characters
-reprseqs.with.unknown.chars <- names(which(num.of.x > ACCEPTED.NUM.UNKNOWN.AA))
+# Merge tables to obtain the basic version of name.table
+merged.protein.tables <- merge.data.table(name.table.origin, refseq.protein.clustering, by.x = "prot.name", by.y = "V1")
+name.table <- merged.protein.tables %>% select(reprseq = repr.name, cluster.name = prot.name, ncbi.id = V2)
+setorder(name.table, reprseq, ncbi.id)
 
-# Load the name table that maps NCBI IDs to representative names
-name.table <- fread(name.table.filename)
-name.table[, cds := gsub("\\.(\\d+):", ":", ncbi.id)]
-# Mark sequences that have missing characters in the name table
-name.table$has.missing.char <- name.table$ncbi.id %in% reprseqs.with.unknown.chars
+# Add gene confidence from Prodigal
+name.table$prodigal.conf <- refseq.protein.stats.table[.(name.table$ncbi.id)]$conf
 
 ##########################################
-# 2. Identify reprseqs to remove 
-#    based on overlap with NCBI
+# 3. Save reprseq sequences
 ##########################################
 
-# Format CDS predictions from the reprseq dataset
-reprseq.table <- name.table %>% select(ncbi.id)
-reprseq.table[, cds := gsub("\\.(\\d+):", ":", ncbi.id)]
-reprseq.table[, c("accession", "range", "strand") := tstrsplit(cds, "[:()]", keep = c(1, 2, 3))]
-reprseq.table[, c("start", "end") := tstrsplit(range, "-", keep = c(1, 2))]
-reprseq.table[, c("start", "end") := lapply(.SD, as.integer), .SDcols = c("start", "end")]
-reprseq.table[, width := end - start + 1]
-reprseq.table.cds <- reprseq.table[, .(accession, start, end, width, strand, cds)]
-reprseq.table.cds.short <- reprseq.table.cds %>% select(accession, start, end, strand, cds)
-setkey(reprseq.table.cds.short, accession, start, end)
+all.reprseqs <- unique(name.table$reprseq)
+N <- length(all.reprseqs)
 
-# Load NCBI CDS predictions
-ncbi.cds <- fread(accessions.cds.output)
-ncbi.cds[, cds := sprintf("%s:%d-%d(%s)", accession, start, end, strand)]
-ncbi.cds.short <- ncbi.cds %>% select(accession, start, end, strand)
-setkey(ncbi.cds.short, accession, start, end)
+all.cds <- readAAStringSet(all.cds.filename)
+all.cds.n <- names(all.cds)
 
-# Merge two tables
-merged.own.ncbi <- merge(reprseq.table.cds.short, ncbi.cds.short, by = "accession", suffixes = c("", ".ncbi"), allow.cartesian = T)
+protname2seq <- data.table(prot.name = all.cds.n, index = 1:length(all.cds.n))
+setkey(protname2seq, prot.name)
 
-# Calculate overlap
-merged.own.ncbi[, overlap := calculate_overlap_jaccard(start, end, start.ncbi, end.ncbi)]
+repr2clust <- unique(name.table %>% select(reprseq, cluster.name))
+repr2clust$seq.index <- protname2seq[.(repr2clust$cluster.name)]$index
 
-# Calculate maximum overlap per reprseq CDS
-merged.own.ncbi[, max.overlap := max(overlap), by = cds]
-setorder(merged.own.ncbi, accession, start, end, strand, cds, -max.overlap)
-reprseq.table.cds.short.overlap <- merged.own.ncbi[, .SD[1], by = .(accession, start, end, strand, cds)] %>% select(accession, start, end, strand, cds, overlap = max.overlap)
-reprseq.table.cds.short.overlap[, .(cds, overlap)]
+reprseq.seqs <- all.cds[repr2clust$seq.index]
+names(reprseq.seqs) <- repr2clust$reprseq
+
+writeXStringSet(reprseq.seqs, filepath = reprseq.seqs.filename)
 
 ##########################################
-# 3. Merge results and filter
+# 2. Calculate reprseq qcov/scov
 ##########################################
 
-name.table.full <- merge(name.table, reprseq.table.cds.short.overlap[, .(cds, overlap)], by = "cds")
-name.table.full[, sufficient.overlap := overlap >= MIN.CDS.OVERLAP.WITH.NCBI]
+use.cores <- 18
+no.iterations <- 20
 
-# Filter protein sequences
-name.table.cleaned <- name.table.full[has.missing.char == FALSE & sufficient.overlap == TRUE]
-all.reprseqs <- sort(unique(name.table.cleaned$repr.name))
+reprseq.vs.reprseq <- fread(reprseq.vs.reprseq.filename)
+reprseq.vs.reprseq.cov <- reprseq.vs.reprseq %>% filter(prob >= MIN.PROB.FOR.REPRSEQ.FAM)
 
-##########################################
-# 4. Extract and add family information
-##########################################
+pair.table <- get.all.pairs(reprseq.vs.reprseq.cov)
+no.pairs <- nrow(pair.table)
 
-# Load raw family data
-reprseq.families.raw <- readLines(reprseq.families.raw.filename)
-no.fam <- length(reprseq.families.raw)
-
-# Clean family lists by removing sequences to be removed
-reprseq.families.list.cleaned <- lapply(1:no.fam, function(k){
-  this.fam.reprseqs <- strsplit(reprseq.families.raw[[k]], "\t")[[1]]
-  this.fam.reprseqs[this.fam.reprseqs %in% all.reprseqs]
+pairs.per.iteration <- floor(no.pairs/no.iterations)
+start.end.per.iteration <- lapply(1:no.iterations, function(index){
+  end.pair <- pairs.per.iteration*index
+  start.pair <- end.pair - pairs.per.iteration + 1
+  if(index == no.iterations) end.pair <- no.pairs
+  return(c(start.pair, end.pair))
 })
-# Get the lengths of cleaned family lists
-reprseq.families.list.cleaned.l <- sapply(reprseq.families.list.cleaned, length)
-# Filter out empty families
-reprseq.families.list.cleaned.corrected <- reprseq.families.list.cleaned[reprseq.families.list.cleaned.l>0]
-no.fam.corrected <- length(reprseq.families.list.cleaned.corrected)
 
-# Create a table with family assignments for representative sequences
-family.table.list <- lapply(1:no.fam.corrected, function(index){
-  reprseq <- reprseq.families.list.cleaned.corrected[[index]]
-  family <- sprintf("fam%.*d", nchar(no.fam.corrected), index)
-  data.table(family = rep(family, length(reprseq)), reprseq)
+pb <- txtProgressBar(min = 0, max = no.iterations, style = 3, initial = 0)
+pair.table.hits.list <- lapply(1:no.iterations, function(iteration.index){
+  this.iteration.pairs.index <- start.end.per.iteration[[iteration.index]][1]:start.end.per.iteration[[iteration.index]][2]
+  this.iteration.pairs <- pair.table[this.iteration.pairs.index]
+  this.iteration.hits <- get.pair.table.hits(this.iteration.pairs, reprseq.vs.reprseq.cov, no.cores = use.cores)
+  this.iteration.output <- cbind(this.iteration.pairs, this.iteration.hits)
+  setTxtProgressBar(pb, iteration.index)
+  return(this.iteration.output)
 })
-family.table <- rbindlist(family.table.list)
+close(pb)
+
+reprseq.pair.table.hits <- rbindlist(pair.table.hits.list)
+new.col.names <- c("query", "subject", "prob", "scov.min", "scov.max", "qcov.min", "qcov.max", "pident", "hit.length.min", "hit.length.max")
+setnames(reprseq.pair.table.hits, new = new.col.names)
+reprseq.pair.table.hits[, prob := prob * 100]
+reprseq.pair.table.hits[, pident := pident * 100]
+setorder(reprseq.pair.table.hits, query, subject)
+
+reprseq.vs.reprseq.cov <- reprseq.pair.table.hits
+fwrite(reprseq.vs.reprseq.cov, file = reprseq.vs.reprseq.cov.output)
 
 ##########################################
-# 5. Finalise the dataset
+# 3. Run MCL to identify reprseq families
 ##########################################
 
-# Merge cleaned name table with family table
-name.table.cleaned.fam <- merge(name.table.cleaned, family.table, by.x = "repr.name", by.y = "reprseq", all.x = TRUE)
-name.table.final <- name.table.cleaned.fam %>% select(reprseq = repr.name, cluster.name, ncbi.id, family, ncbi.overlap = overlap)
-name.table.final[, ncbi.overlap := round(ncbi.overlap, d = 4)]
+# calculate weights for REPRSEQ families
+reprseq.vs.reprseq.cov[, qcov := pmin(qcov.min, qcov.max)]
+reprseq.vs.reprseq.cov[, scov := pmin(scov.min, scov.max)]
+reprseq.vs.reprseq.cov[, weight := scov*qcov*prob/100]
+reprseq.nonself.hits <- reprseq.vs.reprseq.cov[qcov >= REPRSEQ.FAMILY.QCOV.THR & scov >= REPRSEQ.FAMILY.SCOV.THR] %>%
+  select(from = query, to = subject, weight)
+reprseq.self.hits <- data.table(from = name.table$reprseq, to = name.table$reprseq, weight = 1)
+reprseq.mcl.table <- rbind(reprseq.nonself.hits, reprseq.self.hits)
+
+# -- run MCL --
+# create a temp mcl directory
+mcl.run.dir <- file.path(data.tmp.dir, "mcl-reprseq")
+mcl.tmp.dir <- file.path(mcl.run.dir, "tmp")
+make.dir(mcl.tmp.dir)
+
+# run MCL
+input.filename <- file.path(mcl.run.dir, "mcl-input.txt")
+fwrite(reprseq.mcl.table, file = input.filename, sep = " ")
+output.filename <- file.path(mcl.run.dir, "mcl-output.txt")
+# run.mcl(input.filename, output.filename, inflation.factor = REPRSEQ.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir)
+run.mcl(input.filename, output.filename, inflation.factor = REPRSEQ.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir, mcl.path = "/opt/bio/mcl/bin")
+
+# process MCL output
+mcl.output <- readLines(output.filename)
+Nf <- length(mcl.output)
+
+mcl.output.dt <- data.table(index = 1:Nf, mcl_output = mcl.output)
+mcl.output.dt <- mcl.output.dt[, .(reprseq = unlist(tstrsplit(mcl_output, "\t", fixed = TRUE))), by = index]
+mcl.output.dt[, family := sprintf("fam%.*d", nchar(Nf), index)]
+
+# clear the directory
+delete.dir(mcl.run.dir)
+
+# save the output
+reprseq.family.table <- mcl.output.dt %>% select(reprseq, family)
+setkey(reprseq.family.table, reprseq)
+
+##########################################
+# 4. Merge families into name.table
+##########################################
 
 # Write the final name table to a file
-fwrite(name.table.final, file = reprseq.table.filename)
-
-# Write removed reprseqs to a file
-reprseqs.to.remove <- name.table$repr.name[!name.table$repr.name %in% all.reprseqs]
-write(reprseqs.to.remove, ncolumns = 1, reprseq.removed.filename)
-
-# Filter sequences based on the final name table
-# IMPORTANT: this step assumes that if the representative sequence was removed
-# (for example due to insufficient overlap with NCBI) but other sequences in
-# the cluster were not, then the representative sequence stays
-# Note that it's a temporary solution before the final dataset is ready
-filtered_seqs <- all.cds[names(all.cds) %in% name.table.final$cluster.name]
-new_names <- name.table.final$reprseq[match(names(filtered_seqs), name.table.final$cluster.name)]
-names(filtered_seqs) <- new_names
-sorted_seqs <- filtered_seqs[order(names(filtered_seqs))]
-
-# Write the filtered and sorted sequences to a file
-writeXStringSet(sorted_seqs, filepath = reprseq.seqs.filename)
+name.table$family <- reprseq.family.table[.(name.table$reprseq)]$family
+fwrite(name.table, file = reprseq.table.output)
 

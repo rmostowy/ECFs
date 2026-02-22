@@ -2,7 +2,7 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-suppressWarnings(suppressPackageStartupMessages(library(ggupset)))
+suppressWarnings(suppressPackageStartupMessages(library(ComplexUpset)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -11,9 +11,15 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
+
+# Define output directories
+this.visual.dir <- file.path(visual.dir, "part3_novel-ecfs")
+this.results.dir <- this.visual.dir
+make.dir(this.results.dir)
+
 # Load reprseq tables
-reprseq.table <- fread(reprseq.table.filename)
-reprseq.table[, accession := sub("\\.[0-9]+:.*", "", cluster.name)]
+reprseq.table <- fread(reprseq.table.output)
+reprseq.table[, accession := sub(":.*$", "", ncbi.id)]
 proteins.per.reprseq <- reprseq.table[, .N, by = reprseq]
 
 all.reprseq <- unique(reprseq.table$reprseq)
@@ -121,7 +127,8 @@ p.prop.domain.hits <- ggplot(ecf.domain.table, aes(x = domain.hit, fill = domain
     y = "Count",
     fill = "Domain Hit"
   )
-ggsave("plot1-prop-domhits.pdf", p.prop.domain.hits, width = 4, height = 4)
+p.prop.domain.hits.outfile <- file.path(this.results.dir, "plot1-prop-domhits.pdf")
+ggsave(p.prop.domain.hits.outfile, p.prop.domain.hits, width = 4, height = 4)
 
 p.domain.hit.by.length <- ggplot(ecf.domain.table, aes(x = domain.hit, y = length, fill = domain.hit)) +
   geom_boxplot(alpha = 0.7) +
@@ -132,7 +139,8 @@ p.domain.hit.by.length <- ggplot(ecf.domain.table, aes(x = domain.hit, y = lengt
     x = "Domain Hit",
     y = "Length"
   ) + scale_y_log10()
-ggsave("plot2-domhit-by-length.pdf", p.domain.hit.by.length, width = 4, height = 4)
+p.domain.hit.by.length.outfile <- file.path(this.results.dir, "plot2-domhit-by-length.pdf")
+ggsave(p.domain.hit.by.length.outfile, p.domain.hit.by.length, width = 4, height = 4)
 
 p.domain.hit.by.div <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.proteins, fill = domain.hit)) +
   geom_boxplot(alpha = 0.7) +
@@ -143,7 +151,8 @@ p.domain.hit.by.div <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.prote
     x = "Domain Hit",
     y = "No proteins"
   )  + scale_y_log10()
-ggsave("plot3a-domhit-by-div1.pdf", p.domain.hit.by.div, width = 4, height = 4)
+p.domain.hit.by.div.outfile <- file.path(this.results.dir, "plot3a-domhit-by-div1.pdf")
+ggsave(p.domain.hit.by.div.outfile, p.domain.hit.by.div, width = 4, height = 4)
 
 p.domain.hit.by.div2 <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.reprseq, fill = domain.hit)) +
   geom_boxplot(alpha = 0.7) +
@@ -154,7 +163,8 @@ p.domain.hit.by.div2 <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.repr
     x = "Domain Hit",
     y = "No reprseq"
   )  + scale_y_log10()
-ggsave("plot3b-domhit-by-div2.pdf", p.domain.hit.by.div2, width = 4, height = 4)
+p.domain.hit.by.div2.outfile <- file.path(this.results.dir, "plot3b-domhit-by-div2.pdf")
+ggsave(p.domain.hit.by.div2.outfile, p.domain.hit.by.div2, width = 4, height = 4)
 
 p.domain.hit.by.div3 <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.genera, fill = domain.hit)) +
   geom_boxplot(alpha = 0.7) +
@@ -165,7 +175,8 @@ p.domain.hit.by.div3 <- ggplot(ecf.domain.table, aes(x = domain.hit, y = no.gene
     x = "Domain Hit",
     y = "No genera"
   )  + scale_y_log10()
-ggsave("plot3c-domhit-by-div3.pdf", p.domain.hit.by.div3, width = 4, height = 4)
+p.domain.hit.by.div3.outfile <- file.path(this.results.dir, "plot3c-domhit-by-div3.pdf")
+ggsave(p.domain.hit.by.div3.outfile, p.domain.hit.by.div3, width = 4, height = 4)
 
 p.domain.hit.by.funct <- ggplot(ecf.domain.table, aes(x = funct.known, fill = domain.hit)) +
   geom_bar(position = "fill") +
@@ -177,7 +188,8 @@ p.domain.hit.by.funct <- ggplot(ecf.domain.table, aes(x = funct.known, fill = do
     y = "Proportion",
     fill = "Domain Hit"
   )
-ggsave("plot4-domhit-by-funct.pdf", p.domain.hit.by.funct, width = 4, height = 4)
+p.domain.hit.by.funct.outfile <- file.path(this.results.dir, "plot4-domhit-by-funct.pdf")
+ggsave(p.domain.hit.by.funct.outfile, p.domain.hit.by.funct, width = 4, height = 4)
 
 p.domain.hit.by.taxonomy <- ggplot(ecf.domain.table, aes(x = taxa, fill = domain.hit)) +
   geom_bar(position = "fill") +
@@ -189,11 +201,9 @@ p.domain.hit.by.taxonomy <- ggplot(ecf.domain.table, aes(x = taxa, fill = domain
     y = "Proportion",
     fill = "Domain Hit"
   )
-ggsave("plot5-domhit-by-taxonomy.pdf", p.domain.hit.by.taxonomy, width = 4, height = 4)
+p.domain.hit.by.funct.outfile <- file.path(this.results.dir, "plot5-domhit-by-taxonomy.pdf")
+ggsave(p.domain.hit.by.fįunct.outfile, p.domain.hit.by.taxonomy, width = 4, height = 4)
 
-
-
-library(ComplexUpset)
 
 # Prepare data for the UpSet plot
 ecf.domain.table[, ECOD := ecod.hit == "yes"]
@@ -203,8 +213,24 @@ ecf.domain.table[, PFAM := pfam.hit == "yes"]
 upset_data <- ecf.domain.table[, .(ECOD, PFAM)]
 
 # Create the UpSet plot
-upset(
+p.upset.domain <- upset(
   upset_data,
   intersect = c("ECOD", "PFAM"),
-  mode = "exclusive_intersection"  # Correct mode
+  mode = "exclusive_intersection",  # Correct mode
+  themes = list(
+    'overall_sizes' = theme(
+      axis.title.x = element_text(),
+      axis.title.y = element_text()
+    ),
+    'intersections_matrix' = theme(
+      axis.title.x = element_text(),
+      axis.title.y = element_text()
+    ),
+    'intersections_sizes' = theme(
+      axis.title.x = element_text(),
+      axis.title.y = element_text()
+    )
+  )
 )
+p.upset.domain.outfile <- file.path(this.results.dir, "plot6-upset-domain.pdf")
+ggsave(p.upset.domain.outfile, p.upset.domain, width = 7, height = 4)

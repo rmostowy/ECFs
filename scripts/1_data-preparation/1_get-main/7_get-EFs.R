@@ -35,7 +35,7 @@ ecf.mcl.table <- rbind(ecf.nonself.hits, ecf.self.hits)
 
 # -- run MCL --
 # create a temp mcl directory
-mcl.run.dir <- file.path(data.tmp.dir, "mcl")
+mcl.run.dir <- file.path(data.tmp.dir, "mcl-ecf")
 mcl.tmp.dir <- file.path(mcl.run.dir, "tmp")
 make.dir(mcl.tmp.dir)
 
@@ -43,7 +43,7 @@ make.dir(mcl.tmp.dir)
 input.filename <- file.path(mcl.run.dir, "mcl-input.txt")
 fwrite(ecf.mcl.table, file = input.filename, sep = " ")
 output.filename <- file.path(mcl.run.dir, "mcl-output.txt")
-run.mcl(input.filename, output.filename, inflation.factor = ECF.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir)
+run.mcl(input.filename, output.filename, inflation.factor = ECF.FAMILY.INFLATION.FACTOR, tmp.dir = mcl.tmp.dir, mcl.path = "/opt/bio/mcl/bin")
 
 # process MCL output
 mcl.output <- readLines(output.filename)

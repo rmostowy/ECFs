@@ -3,6 +3,7 @@ suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(igraph)))
+suppressWarnings(suppressPackageStartupMessages(library(ggnetwork)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -11,6 +12,11 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
+
+# Define output directories
+this.visual.dir <- file.path(visual.dir, "part4_ecf2ecod")
+this.results.dir <- this.visual.dir
+make.dir(this.results.dir)
 
 # Load data
 ecod.domains <- fread(ecod.domains.output)
@@ -24,23 +30,6 @@ ecfs.full.vs.ecod <- ecfs.vs.ecod %>%
   filter(prob >= MIN.PROB.FOR.SUBDOMAIN) %>%
   filter(eval <= MAX.EVAL.FOR.SUBDOMAIN)
 setkey(ecfs.full.vs.ecod, qname)
-
-
-# index=1
-# this.ecf <- ecf.name.table$ecf.name[index]
-# this.ecf.hits <- ecfs.full.vs.ecod[.(this.ecf)]
-# this.ecf.hits$t.id <- ecod.domains[.(this.ecf.hits$sname)]$t_id
-
-# ecfs.ecod1.overlap <- this.ecf.hits %>% select(qname, qlength,
-#                                                 sname.ecod1 = sname, sstart.ecod1 = sstart, send.ecod1 = send, slength.ecod1 = slength,
-#                                                 pident.ecod1 = pident, hit.length.ecod1 = hit.length, t.id.ecod1 = t.id)
-# ecfs.ecod2.overlap <- this.ecf.hits %>% select(qname,
-#                                                sname.ecod2 = sname, sstart.ecod2 = sstart, send.ecod2 = send, slength.ecod2 = slength,
-#                                                pident.ecod2 = pident, hit.length.ecod2 = hit.length, t.id.ecod2 = t.id)
-
-# ecf.subset <- ecf.name.table$ecf.name[1:1000]
-# ecfs.full.vs.ecod.sub <- ecfs.full.vs.ecod[qname %in% ecf.subset]
-# ecfs.full.vs.ecod.sub$t.id <- ecod.domains[.(ecfs.full.vs.ecod.sub$sname)]$t_id
 
 ecfs.full.vs.ecod$t.id <- ecod.domains[.(ecfs.full.vs.ecod$sname)]$t_id
 
@@ -178,7 +167,39 @@ p.ecf.vs.ecod.abs <- ggplot(agg_data, aes(x = cov_bin, y = N, fill = ecod.comp))
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +   # Rotate x-axis labels
   scale_y_sqrt()
 
-ggsave("plo1_ecf-vs-ecod-absolute.pdf", p.ecf.vs.ecod.abs, width = 7, height = 5)
-ggsave("plo2_ecf-vs-ecod-prop.pdf", p.ecf.vs.ecod.prop, width = 7, height = 5)
+p.ecf.vs.ecod.abs.outfile <- file.path(this.results.dir, "plot1a_ecf-vs-ecod-absolute.pdf")
+p.ecf.vs.ecod.prop.outfile <- file.path(this.results.dir, "plot1b_ecf-vs-ecod-prop.pdf")
+
+ggsave(p.ecf.vs.ecod.abs.outfile, p.ecf.vs.ecod.abs, width = 7, height = 5)
+ggsave(p.ecf.vs.ecod.prop.outfile, p.ecf.vs.ecod.prop, width = 7, height = 5)
 
 
+# Visualise pairs of ECODs from different X levels and with high cov
+supr.homologous.ecods <- linked.ecod.pairs.filtered2 %>% 
+  filter(same.h.level == F & ecod1.cov >= 0.8 & ecod2.cov >= 0.8) 
+
+supr.homologous.ecods.unique <- unique(rbind(
+  supr.homologous.ecods %>% select(from = ecod1.t.id, to = ecod2.t.id),
+  supr.homologous.ecods %>% select(from = ecod2.t.id, to = ecod1.t.id)
+))
+supr.homologous.ecods.unique <- supr.homologous.ecods.unique %>% filter(from < to)
+
+# Build undirected graph (similarity networks are usually undirected)
+g <- graph_from_data_frame(supr.homologous.ecods.unique, directed = FALSE)
+g <- simplify(g, remove.multiple = TRUE, remove.loops = TRUE)
+V(g)$degree <- degree(g)
+net <- ggnetwork(g)
+
+p.homologus.xs <- ggplot(net, aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_edges(alpha = 0.35, linewidth = 0.4) +
+  geom_nodes(size = 4, alpha = 0.9) +
+  geom_text(
+    aes(label = name),
+    size = 3,
+    vjust = -0.8
+  ) +
+  theme_void(base_size = 14) +
+  theme(legend.position = "none")
+
+p.homologus.xs.outfile <- file.path(this.results.dir, "plot2_connected-xs.pdf")
+ggsave(p.homologus.xs.outfile, p.homologus.xs, width = 5, height = 4)

@@ -9,9 +9,10 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
+
 # Load reprseq tables
-reprseq.table <- fread(reprseq.table.filename)
-reprseq.table[, accession := sub("\\.[0-9]+:.*", "", cluster.name)]
+reprseq.table <- fread(reprseq.table.output)
+reprseq.table[, accession := sub(":.*$", "", cluster.name)]
 all.reprseq <- unique(reprseq.table$reprseq)
 
 # Load metadata table
@@ -52,7 +53,7 @@ setkey(ecfs.vs.ecod, qname)
 # ecfs.potentially.new <- setdiff(all.ecfs, ecfs.with.ecod.hit)
 
 ecf.classification.table.list <- lapply(1:Ne, function(index){
-  # cat(index,"\n")
+  cat(index,"\n")
   # get linked PHROG annotations
   this.ecf <- all.ecfs[index]
   this.ecf.has.reprseqs <- this.ecf %in% ecf2reprseq$ecf

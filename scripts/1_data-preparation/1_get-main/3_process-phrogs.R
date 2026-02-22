@@ -2,6 +2,7 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(readxl)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -69,19 +70,22 @@ funct.count <- data.table(annot.index=1:nrow(funct.count), funct.count)
 fwrite(phrogs.functions.final, file = phrogs.functions.output)
 fwrite(funct.count, file = phrogs.count.output)
 
-# load antidefence descriptions
-antidefence.descr <- as.data.table(read_xlsx(antidefence.descr.filename))
+# Get antidefence sequences
+antidefence.seqs <- readAAStringSet(antidefence.seqs.filename)
+antidefence.seqs.n <- names(antidefence.seqs)
 
-# modify accession labels 
-antidefence.descr$accession.base <- antidefence.descr$Accession
-accession.regexpr <- regexpr(".1", antidefence.descr$Accession, fixed = T)
-is.accession.versioned <- accession.regexpr>0
-extended.accessions <- antidefence.descr$accession.base[is.accession.versioned]
-extended.accessions.cut <- substr(extended.accessions, 1, accession.regexpr[is.accession.versioned]-1)
-antidefence.descr$accession.base[is.accession.versioned] <- extended.accessions.cut
+# Get antidefence table
+antidefence.table <- fread(antidefence.descr.filename)
+end.row <- which(antidefence.table$Name == "*References:")-2
+antidefence.table <- antidefence.table[1:end.row]
 
-# modify antidefence table and save it
-antidefence.table <- antidefence.descr %>% 
-  select(accession = accession.base, name = Name, funct = Function, annotation)
+# Format the antidefence table
+antidefence.table[, base.accession := sub("\\.[0-9]+$", "", Accession)]
+antidefence.table$has.seq <- antidefence.table$Accession %in% antidefence.seqs.n
+antidefence.table.processed <- antidefence.table %>% 
+  select(accession = base.accession, accession.full = Accession, name = Name, funct = Function, annotation, has.seq)
+antidefence.table.processed.with.seq <- antidefence.table.processed[has.seq == TRUE]
+antidefence.table.processed.with.seq[, has.seq := NULL]
 
-fwrite(antidefence.table, file = antidefence.table.output)
+fwrite(antidefence.table.processed.with.seq, file = antidefence.table.output)
+
