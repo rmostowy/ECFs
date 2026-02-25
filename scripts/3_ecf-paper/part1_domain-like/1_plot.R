@@ -4,7 +4,7 @@ suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(Biostrings)))
 suppressWarnings(suppressPackageStartupMessages(library(scales)))
-# suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
+suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
 # suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
 # suppressWarnings(suppressPackageStartupMessages(library(seqinr)))
 
@@ -382,7 +382,7 @@ p.ef.per.reprseq <- ggplot(prop_dt, aes(length_bin_q, prop, fill = efs_cat)) +
     data = bin_ranges,
     aes(x = length_bin_q, y = y, label = range_lab),
     inherit.aes = FALSE,
-    size = 3.4,
+    size = 2.5,
     vjust = 0
   ) +
   scale_fill_manual(values = okabe_ito, drop = FALSE) +
@@ -615,3 +615,22 @@ p.domain.vs.ecf.cov.outfile <- file.path(this.part.dir, "plot9_ecf-cov-dom-reg.p
 ggsave(p.domain.vs.ecf.cov.outfile, p.domain.vs.ecf.cov, width = 6, height = 5)
 
 
+####################################################
+
+# p.length.distr # panel A
+# p.ef.per.reprseq # panel B
+# p.domain.vs.ecf.cov # panel C
+
+fig2 <- 
+  ( p.length.distr |
+  (p.ef.per.reprseq / p.domain.vs.ecf.cov)
+  )+
+  plot_layout(heights = c(1.2, 1)) +
+  plot_annotation(tag_levels = "A") & 
+  theme(
+    plot.tag = element_text(face = "bold", size = 14),
+    plot.tag.position = c(0.02, 0.98)
+  )
+
+fig2.outfile <- file.path(this.part.dir, "figure2.png")
+ggsave(fig2.outfile, fig2, width = 10, height = 7)
