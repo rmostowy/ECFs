@@ -68,7 +68,7 @@ contain.neighbour.cov.max.list <- lapply(1:no.nodes.cg, function(node.index){
   # this.node.transitivity <- full.network.tr[which(names(full.network.tr)==this.node)]
   
   # 2. Identify all possible pairwise connections between neighbours in the containment network
-  neighbours <- neighbors(containment.graph, this.node)
+  neighbours <- neighbors(containment.graph, this.node, mode = "out")
   no.neighbours <- length(neighbours)
   if(no.neighbours >= 2){
     neighbour.pairs <- combn(neighbours$name, 2, simplify = FALSE)
