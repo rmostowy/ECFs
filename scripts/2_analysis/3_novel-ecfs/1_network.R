@@ -45,7 +45,7 @@ ecfs.vs.ecfs.cov.filtered <- ecfs.vs.ecfs.cov.filtered[cov.min >= ECF.MIN.COV.TH
 #   select(query, subject, prob, pident, hit.length, qcov, scov, cov.min, cov.max)
 
 ecf.network <- ecfs.vs.ecfs.cov.filtered %>%
-  select(query, subject, weight = cov.max)
+  select(query, subject, weight = cov.max, qcov, scov)
 setkey(ecf.network, query, subject)
 
 ecf.network.outfile <- file.path(ecf.network.dir, "ecf-vis-network.txt")
