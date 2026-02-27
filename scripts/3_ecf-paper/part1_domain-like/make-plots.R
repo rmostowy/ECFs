@@ -19,7 +19,7 @@ source(config.filename)
 #################################
 ### Set up output directory
 #################################
-this.part.dir <- file.path(visual.dir, "part1_domain-like")
+this.part.dir <- file.path(ecf.proj.dir, "part1_domain-like")
 make.dir(this.part.dir)
 
 #################################
@@ -294,7 +294,7 @@ plot.rel.pos <- function(dt, no.bins = 200, title = "2D interval map of ECF occu
       x = "Relative start position (qstart / protein length)",
       y = "Relative end position (qend / protein length)",
       fill = "Count",
-      title = "2D interval map of ECF occurrences"
+      title = title
     ) +
     theme_bw(base_size = 14) +
     theme(
@@ -307,6 +307,9 @@ plot.rel.pos <- function(dt, no.bins = 200, title = "2D interval map of ECF occu
 rel.pos.ecfs <- plot.rel.pos(ecf.rel.pos)
 rel.pos.pfam <- plot.rel.pos(pfam.rel.pos, title = "2D interval map of PFAM occurrences")
 rel.pos.ecod <- plot.rel.pos(ecod.rel.pos, title = "2D interval map of ECOD occurrences")
+
+rel.pos.ecfs.outfile <- file.path(this.part.dir, "plot5_ecf-rel-pos.png")
+ggsave(rel.pos.ecfs.outfile, rel.pos.ecfs, width = 6, height = 5)
 
 rel.pos.pfam.outfile <- file.path(this.part.dir, "plot6_pfam-rel-pos.png")
 ggsave(rel.pos.pfam.outfile, rel.pos.pfam, width = 6, height = 5)
@@ -408,134 +411,6 @@ ggsave(p.ef.per.reprseq.outfile, p.ef.per.reprseq, width = 7, height = 5)
 ### ECF vs. domain overlap
 #################################
 
-reduce_ranges <- function(dt) {
-  dt <- as.data.table(dt)
-  
-  # no rows or all NA → empty reduced set
-  if (nrow(dt) == 0L || all(is.na(dt$qstart)) || all(is.na(dt$qend))) {
-    return(data.table(qstart = integer(), qend = integer()))
-  }
-  
-  # keep only valid ranges
-  dt <- dt[!is.na(qstart) & !is.na(qend)]
-  if (nrow(dt) == 0L) return(data.table(qstart = integer(), qend = integer()))
-  
-  # enforce start <= end
-  dt[qstart > qend, c("qstart","qend") := .(qend, qstart)]
-  
-  setorder(dt, qstart, qend)
-  
-  out_start <- integer()
-  out_end   <- integer()
-  
-  cur_start <- dt$qstart[1]
-  cur_end   <- dt$qend[1]
-  
-  if (nrow(dt) > 1L) {
-    for (i in 2:nrow(dt)) {
-      if (dt$qstart[i] <= cur_end + 1L) {
-        cur_end <- max(cur_end, dt$qend[i])
-      } else {
-        out_start <- c(out_start, cur_start)
-        out_end   <- c(out_end, cur_end)
-        cur_start <- dt$qstart[i]
-        cur_end   <- dt$qend[i]
-      }
-    }
-  }
-  
-  out_start <- c(out_start, cur_start)
-  out_end   <- c(out_end, cur_end)
-  
-  data.table(qstart = out_start, qend = out_end)
-}
-
-covered_length <- function(dt) {
-  dt <- as.data.table(dt)
-  if (nrow(dt) == 0L) return(0L)
-  dt <- dt[!is.na(qstart) & !is.na(qend)]
-  if (nrow(dt) == 0L) return(0L)
-  sum(dt$qend - dt$qstart + 1L)
-}
-
-intersection_length <- function(a, b) {
-  a <- as.data.table(a)
-  b <- as.data.table(b)
-  
-  a <- a[!is.na(qstart) & !is.na(qend)]
-  b <- b[!is.na(qstart) & !is.na(qend)]
-  
-  if (nrow(a) == 0L || nrow(b) == 0L) return(0L)
-  
-  total <- 0L
-  for (i in seq_len(nrow(a))) {
-    for (j in seq_len(nrow(b))) {
-      start <- max(a$qstart[i], b$qstart[j])
-      end   <- min(a$qend[i],   b$qend[j])
-      if (start <= end) total <- total + (end - start + 1L)
-    }
-  }
-  total
-}
-# 
-# # copy objects
-# rhmm.vs.ecf <- copy(reprseq.vs.ecfs)
-# rhmm.vs.pfam <- copy(reprseq.vs.pfam)
-# rhmm.vs.ecod <- copy(reprseq.vs.ecod)
-# 
-# # index
-# setkey(rhmm.vs.ecf, qname)
-# setkey(rhmm.vs.pfam, qname)
-# setkey(rhmm.vs.ecod, qname)
-# 
-# # 
-# all.rhmms <- sort(unique(
-#   c(rhmm.vs.pfam$qname, rhmm.vs.ecod$qname)
-# ))
-# 
-# 
-# conditional.probs.list <- lapply(1:1000, function(ri){
-#   this.rhmm <- all.rhmms[ri]
-#   this.rhmm.length <- as.numeric(reprseq.seqs.l[this.rhmm])
-#   
-#   # get unique ECF ranges
-#   ecf.ranges <- rhmm.vs.ecf[.(this.rhmm)][, .(qstart, qend)]
-#   ecf.red <- reduce_ranges(ecf.ranges)
-#   
-#   # get unique PFAM ranges
-#   pfam.ranges <- rhmm.vs.pfam[.(this.rhmm)][, .(qstart, qend)]
-#   pfam.red <- reduce_ranges(pfam.ranges)
-#   
-#   # get unique ECOD ranges
-#   ecod.ranges <- rhmm.vs.ecod[.(this.rhmm)][, .(qstart, qend)]
-#   ecod.red <- reduce_ranges(ecod.ranges)
-#   
-#   # get unique domain ranges
-#   domain.red <- reduce_ranges(rbind(pfam.red, ecod.red))
-#   
-#   # calculate conditional probabilities
-#   L <- this.rhmm.length
-#   res.covered.by.both <- intersection_length(ecf.red, domain.red)
-#   res.covered.by.ecf <- covered_length(ecf.red)
-#   res.covered.by.domain <- covered_length(domain.red)
-#   
-#   res.covered.by.only.ecf <- res.covered.by.ecf - res.covered.by.both
-#   res.covered.by.only.domain <- res.covered.by.domain - res.covered.by.both
-#   res.covered.by.none <- this.rhmm.length - (res.covered.by.both + res.covered.by.only.ecf + res.covered.by.only.domain)
-#   
-#   p.ecf.given.domain <- res.covered.by.both / (res.covered.by.both + res.covered.by.only.domain)
-#   if(res.covered.by.both + res.covered.by.only.domain == 0) p.ecf.given.domain <- NA
-#   p.ecf.given.no.domain <- res.covered.by.only.ecf / (res.covered.by.only.ecf + res.covered.by.none)
-#   if(res.covered.by.only.ecf + res.covered.by.none == 0) p.ecf.given.domain <- NA
-#   
-#   data.table(p.ecf.given.domain, p.ecf.given.no.domain)
-#   
-# })
-
-
-####################################################################
-# FASTER
-
 # ---- 1) Precompute per-qname range lists once (fast) ----
 mk_ranges_list <- function(dt) {
   dt <- as.data.table(dt)[, .(qname, qstart, qend)]
@@ -601,7 +476,7 @@ conditional.probs.dt <- copy(conditional.probs)
 conditional.probs.dt[, delta := p.ecf.given.domain - p.ecf.given.no.domain]
 
 # Show that ECF coverage is higher inside domain-annotated regions
-p.domain.vs.ecf.cov <- ggplot(dt, aes(x = delta)) +
+p.domain.vs.ecf.cov <- ggplot(conditional.probs.dt, aes(x = delta)) +
   geom_histogram(bins = 80) +
   geom_vline(xintercept = 0, linewidth = 0.4) +
   labs(x = expression(Delta*" = P(ECF|domain) - P(ECF|no domain)"),
@@ -615,7 +490,9 @@ p.domain.vs.ecf.cov.outfile <- file.path(this.part.dir, "plot9_ecf-cov-dom-reg.p
 ggsave(p.domain.vs.ecf.cov.outfile, p.domain.vs.ecf.cov, width = 6, height = 5)
 
 
-####################################################
+#################################
+### Generate Figure 2
+#################################
 
 # p.length.distr # panel A
 # p.ef.per.reprseq # panel B
@@ -632,5 +509,43 @@ fig2 <-
     plot.tag.position = c(0.02, 0.98)
   )
 
-fig2.outfile <- file.path(this.part.dir, "figure2.png")
+fig2.outfile <- file.path(ecf.figures.dir, "figure2.png")
 ggsave(fig2.outfile, fig2, width = 10, height = 7)
+
+#################################
+### Save supplementary figures
+#################################
+
+# p.ecf.size (ECF size histogram)
+# p.repr.per.ecf (No of reprseqs mapped onto each ECF)
+# p.no.ecf.per.ef (No of EFs per ECF barplot)
+# rel.pos.ecfs (2D interval map of ECF occurrences)
+# rel.pos.pfam (2D interval map of PFAM occurrences)
+# rel.pos.ecod (2D interval map of ECOD occurrences)
+
+suppl.p.ecfs.vs.rhmms <- 
+      (p.ecf.size / p.repr.per.ecf) +
+  plot_layout(heights = c(1, 1)) +
+  plot_annotation(tag_levels = "A") & 
+  theme(
+    plot.tag = element_text(face = "bold", size = 14)
+    # ,
+    # plot.tag.position = c(0.02, 0.98)
+  )
+suppl.p.ecfs.vs.rhmms.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p1_ecfs-vs-rhmm.png")
+ggsave(suppl.p.ecfs.vs.rhmms.outfile, suppl.p.ecfs.vs.rhmms, width = 5, height = 8)
+
+suppl.p.no.ecf.per.ef.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p2_ecfs-vs-efs.png")
+ggsave(suppl.p.no.ecf.per.ef.outfile, p.no.ecf.per.ef, width = 5, height = 4)
+
+suppl.p.2d.domain.occur <- 
+  (rel.pos.ecfs / rel.pos.pfam / rel.pos.ecod) +
+  plot_layout(heights = c(1, 1, 1)) +
+  plot_annotation(tag_levels = "A") & 
+  theme(
+    plot.tag = element_text(face = "bold", size = 14)
+    # ,
+    # plot.tag.position = c(0.02, 0.98)
+  )
+suppl.p.2d.domain.occur.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p3_domain-occur.png")
+ggsave(suppl.p.2d.domain.occur.outfile, suppl.p.2d.domain.occur, width = 6, height = 14)

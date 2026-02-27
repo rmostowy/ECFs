@@ -19,6 +19,10 @@ source(config.filename)
 this.part.dir <- file.path(visual.dir, "part2_containment")
 make.dir(this.part.dir)
 
+# figures.dir <- file.path(visual.dir, "figures")
+# suppl.dir <- file.path(visual.dir, "figures")
+# make.dir(figures.dir)
+
 #################################
 ### Load all data:
 ### 1. ECF tables
@@ -295,6 +299,9 @@ p.qij <- ggplot(data2plot, aes(x = value)) +
 
 p.qij.fn <- file.path(this.part.dir, "plot10_neighbour-cov.png")
 ggsave(p.qij.fn, p.qij, width = 7, height = 3)
+
+
+
 
 
 ############
