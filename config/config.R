@@ -43,6 +43,9 @@ safe_source(functions.custom.cov.filename)
 helper.functions.filename <- file.path(scripts.functions.path, "helper.R")
 safe_source(helper.functions.filename)
 
+gpt.helper.functions.filename <- file.path(scripts.functions.path, "gpt-helper.R")
+safe_source(gpt.helper.functions.filename)
+
 gggenomes.functions.filename <- file.path(scripts.functions.path, "gggenomes.R")
 safe_source(gggenomes.functions.filename)
 
@@ -150,10 +153,16 @@ data.ecfs.dir <- file.path(data.output.dir, "ecfs")
 data.comparisons.dir <- file.path(data.output.dir, "comparisons")
 ecf.network.dir <- file.path(data.comparisons.dir, "networks")
 
+# ECF project
+ecf.proj.dir <- file.path(main.data.dir, "paper-ecf")
+ecf.figures.dir <- file.path(ecf.proj.dir, "figures")
+ecf.suppl.figures.dir <- file.path(ecf.figures.dir, "suppl-figs")
+
 dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir, visual.dir,
                  data.phrog.dir, data.domain.dir, data.ps.dir, data.ecfs.dir,
-                 data.comparisons.dir, ecf.network.dir)
+                 data.comparisons.dir, ecf.network.dir,
+                 ecf.proj.dir, ecf.figures.dir, ecf.suppl.figures.dir)
 
 make.dirs(dirs2create)
 
@@ -227,6 +236,13 @@ rem.table.output <- file.path(data.comparisons.dir, "rem-table.txt")
 
 # Genome all-by-all megablast table
 genomes.aba.table.output <- file.path(data.comparisons.dir, "genomes-aba.txt")
+
+#################
+## ECF project dirs
+#################
+
+
+
 
 #################
 ## Labels
