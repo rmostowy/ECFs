@@ -4,6 +4,8 @@ suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(igraph)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(ggraph)))
+suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
+suppressWarnings(suppressPackageStartupMessages(library(broom)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -16,7 +18,7 @@ source(config.filename)
 #################################
 ### Set up output directory
 #################################
-this.part.dir <- file.path(visual.dir, "part2_containment")
+this.part.dir <- file.path(ecf.proj.dir, "part2_containment")
 make.dir(this.part.dir)
 
 # figures.dir <- file.path(visual.dir, "figures")
@@ -61,6 +63,15 @@ ecf.network.ab <- eve.conf %>% select(query, subject, prob, qcov, scov)
 ecf.network.ba <- eve.conf %>% select(query = subject, subject = query, prob, qcov = scov, scov = qcov)
 ecf.network <- rbind(ecf.network.ab, ecf.network.ba)
 
+# Define base theme for plotting
+base_theme <- theme_bw(base_size = 14) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    legend.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", hjust = 0)
+  )
+
 #################################
 ### 1. Generate per-ECF 
 ### summary table
@@ -90,9 +101,28 @@ ecf.connectivity.stats <- merge(ecf.connectivity.stats, ecf.no.fams, by = "query
 ### 2. Show qcov/scov heatmap
 #################################
 
+# heatmap_fill <- scale_fill_gradient(
+#   low = "#F7FBFF",
+#   high = "#2C7FB8",
+#   name = "Count"
+# )
+
+heatmap_fill <- scale_fill_viridis_c(
+  option = "cividis",
+  trans = "sqrt",
+  name = "Count"
+)
+
 p.cov.heatmap <- ggplot(eve.conf, aes(x = qcov, y = scov)) +
-  geom_bin2d(bins = 80) +
-  theme_bw()
+  geom_bin2d(bins = 60) +
+  heatmap_fill +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Query coverage",
+    y = "Subject coverage"
+  ) +
+  base_theme
+
 p.cov.heatmap.outfile <- file.path(this.part.dir, "plot1_cov-heatmap.png")
 ggsave(p.cov.heatmap.outfile, p.cov.heatmap, width = 6, height = 5)
 
@@ -101,9 +131,19 @@ ggsave(p.cov.heatmap.outfile, p.cov.heatmap, width = 6, height = 5)
 ### for per-ECF averages
 #################################
 
-p.connect.cov.heatmap <- ggplot(ecf.connectivity.stats, aes(x = mean.qcov, y = mean.scov)) +
-  geom_bin2d(bins = 80) +
-  theme_bw()
+p.connect.cov.heatmap <- ggplot(
+  ecf.connectivity.stats,
+  aes(x = mean.qcov, y = mean.scov)
+) +
+  geom_bin2d(bins = 60) +
+  heatmap_fill +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+  labs(
+    x = "Mean query coverage",
+    y = "Mean subject coverage"
+  ) +
+  base_theme
+
 p.connect.cov.heatmap.outfile <- file.path(this.part.dir, "plot2_connect-cov-heatmap.png")
 ggsave(p.connect.cov.heatmap.outfile, p.connect.cov.heatmap, width = 6, height = 5)
 
@@ -128,17 +168,19 @@ ggsave(file.path(this.part.dir, "plot3_asym-dist.png"),
 ### 4. Asymmetry vs. Length
 #################################
 
-p.asym.len <- ggplot(ecf.connectivity.stats,
-                     aes(x = asym_med, y = length)) +
-  geom_bin2d(bins = 70) +
+p.asym.len <- ggplot(
+  ecf.connectivity.stats,
+  aes(x = asym_mean, y = length)
+) +
+  geom_bin2d(bins = 60) +
+  heatmap_fill +
   scale_y_continuous(trans = "log10") +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  theme_bw(base_size = 14) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.6) +
   labs(
-    x = "Asymmetry (median qcov − median scov)",
-    y = "ECF length (aa, log10 scale)",
-    title = "Asymmetry relates to fragment length"
-  )
+    x = "Asymmetry (mean qcov − mean scov)",
+    y = "ECF length (aa, log10 scale)"
+  ) +
+  base_theme
 
 ggsave(file.path(this.part.dir, "plot4_asym-vs-length.png"),
        p.asym.len, width = 6, height = 5)
@@ -239,6 +281,46 @@ ggsave(file.path(this.part.dir, "plot9_strength-vs-length.png"),
        p.str.len, width = 6, height = 5)
 
 #################################
+### 10. Statistical models to 
+### resolve relationship between
+### no.fam, asymm, length and degree
+#################################
+
+asym.fam.model <- copy(ecf.connectivity.stats)
+asym.fam.model[, log_degree := log1p(degree)]      # log(1+degree) avoids log(0)
+asym.fam.model[, log_length := log10(length)]
+
+m1 <- glm(no.fam ~ log_degree,
+          data = asym.fam.model,
+          family = poisson())
+m2 <- glm(no.fam ~ log_degree + asym_med,
+          data = asym.fam.model,
+          family = poisson())
+m3 <- glm(no.fam ~ log_degree + asym_med + log_length,
+          data = asym.fam.model,
+          family = poisson())
+summary(m3)
+
+coef_df <- tidy(m3, conf.int = TRUE, exponentiate = TRUE)
+coef_df <- coef_df[coef_df$term != "(Intercept)", ]
+coef_df$term <- c(
+  "log(Degree)",
+  "Asymmetry",
+  "log(Length)"
+)
+p.glm.model <- ggplot(coef_df, aes(x = estimate, y = term)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), width = 0.2) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  labs(
+    x = "Incidence rate ratio (exp(coef))",
+    y = NULL
+  ) +
+  theme_classic(base_size = 14)
+
+
+
+#################################
 ### 10. Containment network
 #################################
 
@@ -300,8 +382,159 @@ p.qij <- ggplot(data2plot, aes(x = value)) +
 p.qij.fn <- file.path(this.part.dir, "plot10_neighbour-cov.png")
 ggsave(p.qij.fn, p.qij, width = 7, height = 3)
 
+# rgb(51, 91, 170, maxColorValue = 255)
+"#335BAA"
+
+# Create the histogram with facets and independent Y axes
+p.cont.cont <- ggplot(data2plot[type == "full"], aes(x = value)) +
+  geom_histogram(
+    bins = 40,
+    fill = "#335BAA",
+    color = "white",
+    linewidth = 0.2
+  ) +
+  geom_vline(xintercept = 0.5, linetype = "dashed", linewidth = 0.6) +
+  scale_x_continuous(
+    breaks = seq(0, 1, 0.2),
+    expand = c(0.03, 0.03)
+  ) +
+  coord_cartesian(xlim = c(0, 1)) +
+  labs(
+    x = "Container–container similarity (max coverage)",
+    y = "Number of container pairs"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+p.cont.cont
 
 
+#################################
+### Generate Figure 3
+#################################
+
+# p.cov.heatmap # panel A
+# p.connect.cov.heatmap # panel B
+# p.asym.len # panel C
+# p.cont.cont # panel D
+
+fig3 <- (
+  (p.cov.heatmap | p.connect.cov.heatmap) /
+    (p.asym.len    | p.cont.cont)
+) +
+  plot_annotation(tag_levels = "A") &
+  theme(
+    plot.tag = element_text(face = "bold", size = 14),
+    plot.tag.position = c(0.02, 0.98)
+  )
+# fig3
+
+fig3.outfile <- file.path(ecf.figures.dir, "figure3.png")
+ggsave(fig3.outfile, fig3, width = 9, height = 7)
+
+#################################
+### Generate Supplementary Figs
+#################################
+
+# p.asym.dist
+# p.asym.fam
+# p.asym.deg
+# p.glm.model
+
+p.asym.dist.outfile <- file.path(ecf.suppl.figures.dir, "suppl-3p1_asymm-dist.png")
+ggsave(p.asym.dist.outfile, p.asym.dist, width = 5, height = 4)
+
+p.no.fam.asymm <- (
+  (p.asym.fam / p.asym.deg / p.glm.model)
+) +
+  plot_annotation(tag_levels = "A") &
+  theme(
+    plot.tag = element_text(face = "bold", size = 14),
+    plot.tag.position = c(0.02, 0.98)
+  )
+p.no.fam.asymm.outfile <- file.path(ecf.suppl.figures.dir, "suppl-3p2_asymm-nofam.png")
+ggsave(p.no.fam.asymm.outfile, p.no.fam.asymm, width = 5, height = 9)
+
+# polish the GLM table
+tab <- tidy(m3)  # non-exponentiated
+## Remove intercept (optional — usually removed in papers)
+tab <- tab[tab$term != "(Intercept)", ]
+## Compute IRR (exp(beta)) and 95% CI
+tab$IRR  <- exp(tab$estimate)
+tab$CIlo <- exp(tab$estimate - 1.96 * tab$std.error)
+tab$CIhi <- exp(tab$estimate + 1.96 * tab$std.error)
+## Format numbers to 2 significant digits
+fmt2 <- function(x) signif(x, 2)
+tab$estimate  <- fmt2(tab$estimate)
+tab$std.error <- fmt2(tab$std.error)
+tab$statistic <- fmt2(tab$statistic)
+tab$IRR       <- fmt2(tab$IRR)
+tab$CIlo      <- fmt2(tab$CIlo)
+tab$CIhi      <- fmt2(tab$CIhi)
+## Format p-values nicely
+tab$p.value <- ifelse(tab$p.value < 0.001,
+                      "<0.001",
+                      formatC(tab$p.value, digits = 2, format = "f"))
+## Rename terms for readability
+tab$term <- dplyr::recode(tab$term,
+                          log_degree = "log1p(degree)",
+                          asym_med   = "asymmetry",
+                          log_length = "log10(length)")
+## Select and reorder columns
+tab_final <- tab[, c("term", "estimate", "std.error",
+                     "IRR", "CIlo", "CIhi", "statistic", "p.value")]
+colnames(tab_final) <- c(
+  "Predictor",
+  "β",
+  "SE",
+  "IRR",
+  "CI 2.5%",
+  "CI 97.5%",
+  "z",
+  "p"
+)
+# tab_final
+
+tab.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-3p1_GLM-results.csv")
+write.csv(tab_final, tab.outfile, row.names = FALSE)
+
+
+## Function to convert tab_final into LaTeX table
+make_latex_table <- function(tab_final,
+                             file,
+                             caption = "Poisson GLM results for neighbour-family diversity.",
+                             label = "tab:glm_asymmetry") {
+  
+  sink(file)
+  
+  cat("\\begin{table}[ht]\n")
+  cat("\\centering\n")
+  cat(paste0("\\caption{", caption, "}\n"))
+  cat(paste0("\\label{", label, "}\n"))
+  cat("\\begin{tabular}{lrrrrrrr}\n")
+  cat("\\hline\n")
+  
+  cat(paste(colnames(tab_final), collapse = " & "))
+  cat(" \\\\\n")
+  cat("\\hline\n")
+  
+  for (i in 1:nrow(tab_final)) {
+    cat(paste(tab_final[i, ], collapse = " & "))
+    cat(" \\\\\n")
+  }
+  
+  cat("\\hline\n")
+  cat("\\end{tabular}\n")
+  cat("\\end{table}\n")
+  
+  sink()
+}
+
+tab.latex.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-3p1_GLM-results-latex.txt")
+make_latex_table(tab_final, file = tab.latex.outfile)
 
 
 ############
