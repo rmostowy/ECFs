@@ -299,6 +299,9 @@ protein_metrics_essential <- merge(protein_metrics_essential, pm.funct, by = "qn
 protein_metrics_essential[class == "", class := "unknown"]
 protein_metrics_essential[funct == "", funct := "unknown"]
 
+fwrite(protein_metrics_essential, file = "protein-metrics-tmp.txt")
+
+
 # select top N most frequent functions
 N_top <- 40
 top_fun <- protein_metrics_essential[, .N, by = funct][order(-N)][1:N_top]$funct
