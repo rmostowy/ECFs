@@ -64,6 +64,7 @@ fwrite(ecod.domains, file = ecod.domains.output)
 ################################
 # 2. Load and filter ECOD hits
 ################################
+
 reprseq.domains.ecod.all <- fread(ecod.domain.hits.filename)
 # reprseq.domains.ecod.all[, qname := sub("-hhsearch$", "", qname)]
 reprseq.domains.ecod.all[, hit.length := qend - qstart + 1]
@@ -72,9 +73,9 @@ reprseq.domains.ecod.all[, scov := round((send - sstart + 1)/slength, 4)]
 
 # filter ECOD hits
 reprseq.domains.ecod <- reprseq.domains.ecod.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write ECOD hits
 fwrite(reprseq.domains.ecod, reprseq.domains.ecod.output)
@@ -112,9 +113,11 @@ reprseq.domains.pfam.all[, accession := sub("\\..*", "", sname)]
 
 # filter PFAM hits
 reprseq.domains.pfam <- reprseq.domains.pfam.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write PFAM hits
 fwrite(reprseq.domains.pfam, reprseq.domains.pfam.output)

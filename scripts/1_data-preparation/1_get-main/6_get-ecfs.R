@@ -74,34 +74,19 @@ reprseq.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 reprseq.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
 reprseq.vs.ecfs.all$sname <- ecf.name.table[.(reprseq.vs.ecfs.all$sname)]$ecf.name
 
-# filter reprseq vs ecf data
-reprseq.vs.ecfs.all.filtered <- reprseq.vs.ecfs.all %>%
-  filter(eval <= MAX.EVAL.FOR.ECF.FILTERING) %>% 
-  filter(prob >= MIN.PROB.FOR.ECF.FILTERING) %>%
-  filter(scov >= MIN.SCOV.FOR.ECF.FILTERING) %>%
-  filter(hit.length >= MIN.HIT.LENGTH.FOR.ECF.FILTERING)
-
 
 #####################################
 # 2. Process reprseq to ECF mapping
 #####################################
-
-# filter ECF hits without SCOV threshold and domain length
-reprseq.vs.ecfs.all.relaxed <- reprseq.vs.ecfs.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN)
-
-# filter ECF hits
+# filter reprseq vs ecf data
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
-  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write to file
-fwrite(reprseq.vs.ecfs.all.relaxed, file = reprseq.ecfs.all.output)
 fwrite(reprseq.vs.ecfs, file = reprseq.ecfs.output)
 
 #####################################
@@ -114,15 +99,14 @@ ecfs.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
 ecfs.vs.ecfs.all[, qname := gsub("_final", "", qname)]
 ecfs.vs.ecfs.all$sname <- ecf.name.table[.(ecfs.vs.ecfs.all$sname)]$ecf.name
-# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[!is.na(sname)]
-# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[qname %chin% all.ecfs]
-# ecfs.vs.ecfs.all <- ecfs.vs.ecfs.all[sname %chin% all.ecfs]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecfs <- ecfs.vs.ecfs.all %>%
-  filter(eval <= MAX.EVAL.FOR.ECF) %>% 
-  filter(prob >= MIN.PROB.FOR.ECF) %>%
-  filter(hit.length >= MIN.ECF.HIT.LENGTH | qname == sname) # don't filter by hit length if it's a self-hit
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING | qname == sname) # don't filter by hit length if it's a self-hit
 
 # write to file
 fwrite(ecfs.vs.ecfs, file = ecfs.vs.ecfs.output)
@@ -140,13 +124,19 @@ ecfs.vs.ecod.all[, qname := gsub("_final", "", qname)]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecod <- ecfs.vs.ecod.all %>%
-  filter(eval <= MAX.EVAL.FOR.ECF) %>% 
-  filter(prob >= MIN.PROB.FOR.ECF) %>%
-  filter(hit.length >= MIN.ECF.HIT.LENGTH)
-
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write to file
 fwrite(ecfs.vs.ecod, file = ecfs.vs.ecod.output)
+
+# filter ECF-to-ECOD hits based on HHsenser approach
+ecfs.vs.ecod.hhsenser <- ecfs.vs.ecod.all %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING.HHSENSER)
+fwrite(ecfs.vs.ecod.hhsenser, file = ecfs.vs.ecod.hhsenser.output)
 
 #####################################
 # 5. Process ECF to PFAM mapping
@@ -160,12 +150,19 @@ ecfs.vs.pfam.all[, qname := gsub("_final", "", qname)]
 
 # filter ECF-to-ECF hits
 ecfs.vs.pfam <- ecfs.vs.pfam.all %>%
-  filter(eval <= MAX.EVAL.FOR.ECF) %>% 
-  filter(prob >= MIN.PROB.FOR.ECF) %>%
-  filter(hit.length >= MIN.ECF.HIT.LENGTH)
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write to file
 fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
+
+# filter ECF-to-PFAM hits based on HHsenser approach
+ecfs.vs.pfam.hhsenser <- ecfs.vs.pfam.all %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING.HHSENSER)
+fwrite(ecfs.vs.pfam.hhsenser, file = ecfs.vs.pfam.hhsenser.output)
 
 
 #####################################
@@ -174,7 +171,7 @@ fwrite(ecfs.vs.pfam, file = ecfs.vs.pfam.output)
 
 use.cores <- 20
 no.iterations <- 20
-ecfs.vs.ecfs.cov <- ecfs.vs.ecfs %>% filter(prob >= MIN.PROB.FOR.ECF.QCOV.SCOV)
+ecfs.vs.ecfs.cov <- ecfs.vs.ecfs %>% filter(prob >= MIN.PROB.FOR.QCOV.SCOV)
 
 pair.table <- get.all.pairs(ecfs.vs.ecfs.cov)
 no.pairs <- nrow(pair.table)

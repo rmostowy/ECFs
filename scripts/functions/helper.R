@@ -96,3 +96,56 @@ map.ecf.coords.to.genome <- function(aa_start, aa_end,
   c(start = min(ecf_start, ecf_end),
     end   = max(ecf_start, ecf_end))
 }
+
+get.min.parms <- function(hhtable){
+  col.names2check <- c("qname", "sname", "qcov", "scov", "eval", "prob", "hit.length")
+  hh.table.cols <- colnames(hhtable)
+  
+  missing.colnames <- col.names2check[!col.names2check %in% hh.table.cols]
+  if(length(missing.colnames) > 0){
+    cat("Missing columns:\n", paste(missing.colnames, collapse = ", "), "\n")
+  } else{
+    cat("All columns in place!\n")
+  }
+  
+  # helper: safe min/max with NA handling
+  safe_min <- function(x) if(length(x) == 0 || all(is.na(x))) NA else min(x, na.rm = TRUE)
+  safe_max <- function(x) if(length(x) == 0 || all(is.na(x))) NA else max(x, na.rm = TRUE)
+  
+  # first query
+  if("qname" %in% hh.table.cols){
+    cat("first query:", hhtable[["qname"]][1], "\n")
+  }
+  
+  # first subject
+  if("sname" %in% hh.table.cols){
+    cat("first subject:", hhtable[["sname"]][1], "\n")
+  }
+  
+  # min prob
+  if("prob" %in% hh.table.cols){
+    cat("min prob:", safe_min(hhtable[["prob"]]), "\n")
+  }
+  
+  # max eval
+  if("eval" %in% hh.table.cols){
+    cat("max eval:", safe_max(hhtable[["eval"]]), "\n")
+  }
+  
+  # min qcov
+  if("qcov" %in% hh.table.cols){
+    cat("min qcov:", safe_min(hhtable[["qcov"]]), "\n")
+  }
+  
+  # min scov
+  if("scov" %in% hh.table.cols){
+    cat("min scov:", safe_min(hhtable[["scov"]]), "\n")
+  }
+  
+    # min hit length
+  if("hit.length" %in% hh.table.cols){
+    cat("min hit.length:", safe_min(hhtable[["hit.length"]]), "\n")
+  }
+  
+  invisible(NULL)
+}

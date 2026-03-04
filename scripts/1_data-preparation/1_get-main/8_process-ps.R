@@ -31,11 +31,11 @@ ps.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
 ps.vs.ecfs.all$sname <- ecf.table[.(ps.vs.ecfs.all$sname)]$ecf.name
 
 ps.vs.ecfs <- ps.vs.ecfs.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
-  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # b) ECODs
 ps.vs.ecod.all <- fread(ps.vs.ecod.filename)
@@ -44,11 +44,11 @@ ps.vs.ecod.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ps.vs.ecod.all[, scov := round((send - sstart + 1)/slength, 4)]
 
 ps.vs.ecod <- ps.vs.ecod.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
-  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # c) PFAMs
 ps.vs.pfam.all <- fread(ps.vs.pfam.filename)
@@ -58,11 +58,11 @@ ps.vs.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
 ps.vs.pfam.all[, accession := sub("\\..*", "", sname)]
 
 ps.vs.pfam <- ps.vs.pfam.all %>%
-  filter(eval <= MAX.EVAL.FOR.DOMAIN) %>% 
-  filter(prob >= MIN.PROB.FOR.DOMAIN) %>%
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN) %>%
-  filter(scov >= MIN.SCOV.FOR.DOMAIN) %>%
-  filter(hit.length >= MIN.DOMAIN.LENGTH)
+  filter(prob >= MIN.PROB.FOR.HMM.FILTERING) %>%
+  filter(eval <= MAX.EVAL.FOR.HMM.FILTERING) %>% 
+  filter(scov >= MIN.SCOV.FOR.HMM.FILTERING) %>%
+  filter(qcov >= MIN.QCOV.FOR.HMM.FILTERING) %>%
+  filter(hit.length >= MIN.HIT.LENGTH.FOR.HMM.FILTERING)
 
 # write data
 fwrite(ps.metadata, file = phagescope.metadata.output)

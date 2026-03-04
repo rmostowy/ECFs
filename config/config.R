@@ -195,7 +195,6 @@ ecf.table.output <- file.path(data.ecfs.dir,  "ecf-table.txt")
 ecf.vs.qecf.output <- file.path(data.ecfs.dir, "ecfs-vs-qecfs.txt")
 
 reprseq.ecfs.output <- file.path(data.ecfs.dir, "reprseq-ecfs.txt")
-reprseq.ecfs.all.output <- file.path(data.ecfs.dir, "reprseq-ecfs-all.txt") 
 
 ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt")
 ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")
@@ -308,39 +307,38 @@ MIN.PROB.FOR.REPRSEQ.FAM <- 95
 REPRSEQ.FAMILY.QCOV.THR <- 0.5
 REPRSEQ.FAMILY.SCOV.THR <- 0.5
 REPRSEQ.FAMILY.INFLATION.FACTOR <- 1.3
-
 MINIMUM.ALIGNMENT.LENGTH.FOR.ANNOTATION <- 30
 MIN.NUM.PHROG.SEQ.PER.ANNOT <- 500
 MIN.NUM.PROT.PER.ANNOT <- 100 # Bogna had MIN.NUM.PROT
-# MAIN.COVS.FOR.ANNOTATION = c(0.1, 0.3, 0.8)
 DEFAULT.MINIMUM.COV.FOR.ANNOTATION <- 60
 DEFAULT.MINIMUM.PROB.FOR.ANNOTATION <- 95
 DEFAULT.MAXIMUM.EVAL.FOR.ANNOTATION <- 1e05
 UNSPECIFIC.ANNOTATIONS = c("tail", "structural protein", "uknown")
 
-# parameters related to ECF filtering
-MIN.PERCENTAGE.OF.INFORMATIVE.BASES <- 0.5
-MIN.HIT.LENGTH.FOR.ECF.FILTERING <- 20
-MIN.SCOV.FOR.ECF.FILTERING <- 0.7
-MIN.PROB.FOR.ECF.FILTERING <- 95
-MAX.EVAL.FOR.ECF.FILTERING <- 1e-3
-MIN.NO.REPRSEQ.PER.ECF <- 1
+# parameters related to filtering ECFs and domains 
+# in HMM-HMM comparisons from Krzysztof's outputs
+MIN.PROB.FOR.HMM.FILTERING <- 70
+MAX.EVAL.FOR.HMM.FILTERING <- 0.1
+MIN.QCOV.FOR.HMM.FILTERING <- 0
+MIN.SCOV.FOR.HMM.FILTERING <- 0
+MIN.HIT.LENGTH.FOR.HMM.FILTERING <- 20
+MAX.EVAL.FOR.HMM.FILTERING.HHSENSER <- 10
 
-# parameters related to domain detection
-MIN.DOMAIN.LENGTH <- 20
-MIN.QCOV.FOR.DOMAIN <- 0
-MIN.SCOV.FOR.DOMAIN <- 0.7
-MIN.PROB.FOR.DOMAIN <- 70
-MAX.EVAL.FOR.DOMAIN <- 1e-2
+# parameters related to calculating
+# qcov and scov based on HMM-HMM tables
+MIN.PROB.FOR.QCOV.SCOV <- 95
+
+# parameters related to detecting 
+# ECFs and domains in reprseqs
+MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM <- 95
+MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM <- 0.1
+MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM <- 0.7
+MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM <- 0
+MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM <- 20
 
 # parameters ECF-domain hits
-MIN.ECF.HIT.LENGTH <- 20
-MIN.PROB.FOR.ECF <- 70
-MAX.EVAL.FOR.ECF <- 1e-1
-MAX.EVAL.FOR.ECF.HHSENSER <- 10
-MIN.OVERLAP.LENGTH <- 20
-MIN.PROB.FOR.ECF.QCOV.SCOV <- 95
-MIN.OVERLAP.THRESHOLD <- 0.8
+MAX.EVALUE.FOR.ECF.DOMAIN.CONFIDENT <- 1e-3
+MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT <- 95
 
 # parameters for comparing ECFs to ECOD/PFAM:
 # 1. domain equivalence
@@ -354,7 +352,7 @@ MIN.QCOV.FOR.SUBDOMAIN <- 0.7
 MAX.EVAL.FOR.SUBDOMAIN <- 10^(-3)
 MAX.SCOV.FOR.SUBDOMAIN <- 0.6
 
-# parameters for sECFs
+# parameters for ECF Families (EFs)
 ECF.FAMILY.QCOV.THR <- 0.5
 ECF.FAMILY.SCOV.THR <- 0.5
 ECF.FAMILY.INFLATION.FACTOR <- 1.3
