@@ -200,6 +200,8 @@ reprseq.ecfs.all.output <- file.path(data.ecfs.dir, "reprseq-ecfs-all.txt")
 ecfs.vs.ecfs.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs.txt")
 ecfs.vs.ecod.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod.txt")
 ecfs.vs.pfam.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam.txt")
+ecfs.vs.ecod.hhsenser.output <- file.path(data.ecfs.dir, "ecfs-vs-ecod-hhsenser.txt")
+ecfs.vs.pfam.hhsenser.output <- file.path(data.ecfs.dir, "ecfs-vs-pfam-hhsenser.txt")
 
 ecfs.vs.ecfs.cov.output <- file.path(data.ecfs.dir, "ecfs-vs-ecfs-cov.txt")
 # ecf.lengths.output <- file.path(data.ecfs.dir, "ecf-lengths.txt")
@@ -335,6 +337,7 @@ MAX.EVAL.FOR.DOMAIN <- 1e-2
 MIN.ECF.HIT.LENGTH <- 20
 MIN.PROB.FOR.ECF <- 70
 MAX.EVAL.FOR.ECF <- 1e-1
+MAX.EVAL.FOR.ECF.HHSENSER <- 10
 MIN.OVERLAP.LENGTH <- 20
 MIN.PROB.FOR.ECF.QCOV.SCOV <- 95
 MIN.OVERLAP.THRESHOLD <- 0.8
