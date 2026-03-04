@@ -164,7 +164,23 @@ ggsave(p.ecf.domain.coverage.outfile, p.ecf.domain.coverage, width = 6, height =
 ### 
 #################################
 
+ecfs.equivalent.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE &
+               qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE &
+               scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE &
+               eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
+ecfs.subdomain.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.SUBDOMAIN &
+               qcov >= MIN.QCOV.FOR.SUBDOMAIN &
+               scov <= MAX.SCOV.FOR.SUBDOMAIN &
+               eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
+ecfs.subdomain.class <- setdiff(ecfs.subdomain.class, ecfs.equivalent.class)
 
+ecfs.superdomain.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.SUBDOMAIN &
+                                              qcov <= MAX.SCOV.FOR.SUBDOMAIN &
+                                              scov >= MIN.QCOV.FOR.SUBDOMAIN &
+                                              eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
+
+
+ecfs.vs.ecod[qname == "ecf_00077"]
 
 #################################
 ### 3. 
