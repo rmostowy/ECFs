@@ -182,6 +182,48 @@ ecfs.superdomain.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.SUBDOMAIN &
 
 ecfs.vs.ecod[qname == "ecf_00077"]
 
+
+
+
+#################################
+# |||
+
+out <- ecfs.vs.ecod[qname == "ecf_00077"]
+
+mean.pident <- function(dt) mean(dt$pident)
+ecfs.vs.ecod[, .(mean_pident = mean.pident(.SD)), by = qname]
+
+mean.vals <- function(dt){
+  list(
+    mean_pident = mean(dt$pident),
+    min_pident = min(dt$pident),
+    max_pident = max(dt$pident)
+  )
+}
+mean.val <- function(dt){
+  list(
+    mean_pident = mean(dt$pident)
+  )
+}
+ecfs.vs.ecod[, mean.vals(.SD), by = qname]
+ecfs.vs.ecod[, mean.val(.SD), by = qname]
+
+
+mean.vals.fast <- function(pident) {
+  list(
+    mean_pident = mean(pident),
+    min_pident = min(pident),
+    max_pident = max(pident)
+  )
+}
+ecfs.vs.ecod[, mean.vals.fast(pident), by = qname]
+
+# |||
+#################################
+
+
+
+
 #################################
 ### 3. 
 ### 
