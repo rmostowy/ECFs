@@ -68,9 +68,27 @@ ps.vs.pfam.all <- fread(phagescope.vs.pfam)
 all.ecfs <- unique(ecf.table$ecf.name)
 Ne <- length(all.ecfs)
 
-reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-reprseq.vs.ecod <- reprseq.vs.ecod.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-reprseq.vs.pfam <- reprseq.vs.pfam.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
+reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
+reprseq.vs.ecod <- reprseq.vs.ecod.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
+reprseq.vs.pfam <- reprseq.vs.pfam.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
 
 reprseq.with.ecf.hits <- unique(reprseq.vs.ecfs$qname)
 reprseq.with.ecod.hits <- unique(reprseq.vs.ecod$qname)
@@ -82,9 +100,27 @@ setkey(reprseq.functions.all, annotation)
 
 setkey(metadata.table, accession)
 
-ps.vs.ecf <- ps.vs.ecf.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-ps.vs.ecod <- ps.vs.ecod.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-ps.vs.pfam <- ps.vs.pfam.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
+ps.vs.ecf <- ps.vs.ecf.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
+ps.vs.ecod <- ps.vs.ecod.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
+ps.vs.pfam <- ps.vs.pfam.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
 
 #################################
 ### 1. Compare annotation

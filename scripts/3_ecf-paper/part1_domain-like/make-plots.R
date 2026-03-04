@@ -47,26 +47,34 @@ reprseq.vs.pfam <- fread(reprseq.domains.pfam.output)
 # Load reprseq sequences
 reprseq.seqs <- readAAStringSet(reprseq.seqs.filename)
 
-
 #################################
 ### Process loaded tables
 #################################
 
 # Filter
 reprseq.vs.ecfs <- reprseq.vs.ecfs %>% 
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN, 
-         scov >= MIN.SCOV.FOR.DOMAIN,
-         eval <= MAX.EVAL.FOR.DOMAIN)
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
 
 reprseq.vs.ecod <- reprseq.vs.ecod %>% 
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN, 
-         scov >= MIN.SCOV.FOR.DOMAIN,
-         eval <= MAX.EVAL.FOR.DOMAIN)
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
 
 reprseq.vs.pfam <- reprseq.vs.pfam %>% 
-  filter(qcov >= MIN.QCOV.FOR.DOMAIN, 
-         scov >= MIN.SCOV.FOR.DOMAIN,
-         eval <= MAX.EVAL.FOR.DOMAIN)
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
 
 # Other
 setkey(ecf.family.table, ecf)
