@@ -262,16 +262,28 @@ phrogs.class.order <- c("head and packaging", "connector", "tail",
                         "moron, auxiliary metabolic gene and host takeover", "transcription regulation",
                         "lysis", "antidefence", "other")
 
+# phrog.class.labels <- c(
+#   'integration and excision' = "integration\nand excision",
+#   'head and packaging' = "head and\npackaging",
+#   "connector" = "connector",
+#   "tail" = "tail",
+#   "lysis" = "lysis",
+#   'transcription regulation' = "transcription\nregulation",
+#   'DNA, RNA and nucleotide metabolism' = "DNA, RNA and\nnucleotide\nmetabolism",
+#   "other" = "other",
+#   'moron, auxiliary metabolic gene and host takeover' = "moron, auxiliary\nmetabolic gene\nand host takeover",
+#   "antidefence" = "antidefence"
+# )
 phrog.class.labels <- c(
-  'integration and excision' = "integration\nand excision",
-  'head and packaging' = "head and\npackaging",
+  'integration and excision' = "integration & excision",
+  'head and packaging' = "head & packaging",
   "connector" = "connector",
   "tail" = "tail",
   "lysis" = "lysis",
-  'transcription regulation' = "transcription\nregulation",
-  'DNA, RNA and nucleotide metabolism' = "DNA, RNA and\nnucleotide\nmetabolism",
+  'transcription regulation' = "transcription regulation",
+  'DNA, RNA and nucleotide metabolism' = "nucleotide metabolism",
   "other" = "other",
-  'moron, auxiliary metabolic gene and host takeover' = "moron, auxiliary\nmetabolic gene\nand host takeover",
+  'moron, auxiliary metabolic gene and host takeover' = "morons",
   "antidefence" = "antidefence"
 )
 
@@ -339,23 +351,26 @@ MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM <- 20
 # parameters ECF-domain hits
 MAX.EVALUE.FOR.ECF.DOMAIN.CONFIDENT <- 1e-3
 MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT <- 95
+MIN.QCOV.FOR.ECOD.LINK <- 0.8
 
 # parameters for comparing ECFs to ECOD/PFAM:
-# 1. domain equivalence
+# 1. domain relatedness
+MIN.PROB.FOR.DOMAIN.RELATEDNESS <- 95
+# 2. domain equivalence
 MIN.PROB.FOR.DOMAIN.EQUIVALENCE <- 95
+MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 1e-2
 MIN.QCOV.FOR.DOMAIN.EQUIVALENCE <- 0.8
 MIN.SCOV.FOR.DOMAIN.EQUIVALENCE <- 0.8
-MAX.EVAL.FOR.DOMAIN.EQUIVALENCE <- 1e-2
-# 2. subdomain
+# 3. subdomain
 MIN.PROB.FOR.SUBDOMAIN <- 95
-MIN.QCOV.FOR.SUBDOMAIN <- 0.8
 MAX.EVAL.FOR.SUBDOMAIN <- 10^(-2)
+MIN.QCOV.FOR.SUBDOMAIN <- 0.9
 MAX.SCOV.FOR.SUBDOMAIN <- 0.6
-# 2. subdomain
-MIN.PROB.FOR.SUBDOMAIN <- 95
-MIN.QCOV.FOR.SUBDOMAIN <- 0.8
-MAX.EVAL.FOR.SUBDOMAIN <- 10^(-2)
-MAX.SCOV.FOR.SUBDOMAIN <- 0.6
+# 4. superdomain
+MIN.PROB.FOR.SUPERDOMAIN <- 95
+MAX.EVAL.FOR.SUPERDOMAIN <- 10^(-3)
+MAX.QCOV.FOR.SUPERDOMAIN <- 0.6
+MIN.SCOV.FOR.SUPERDOMAIN <- 0.9
 
 # parameters for ECF Families (EFs)
 ECF.FAMILY.QCOV.THR <- 0.5

@@ -147,6 +147,7 @@ ecfs.vs.pfam.all[, hit.length := qend - qstart + 1]
 ecfs.vs.pfam.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
 ecfs.vs.pfam.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.pfam.all[, accession := sub("\\..*", "", sname)]
 
 # filter ECF-to-ECF hits
 ecfs.vs.pfam <- ecfs.vs.pfam.all %>%

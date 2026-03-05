@@ -3,8 +3,8 @@ suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
 suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
-# suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
-suppressWarnings(suppressPackageStartupMessages(library(ComplexUpset)))
+suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
+# suppressWarnings(suppressPackageStartupMessages(library(ComplexUpset)))
 # suppressWarnings(suppressPackageStartupMessages(library(ggraph)))
 # suppressWarnings(suppressPackageStartupMessages(library(broom)))
 
@@ -58,8 +58,20 @@ reprseq.functions.all <- fread(reprseq.functions.all.output)
 ### Process loaded tables
 #################################
 
+setkey(ecf.family.table, ecf)
+
 all.ecfs <- unique(ecf.table$ecf.name)
 Ne <- length(all.ecfs)
+
+setkey(ecod.domains, full.id)
+setkey(pfam.domains, accession)
+
+ecfs.vs.ecod[, x.id := ecod.domains[.(ecfs.vs.ecod$sname)]$x_id]
+ecfs.vs.ecod[, h.id := ecod.domains[.(ecfs.vs.ecod$sname)]$h_id]
+ecfs.vs.ecod[, t.id := ecod.domains[.(ecfs.vs.ecod$sname)]$t_id]
+ecfs.vs.ecod[, x.level := ecod.domains[.(ecfs.vs.ecod$sname)]$x.level]
+ecfs.vs.ecod[, h.level := ecod.domains[.(ecfs.vs.ecod$sname)]$h.level]
+ecfs.vs.ecod[, t.level := ecod.domains[.(ecfs.vs.ecod$sname)]$t.level]
 
 ecfs.vs.ecod.conf <- ecfs.vs.ecod %>%
   filter(eval <= MAX.EVALUE.FOR.ECF.DOMAIN.CONFIDENT & prob >= MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT)
@@ -74,10 +86,10 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
          hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
   )
 
-#################################
+############################################
 ### 1. Compare how many ECFs hit
 ### domain databases
-#################################
+############################################
 
 ecf.domain.coverage <- data.table(ecf = all.ecfs)
 
@@ -152,6 +164,11 @@ p.ecf.domain.coverage <- ggplot(counts_dt, aes(x = threshold, y = N, fill = cate
   theme_bw(base_size = 12) +
   theme(
     legend.position = "top",
+    legend.text  = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.key.width  = unit(0.4, "cm"),
+    legend.key.height = unit(0.4, "cm"),
+    legend.margin = margin(t = 0),
     axis.title = element_text(face = "bold"),
     plot.title = element_text(face = "bold")
   )
@@ -159,282 +176,467 @@ p.ecf.domain.coverage.outfile <- file.path(this.part.dir, "plot1_ecf-domain-cov.
 ggsave(p.ecf.domain.coverage.outfile, p.ecf.domain.coverage, width = 6, height = 5)
 
 
-#################################
-### 2. 
-### 
-#################################
+############################################
+### 2. Classify ECFs based on domain hits and
+### analyse the class distribution based
+### on ECF length
+############################################
 
-ecfs.equivalent.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE &
-               qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE &
-               scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE &
-               eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
-ecfs.subdomain.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.SUBDOMAIN &
-               qcov >= MIN.QCOV.FOR.SUBDOMAIN &
-               scov <= MAX.SCOV.FOR.SUBDOMAIN &
-               eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
-ecfs.subdomain.class <- setdiff(ecfs.subdomain.class, ecfs.equivalent.class)
+# A) ECOD comparisons
 
-ecfs.superdomain.class <- unique(ecfs.vs.ecod[prob >= MIN.PROB.FOR.SUBDOMAIN &
-                                              qcov <= MAX.SCOV.FOR.SUBDOMAIN &
-                                              scov >= MIN.QCOV.FOR.SUBDOMAIN &
-                                              eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE][,qname])
-
-
-ecfs.vs.ecod[qname == "ecf_00077"]
-
-
-
-
-#################################
-# |||
-
-out <- ecfs.vs.ecod[qname == "ecf_00077"]
-
-mean.pident <- function(dt) mean(dt$pident)
-ecfs.vs.ecod[, .(mean_pident = mean.pident(.SD)), by = qname]
-
-mean.vals <- function(dt){
-  list(
-    mean_pident = mean(dt$pident),
-    min_pident = min(dt$pident),
-    max_pident = max(dt$pident)
-  )
-}
-mean.val <- function(dt){
-  list(
-    mean_pident = mean(dt$pident)
-  )
-}
-ecfs.vs.ecod[, mean.vals(.SD), by = qname]
-ecfs.vs.ecod[, mean.val(.SD), by = qname]
-
-
-mean.vals.fast <- function(pident) {
-  list(
-    mean_pident = mean(pident),
-    min_pident = min(pident),
-    max_pident = max(pident)
-  )
-}
-ecfs.vs.ecod[, mean.vals.fast(pident), by = qname]
-
-# |||
-#################################
-
-
-
-
-#################################
-### 3. 
-### 
-#################################
-
-
-##########################################################
-##########################################################
-##########################################################
-##########################################################
-
-reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-reprseq.vs.ecod <- reprseq.vs.ecod.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-reprseq.vs.pfam <- reprseq.vs.pfam.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-
-reprseq.with.ecf.hits <- unique(reprseq.vs.ecfs$qname)
-reprseq.with.ecod.hits <- unique(reprseq.vs.ecod$qname)
-reprseq.with.pfam.hits <- unique(reprseq.vs.pfam$qname)
-reprseq.with.domain.hits <- unique(c(reprseq.with.ecf.hits, reprseq.with.ecod.hits, reprseq.with.pfam.hits))
-
-top.annotations <- reprseq.functions.all[reprseq.functions.all$top.annotation] %>% select(funct, class, annotation) %>% distinct()
-setkey(reprseq.functions.all, annotation)
-
-setkey(metadata.table, accession)
-
-ps.vs.ecf <- ps.vs.ecf.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-ps.vs.ecod <- ps.vs.ecod.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-ps.vs.pfam <- ps.vs.pfam.all %>% filter(qcov >= MIN.QCOV.FOR.DOMAIN, scov >= MIN.SCOV.FOR.DOMAIN)
-
-#################################
-### 1. Compare annotation
-### coverage between three 
-### domain db in RefSeq (UpSet)
-#################################
-
-# All representative sequences
-all.reprseq <- unique(reprseq.table$reprseq)
-N <- length(all.reprseq)
-
-# Build annotation table
-annot.dt <- data.table(
-  qname = all.reprseq
-)
-annot.dt[, ECF  := qname %in% reprseq.with.ecf.hits]
-annot.dt[, Pfam := qname %in% reprseq.with.pfam.hits]
-annot.dt[, ECOD := qname %in% reprseq.with.ecod.hits]
-annot.dt[, combo := paste0(as.integer(ECF), as.integer(Pfam), as.integer(ECOD))]
-combo_counts <- annot.dt[, .N, by = combo][order(-N)]
-upset.df <- as.data.frame(annot.dt[, .(ECF, Pfam, ECOD)])
-
-# A minimal, clean theme set
-upset_themes <- list(
-  "overall_sizes" = theme_bw(base_size = 8) +
-    theme(panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          axis.text.y  = element_blank(),
-          axis.ticks.y = element_blank()
-          ),
-  "intersections_matrix" = theme_bw(base_size = 8) +
-    theme(
-      axis.text.x  = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.title.x = element_blank()
-    ),
-  "Intersection size" = theme_bw(base_size = 8) +
-    theme(
-      axis.text.x  = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.title.x = element_blank()
-    )
-)
-
-p.upset <- upset(
-  upset.df,
-  intersect = c("ECF", "Pfam", "ECOD"),
-  mode = "exclusive_intersection",          # exclusive intersections (standard UpSet)
-  sort_intersections_by = "cardinality",    # largest intersections first
-  min_size = 1,                             # keep all
-  width_ratio = 0.40,                       # space for set sizes vs intersections
-  stripes = "white",                        # cleaner background
-  set_sizes = (
-    upset_set_size() +
-      labs(x = "Proteins annotated")   # <- your new label
-  ),
-  base_annotations = list(
-    "Intersection size" = intersection_size(
-      text = list(size = 3),
-      counts = TRUE
-    )
-  ),
-  themes = upset_themes
-)
-# p.upset
-
-# Save
-p.upset.outfile <- file.path(this.part.dir, "plot1_upset-reprseq-domain-cov.png")
-ggsave(p.upset.outfile, p.upset, width = 5.5, height = 4.2)
-
-#################################
-### 2. Compare the functional 
-### coverage between the three 
-### domain db in RefSeq
-#################################
-
-# Prepare functional coverage per domain table for plotting
-funct.cov.list <- lapply(1:nrow(top.annotations), function(annotation.index){
-  this.annotation <- top.annotations$annotation[annotation.index]
-  this.funct <- top.annotations$funct[annotation.index]
-  this.class <- top.annotations$class[annotation.index]
-  this.reprseq.functions.all <- reprseq.functions.all[.(this.annotation)]
-  all.reprseqs.with.this.annotation <- unique(this.reprseq.functions.all$qname)
-  reprseqs.with.any.hit <- all.reprseqs.with.this.annotation %in% reprseq.with.domain.hits
-  reprseqs.with.ecf.hit <- all.reprseqs.with.this.annotation %in% reprseq.with.ecf.hits
-  reprseqs.with.ecod.hit <- all.reprseqs.with.this.annotation %in% reprseq.with.ecod.hits
-  reprseqs.with.pfam.hit <- all.reprseqs.with.this.annotation %in% reprseq.with.pfam.hits
+mt <- copy(ecfs.vs.ecod)
+mt[, conf := (prob >= MIN.PROB.FOR.DOMAIN.RELATEDNESS)]
+mt[, is.equiv := conf & (prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE & qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE &
+                    scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE & eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)]
+mt[, is.subdom := conf & (prob >= MIN.PROB.FOR.SUBDOMAIN & qcov >= MIN.QCOV.FOR.SUBDOMAIN &
+                     scov <= MAX.SCOV.FOR.SUBDOMAIN & eval <= MAX.EVAL.FOR.SUBDOMAIN)]
+mt[, is.superdom := conf & (prob >= MIN.PROB.FOR.SUPERDOMAIN & qcov <= MAX.QCOV.FOR.SUPERDOMAIN &
+                       scov >= MIN.SCOV.FOR.SUPERDOMAIN & eval <= MAX.EVAL.FOR.SUPERDOMAIN)]
+ecf.domain.assignment <- mt[, {
   
-  data.table(funct = this.funct, class = this.class, annotation = this.annotation,
-             no.reprseq = length(all.reprseqs.with.this.annotation),
-             no.reprseq.with.any = length(reprseqs.with.any.hit),
-             no.reprseq.with.ecf = lw(reprseqs.with.ecf.hit),
-             no.reprseq.with.ecod = lw(reprseqs.with.ecod.hit),
-             no.reprseq.with.pfam = lw(reprseqs.with.pfam.hit)
-  )  
-})
-funct.cov <- rbindlist(funct.cov.list)
-funct.cov[, `:=`(ecf_coverage = no.reprseq.with.ecf / no.reprseq,
-                 ecod_coverage = no.reprseq.with.ecod / no.reprseq,
-                 pfam_coverage = no.reprseq.with.pfam / no.reprseq)]
-funct.cov <- funct.cov %>% filter(no.reprseq >= MIN.NUM.PROT.PER.ANNOT)
+  is.conf <- any(conf)
+  is.equiv.class <- any(is.equiv)
+  is.subdom.class <- any(is.subdom)
+  is.superdom.class <- any(is.superdom)
+  class.assignment <- "distant"
+  
+  if(is.conf){
+    class.assignment <- "related"
+    if(is.equiv.class){
+      class.assignment <- "equivalent"
+    } else if(is.subdom.class & !is.superdom.class){
+      class.assignment <- "subdomain"
+    } else if(!is.subdom.class & is.superdom.class){
+      class.assignment <- "superdomain"
+    } else if(is.subdom.class & is.superdom.class){
+      ambiguous.rows <- which(is.subdom | is.superdom)
+      ambiguous.row.with.longest.hit <- ambiguous.rows[which.max(hit.length[ambiguous.rows])]
+      this.is.subdomain <- is.subdom[ambiguous.row.with.longest.hit]
+      class.assignment <- if(this.is.subdomain) "subdomain" else "superdomain"
+    }
+  }
 
-# Prepare the data for plotting
-melted_data <- melt(funct.cov, id.vars = c("funct", "class"), 
-                    measure.vars = c("ecf_coverage", "ecod_coverage", "pfam_coverage"),
-                    variable.name = "database", value.name = "coverage")
+ .(class.assignment = class.assignment) 
+  
+}, by = qname]
+
+ecf.ecod.domain.assignment <- merge(ecf.domain.assignment, ecf.table[, .(qname = ecf.name, length, size)], by = "qname")
+ecf.ecod.domain.assignment[, len_bin := cut(length,
+                                       breaks = quantile(length, probs = seq(0, 1, by = 0.1), na.rm = TRUE),
+                                       include.lowest = TRUE)]
+
+class.plotting.order <- c("equivalent", "subdomain", "superdomain", "related", "distant")
+prop_dt <- ecf.ecod.domain.assignment[, .N, by = .(len_bin, class.assignment)]
+prop_dt[, prop := N / sum(N), by = len_bin]
+prop_dt[, num := N, by = len_bin]
+prop_dt[, class.assignment := factor(class.assignment, levels = rev(class.plotting.order))]
+
+p.ecod.domain.cat.by.length <- ggplot(prop_dt, aes(x = len_bin, y = prop, fill = class.assignment)) +
+  geom_col(width = 0.9) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "Class") +
+   theme_bw(base_size = 12) +
+  theme(
+    legend.position = "top",
+    legend.text  = element_text(size = 7),
+    legend.title = element_text(size = 7),
+    legend.key.width  = unit(0.4, "cm"),
+    legend.key.height = unit(0.4, "cm"),
+    legend.margin = margin(t = 0),
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) 
+p.ecod.domain.cat.by.length.outfile <- file.path(this.part.dir, "plot2_dom-class-ecod.png")
+ggsave(p.ecod.domain.cat.by.length.outfile, p.ecod.domain.cat.by.length, width = 6, height = 5)
 
 
-# # Define the colours for the domain coverages
-# coverage_colours <- c("ecf_coverage" = "#08306B", "ecod_coverage" = "#006D2C", "pfam_coverage" = "#800026")
-# # Set the order of the facets
-# melted_data$class <- factor(melted_data$class, levels = phrogs.class.order)
-# # Count the number of functions per class
-# n_funct <- melted_data[, .N, by = class]
-# # Define strip backgrounds using ggh4x
-# strip <- strip_themed(
-#   background_x = elem_list_rect(fill = phrogs.col[match(levels(melted_data$class), phrogs.class)])
-# )
+# B) PFAM comparisons
+
+mt <- copy(ecfs.vs.pfam)
+mt[, conf := (prob >= MIN.PROB.FOR.DOMAIN.RELATEDNESS)]
+mt[, is.equiv := conf & (prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE & qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE &
+                           scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE & eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE)]
+mt[, is.subdom := conf & (prob >= MIN.PROB.FOR.SUBDOMAIN & qcov >= MIN.QCOV.FOR.SUBDOMAIN &
+                            scov <= MAX.SCOV.FOR.SUBDOMAIN & eval <= MAX.EVAL.FOR.SUBDOMAIN)]
+mt[, is.superdom := conf & (prob >= MIN.PROB.FOR.SUPERDOMAIN & qcov <= MAX.QCOV.FOR.SUPERDOMAIN &
+                              scov >= MIN.SCOV.FOR.SUPERDOMAIN & eval <= MAX.EVAL.FOR.SUPERDOMAIN)]
+ecf.domain.assignment <- mt[, {
+  
+  is.conf <- any(conf)
+  is.equiv.class <- any(is.equiv)
+  is.subdom.class <- any(is.subdom)
+  is.superdom.class <- any(is.superdom)
+  class.assignment <- "distant"
+  
+  if(is.conf){
+    class.assignment <- "related"
+    if(is.equiv.class){
+      class.assignment <- "equivalent"
+    } else if(is.subdom.class & !is.superdom.class){
+      class.assignment <- "subdomain"
+    } else if(!is.subdom.class & is.superdom.class){
+      class.assignment <- "superdomain"
+    } else if(is.subdom.class & is.superdom.class){
+      ambiguous.rows <- which(is.subdom | is.superdom)
+      ambiguous.row.with.longest.hit <- ambiguous.rows[which.max(hit.length[ambiguous.rows])]
+      this.is.subdomain <- is.subdom[ambiguous.row.with.longest.hit]
+      class.assignment <- if(this.is.subdomain) "subdomain" else "superdomain"
+    }
+  }
+  
+  .(class.assignment = class.assignment) 
+  
+}, by = qname]
+
+ecf.pfam.domain.assignment <- merge(ecf.domain.assignment, ecf.table[, .(qname = ecf.name, length, size)], by = "qname")
+ecf.pfam.domain.assignment[, len_bin := cut(length,
+                                       breaks = quantile(length, probs = seq(0, 1, by = 0.1), na.rm = TRUE),
+                                       include.lowest = TRUE)]
+
+class.plotting.order <- c("equivalent", "subdomain", "superdomain", "related", "distant")
+prop_dt <- ecf.pfam.domain.assignment[, .N, by = .(len_bin, class.assignment)]
+prop_dt[, prop := N / sum(N), by = len_bin]
+prop_dt[, num := N, by = len_bin]
+prop_dt[, class.assignment := factor(class.assignment, levels = rev(class.plotting.order))]
+
+p.pfam.domain.cat.by.length <- ggplot(prop_dt, aes(x = len_bin, y = prop, fill = class.assignment)) +
+  geom_col(width = 0.9) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "Class") +
+  theme_bw(base_size = 12) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) 
+p.pfam.domain.cat.by.length.outfile <- file.path(this.part.dir, "plot3_dom-class-pfam.png")
+ggsave(p.pfam.domain.cat.by.length.outfile, p.pfam.domain.cat.by.length, width = 6, height = 5)
+
+# C) Compare the two sets
+
+ecod <- ecf.ecod.domain.assignment[, .(qname,
+                 ecod_class = class.assignment,
+                 length,
+                 size)]
+pfam <- ecf.pfam.domain.assignment[, .(qname,
+                 pfam_class = class.assignment,
+                 length,
+                 size)]
+
+# Union of ECF ids
+all_ecf <- data.table(qname = sort(unique(c(ecod$qname, pfam$qname))))
+all_ecf <- merge(all_ecf, ecf.table[, .(qname = ecf.name, length, size)], by = "qname")
+
+# Merge
+dt <- merge(all_ecf, ecod, by = c("qname", "length", "size"), all.x = TRUE)
+dt <- merge(dt, pfam, by = c("qname", "length", "size"), all.x = TRUE)
+
+# Add explicit "absent" class
+dt[is.na(ecod_class), ecod_class := "absent"]
+dt[is.na(pfam_class), pfam_class := "absent"]
+
+# harmonize factor levels (make plots stable)
+class.plotting.order2 <- c(class.plotting.order, "absent")
+dt[, ecod_class := factor(ecod_class, levels = class.plotting.order2)]
+dt[, pfam_class := factor(pfam_class, levels = class.plotting.order2)]
+
+# Quick agreement stats
+dt[, agree := (as.character(ecod_class) == as.character(pfam_class))]
+
+
+cm <- dt[, .N, by = .(ecod_class, pfam_class)]
+
+# Option 1: counts
+p_cm_counts <- ggplot(cm, aes(x = pfam_class, y = ecod_class, fill = N)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  scale_fill_viridis_c(trans = "sqrt") +
+  labs(x = "Pfam assignment class", y = "ECOD assignment class", fill = "Count") +
+  theme_classic(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Option 2: row-normalized proportions (within ECOD class)
+cm[, prop_row := N / sum(N), by = ecod_class]
+p_cm_rowprop <- ggplot(cm, aes(x = pfam_class, y = ecod_class, fill = prop_row)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  scale_fill_viridis_c(labels = scales::percent_format(accuracy = 1)) +
+  labs(x = "Pfam assignment class", y = "ECOD assignment class", fill = "Row %") +
+  theme_classic(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p.ecod.pfam.agreement <- (p_cm_counts / p_cm_rowprop) + plot_annotation(tag_levels = "A") &
+  theme(
+    plot.tag = element_text(face = "bold", size = 24),
+    plot.tag.position = c(0.02, 0.98)
+  )
+p.ecod.pfam.agreement.outfile <- file.path(this.part.dir, "plot4_ecod-pfam-agreement.png")
+ggsave(p.ecod.pfam.agreement.outfile, p.ecod.pfam.agreement, width = 6, height = 10)
+
+# Run a statistical chi-squared test 
+tab <- table(dt$ecod_class, dt$pfam_class)
+N <- sum(tab)
+r <- nrow(tab); c <- ncol(tab)
+chi <- suppressWarnings(chisq.test(tab))
+V <- sqrt(unname(chi$statistic) / (N * min(r - 1, c - 1)))
+diag_agree <- sum(diag(tab)) / N
+# 4) Format p-value nicely
+pval_txt <- if (is.na(chi$p.value)) {
+  "NA"
+} else if (chi$p.value < 2.2e-16) {
+  "< 2.2e-16"
+} else {
+  format(chi$p.value, scientific = TRUE, digits = 2)
+}
+
+# Manuscript-ready sentence
+sent <- sprintf(
+  paste0(
+    "ECOD- and Pfam-based assignment classes show a clear correspondence across ECFs ",
+    "(Pearson's chi-squared test: χ²(%d) = %.0f, p %s; Cramér's V = %.3f). ",
+    "Agreement is strongest in the domain-like categories (equivalent/related/subdomain), ",
+    "while most mismatches shift into 'related', consistent with differences in reference coverage and boundaries."
+  ),
+  unname(chi$parameter),
+  unname(chi$statistic),
+  pval_txt,
+  V
+)
+sent.outfile <- file.path(this.part.dir, "plot4_stats.txt")
+write(sent, file = sent.outfile, ncolumns = 1)
+
+# D) Look at class distribution within families
+ecf.ecod.domain.assignment[, len_bin := NULL]
+ecf.ecod.domain.assignment$family <- ecf.family.table[.(ecf.ecod.domain.assignment$qname)]$family
+ecf.ecod.domain.assignment[, w := 1L]        # unweighted
+fam_size <- ecf.ecod.domain.assignment[, .N, by = family]
+fam_p <- ecf.ecod.domain.assignment[, .(w = sum(w)), by = .(family, class.assignment)]
+fam_p[, p := w / sum(w), by = family]
+setorder(fam_p, family, -p, -w, class.assignment)
+dominant_dt <- fam_p[, .(
+  dominant_class = class.assignment[1]
+), by = family]
+fam_div <- fam_p[, .(
+  n_classes = .N,
+  eff_shannon = exp(-sum(p * log(p)))
+), by = family]
+# merge dominant class info
+fam_div <- merge(fam_div, dominant_dt, by = "family", all.x = TRUE)
+fam_final <- merge(fam_div, fam_size, by = "family", all.x = TRUE)
+
+# A) histogram: number of classes
+pA <- ggplot(fam_final, aes(n_classes)) +
+  geom_bar() +
+  theme_classic(base_size = 12) +
+  labs(x = "Number of unique domain classes", y = "No. ECF families")
+
+# B) histogram: effective Shannon
+pB <- ggplot(fam_final, aes(eff_shannon)) +
+  geom_histogram(bins = 30) +
+  theme_classic(base_size = 12) +
+  labs(x = "Effective Shannon (exp(H))", y = "No. ECF families")
+
+# C) eff_shannon vs N
+pC <- ggplot(fam_final, aes(N, eff_shannon)) +
+  geom_bin_2d(bins = 50) +
+  # geom_point(alpha = 0.99, size = 1) +
+  scale_x_continuous(trans = "log10") +
+  theme_classic(base_size = 12) +
+  labs(x = "Family size N (log10)", y = "Effective Shannon (exp(H))")
+
+# D) dominant-class counts for low-diversity families
+low <- fam_final[eff_shannon < 1.5]
+pDdat <- rbind(
+  low[, .N, by = dominant_class][, group := "All (exp(H)<1.5)"],
+  low[N > 1, .N, by = dominant_class][, group := "N>1 (exp(H)<1.5)"]
+)
+pDdat[, dominant_class := factor(dominant_class, levels = rev(class.plotting.order))]
+pDdat[, group := factor(group, levels = c("All (exp(H)<1.5)", "N>1 (exp(H)<1.5)"))]
+pD <- ggplot(pDdat, aes(dominant_class, N, fill = group)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.75, color = "white", linewidth = 0.2) +
+  coord_flip() +
+  theme_classic(base_size = 12) +
+  labs(x = NULL, y = "No. ECF families") +
+  theme(legend.position = "top", legend.title = element_blank())
+
+ecf.ecod.domain.assignment[, w := NULL]
+
+# Combine into 2x2 with tags
+p.domain.class.per.fam <- (pA | pB) / (pC | pD) + plot_annotation(tag_levels = "A")
+p.domain.class.per.fam.outfile <- file.path(this.part.dir, "plot5_domain-class-per-fam.png")
+ggsave(p.domain.class.per.fam.outfile, p.domain.class.per.fam, width = 8, height = 8)
+
+# Old part of the code, as a sanity check and for educational purposes
 # 
-# # Create the ggplot object with customized strips and varying plot heights
-# p.domain.cov <- ggplot(melted_data) +
-#   geom_col(aes(x = funct, y = coverage, fill = database), 
-#            position = "dodge", width = 0.7, linewidth = 0.2) +
-#   scale_fill_manual(values = coverage_colours) +
-#   theme(strip.text.y = element_text(face = "bold", size = 7, angle = 360)) +
-#   labs(x = "Function", y = "Domain Coverage") +  
-#   facet_grid2(cols = vars(class), scales = "free_x",  
-#               labeller = labeller(class = phrog.class.labels),
-#               strip = strip, axes = "x", space = "free") +  # Apply the `strip` object
-#   guides(color = "none") + 
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),  
-#         strip.placement = "outside",
-#         panel.spacing = unit(0.1, "lines"))
-# 
-# p.domain.cov.outfile <- file.path(this.part.dir, "plot2_phrogs-domain-cov.png")
-# ggsave(p.domain.cov.outfile, p.domain.cov, width = 14, height = 6)
+# get.class <- function(dt.all){
+#   class.assignment <- "distant"
+#   dt <- dt.all[prob >= MIN.PROB.FOR.DOMAIN.RELATEDNESS]
+#   any.hits.conf <- length(dt$eval)>0
+#   if(any.hits.conf){
+#     class.assignment <- "related"
+#     is.equiv <- dt$prob >= MIN.PROB.FOR.DOMAIN.EQUIVALENCE &
+#       dt$qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE &
+#       dt$scov >= MIN.SCOV.FOR.DOMAIN.EQUIVALENCE &
+#       dt$eval <= MAX.EVAL.FOR.DOMAIN.EQUIVALENCE
+#     is.subdom <- dt$prob >= MIN.PROB.FOR.SUBDOMAIN &
+#       dt$qcov >= MIN.QCOV.FOR.SUBDOMAIN &
+#       dt$scov <= MAX.SCOV.FOR.SUBDOMAIN &
+#       dt$eval <= MAX.EVAL.FOR.SUBDOMAIN
+#     is.superdom <- dt$prob >= MIN.PROB.FOR.SUPERDOMAIN &
+#       dt$qcov <= MAX.QCOV.FOR.SUPERDOMAIN &
+#       dt$scov >= MIN.SCOV.FOR.SUPERDOMAIN &
+#       dt$eval <= MAX.EVAL.FOR.SUPERDOMAIN
+#     
+#     if(any(is.equiv)){
+#       class.assignment <- "equivalent"
+#     } else if(any(is.subdom) & !any(is.superdom)){
+#       class.assignment <- "subdomain"
+#     } else if(!any(is.subdom) & any(is.superdom)){
+#       class.assignment <- "superdomain"
+#     } else if(any(is.subdom) & any(is.superdom)){
+#       dt.subsup <- cbind(dt, data.table(is.equiv, is.subdom, is.superdom))
+#       dt.subsup <- dt.subsup[is.subdom == T | is.superdom == T]
+#       dt.subsup <- dt.subsup[which.max(hit.length)]
+#       if(dt.subsup$is.subdom==T){
+#         class.assignment <- "subdomain"
+#       } else{
+#         class.assignment <- "superdomain"
+#       }
+#     } else{
+#       class.assignment <- "related"
+#     }
+#   }
+#   return(class.assignment)
+# }
+# z <- ecfs.vs.ecod[, .(dom.class = get.class(.SD)), by = qname]
+# my.table(z$dom.class)
+
+############################################
+### 3. Investigate ECFs which link ECODs
+### and quantify how they link different 
+### ECOD architectures
+############################################
+
+ecfs.vs.ecod.link <- ecfs.vs.ecod[prob >= MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT]
+# ecfs.vs.ecod.link[qname == "ecf_00001"]
+
+ecf.ecod.linking.stats <- ecfs.vs.ecod.link[, .(
+  no.unique.x = uniqueN(x.id),
+  no.unique.h = uniqueN(h.id),
+  no.unique.t = uniqueN(t.id)  
+), by = qname]
+ecf.ecod.linking.stats <- merge(ecf.ecod.linking.stats, ecf.ecod.domain.assignment, by = "qname", all.x = T)
 
 
-
-########################
-### GPT's version
-########################
-
-### after you create `melted_data` and set factor levels for class
-
-# Pretty DB labels + consistent factor order
-melted_data[, database := factor(
-  database,
-  levels = c("ecf_coverage", "ecod_coverage", "pfam_coverage"),
-  labels = c("ECF", "ECOD", "Pfam")
+plot_dt <- ecf.ecod.linking.stats[
+  class.assignment %chin% c("equivalent","related","subdomain","superdomain") &
+    !is.na(no.unique.x)
+]
+plot_dt[, class.assignment := factor(
+  class.assignment,
+  levels = class.plotting.order
 )]
 
-# Order functions within each class by ECF coverage (you can switch to max/mean if you want)
-ord <- melted_data[database == "ECF",
-                   .(ord_key = coverage),
-                   by = .(class, funct)]
-setorder(ord, class, -ord_key)
-ord[, funct_ord := factor(funct, levels = unique(funct)), by = class]
-
-melted_data <- merge(melted_data, ord[, .(class, funct, funct_ord)], by = c("class", "funct"))
-melted_data[, funct := funct_ord]
-melted_data[, funct_ord := NULL]
-
-# Colorblind-safe palette (Okabe–Ito-ish; strong but not neon)
-coverage_colours2 <- c(
-  "ECF"  = "#0072B2",
-  "ECOD" = "#009E73",
-  "Pfam" = "#D55E00"
-)
-
-# (optional) show only top N functions per class (keeps plot readable)
-TOP_N <- 10
-top_funct <- melted_data[database == "ECF",
-                         .SD[order(-coverage)][1:min(.N, TOP_N)],
-                         by = class]$funct
-melted_plot <- melted_data[funct %in% top_funct]
-melted_plot[, class := factor(class, levels = phrogs.class)]
+p.ecod.links <- ggplot(plot_dt, aes(x = class.assignment, y = no.unique.x, fill = class.assignment)) +
+  geom_violin(width = .95, trim = TRUE, scale = "width",
+              colour = "grey25", linewidth = .35) +
+  geom_point(position = position_jitter(width = .14, height = 0),
+             alpha = .2, size = 1, colour = "grey10") +
+  scale_y_continuous(breaks = sort(unique(plot_dt$no.unique.x))) +
+  scale_fill_manual(values = RColorBrewer::brewer.pal(5, "Set2")[c(5,4,3,2)]) +
+  labs(x = "ECF–ECOD relationship", y = "ECOD X-groups linked") +
+  theme_classic(base_size = 12) +
+  guides(fill = "none") +
+  theme(
+    axis.title.x = element_text(margin = margin(t = 8)),
+    axis.title.y = element_text(margin = margin(r = 8)),
+    axis.text.x  = element_text(angle = 0, vjust = 1),
+    panel.grid.major.y = element_line(colour = "grey92", linewidth = .25),
+    panel.grid.minor.y = element_blank()
+  )
+p.ecod.links.outfile <- file.path(this.part.dir, "plot6_ecod-links.png")
+ggsave(p.ecod.links.outfile, p.ecod.links, width = 4, height = 4)
 
 
+############################################
+### 4. Look at the putative functions
+### of reprseq which contain "new" ECFs
+############################################
+
+# new.ecfs <- ecf.domain.coverage[ecod.eval0p1 == F]$ecf
+# reprseq.vs.new.ecfs <- reprseq.vs.ecfs[sname %chin% new.ecfs]
+# new.ecfs.linked.rhmms <- unique(reprseq.vs.new.ecfs$qname)
+
+new_ecfs <- ecf.domain.coverage[ecod.eval0p1 == FALSE, unique(ecf)]
+reprseq_new <- unique(reprseq.vs.ecfs[sname %chin% new_ecfs, qname])
+
+# new.ecfs.vs.pfam <- ecfs.vs.pfam.conf[qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE & qname %chin% new_ecfs]
+# new.ecfs.linked.pfams <- unique(new.ecfs.vs.pfam$accession)
+
+# -------------------------
+# 1) Build analysis table (one row per reprseq)
+# -------------------------
+dt <- copy(reprseq.functions.unique)
+setnames(dt, "reprseq", "qname")
+dt[, is_new := qname %chin% reprseq_new]
+dt[, funct2 := fifelse(is.na(funct) | funct == "", "unknown", funct)]
+dt[, class2 := fifelse(is.na(class) | class == "", "unknown", class)]
+
+# -------------------------
+# 2) Enrichment per function (Fisher), include "unknown" in dt but exclude from tests
+# -------------------------
+dt_test <- dt[funct2 != "unknown"]
+enr <- dt_test[
+  , {
+    a <- sum(is_new)                               # NEW & this funct
+    b <- .N - a                                    # not-NEW & this funct
+    c <- sum(dt_test$is_new) - a                   # NEW & other funct
+    d <- (nrow(dt_test) - sum(dt_test$is_new)) - b # not-NEW & other funct
+    
+    ft <- fisher.test(matrix(c(a,b,c,d), nrow = 2))
+    .(n_new = a,
+      n_total = .N,
+      odds = unname(ft$estimate),
+      p = ft$p.value)
+  },
+  by = .(funct2, class2)
+]
+
+enr[, `:=`(
+  fdr = p.adjust(p, method = "BH"),
+  log2OR = log2(odds),
+  frac_new = n_new / n_total
+)]
+
+# -------------------------
+# 3) Choose what to plot: significant if any, else top N by FDR then effect size
+# -------------------------
+FDR_CUT <- 0.05
+SHOW_N  <- 40L
+NTOP <- 6
+
+plot_dt <- enr[order(fdr)][fdr <= FDR_CUT, head(.SD, NTOP), by = class2]
+
+# plot_dt <- {
+#   sig <- enr[fdr <= FDR_CUT]
+#   if (nrow(sig) > 0L) sig else enr
+# }[order(fdr, -abs(log2OR))][1:min(.N, SHOW_N)]
+
+# order classes in facets
+plot_dt[, class2 := factor(class2, levels = phrogs.class.order)]
+# make a facet-aware y key and order it by log2OR (globally, but unique per facet)
+plot_dt[, ykey := paste(funct2, class2, sep = "___")]
+plot_dt[, ykey := reorder(ykey, log2OR)]
+
+
+# -------------------------
+# 4) Plot
+# -------------------------
 strip <- ggh4x::strip_themed(
   background_y = ggh4x::elem_list_rect(
     fill = grDevices::adjustcolor(
-      phrogs.col[match(levels(melted_plot$class), phrogs.class)],
+      phrogs.col[match(phrogs.class.order, phrogs.class)],
       alpha.f = 0.25
     ),
     colour = "black",
@@ -442,312 +644,95 @@ strip <- ggh4x::strip_themed(
   )
 )
 
-p.domain.cov.pretty <- ggplot(melted_plot, aes(x = coverage, y = funct, fill = database)) +
-  geom_col(position = position_dodge(width = 0.75),
-           width = .9, color = "white", linewidth = 0.2) +
-  facet_grid2(
-    rows = vars(class),
+p.new.ecf.enrichment <- ggplot(plot_dt, aes(x = log2OR, y = ykey)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey55", linewidth = 0.35) +
+  geom_point(aes(size = n_total, colour = -log10(fdr)), alpha = 0.9) +
+  ggh4x::facet_grid2(
+    rows = vars(class2),
     scales = "free_y",
-    space = "free_y",
-    labeller = labeller(class = phrog.class.labels),
+    space  = "free_y",
+    labeller = labeller(class2 = phrog.class.labels),
     strip = strip
   ) +
-  scale_fill_manual(values = coverage_colours2, name = "Database") +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 1),
-                     expand = expansion(mult = c(0, 0.02))) +
-  labs(x = "Fraction of proteins with ≥1 hit",
-       y = NULL) +
-  theme_classic(base_size = 12) +
+  scale_y_discrete(labels = function(x) sub("___.*$", "", x)) +
+  scale_colour_gradient(
+    low = "#D7301F", high = "darkblue",
+    trans = "sqrt",
+    limits = c(0, max(-log10(plot_dt$fdr), na.rm = TRUE)),
+    name = expression(-log[10]("FDR"))
+  ) +
+  scale_size_continuous(name = "N reprseqs", range = c(1.5, 5)) +
+  labs(
+    x = "Enrichment among NEW-ECF-associated reprseqs (log2 odds ratio)",
+    y = NULL
+  ) +
+  theme_bw(base_size = 12) +
   theme(
-    legend.position = "top",
+    legend.position = "right",
     legend.title = element_text(face = "bold"),
     strip.placement = "outside",
     strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", size = 9),
     axis.text.y = element_text(size = 8),
     axis.text.x = element_text(size = 9),
-    panel.spacing = unit(0.35, "lines")
+    panel.spacing = unit(0.35, "lines"),
+    panel.grid.major.x = element_line(colour = "grey92", linewidth = .25)
   )
-p.domain.cov.pretty
 
-p.domain.cov.outfile <- file.path(this.part.dir, "plot2_phrogs-domain-cov.png")
-ggsave(p.domain.cov.outfile, p.domain.cov.pretty, width = 7.5, height = 9, dpi = 300)
-
-#################################
-### 3. Plot only per functional
-### class, with total and unknown
-#################################
-
-all.phrogs.classes <- names(phrog.class.labels)
-# annot.dt
-
-# Funct cov per class
-per.class.cov.list <- lapply(1:length(all.phrogs.classes), function(ci){
-  this.class <- all.phrogs.classes[ci]
-  reprseqs.with.this.class <- unique(reprseq.functions.all[class == this.class]$qname)
-  this.class.annot.dt <- annot.dt[qname %chin% reprseqs.with.this.class]
-  this.class.no.hits <- apply(this.class.annot.dt[,.(ECF, Pfam, ECOD)], 2, lw)
-  this.class.funct.cov <- this.class.no.hits/length(reprseqs.with.this.class)
-  data.table(category = this.class,
-             ECF = this.class.funct.cov["ECF"],
-             Pfam = this.class.funct.cov["Pfam"],
-             ECOD = this.class.funct.cov["ECOD"])
-})
-per.class.cov <- rbindlist(per.class.cov.list)
-
-# Funct cov in proteins without funct
-reprseqs.no.funct <- all.reprseq[!all.reprseq %in% reprseq.functions.all$qname]
-
-no.funct.annot.dt <- annot.dt[qname %chin% reprseqs.no.funct]
-no.funct.no.hits <- apply(no.funct.annot.dt[,.(ECF, Pfam, ECOD)], 2, lw)
-no.funct.funct.cov <- no.funct.no.hits/length(reprseqs.no.funct)
-
-domain.cov.dt <- rbind(per.class.cov,
-                       data.table(category = "unknown",
-                                  ECF = no.funct.funct.cov["ECF"],
-                                  Pfam = no.funct.funct.cov["Pfam"],
-                                  ECOD = no.funct.funct.cov["ECOD"])
-)
-
-# Total domain coverage
-total.no.hits <- apply(annot.dt[,.(ECF, Pfam, ECOD)], 2, lw)
-total.funct.cov <- total.no.hits/nrow(annot.dt)
-
-# Combine
-domain.cov.dt <- rbind(domain.cov.dt,
-                       data.table(category = "total",
-                                  ECF = total.funct.cov["ECF"],
-                                  Pfam = total.funct.cov["Pfam"],
-                                  ECOD = total.funct.cov["ECOD"])
-)
+p.new.ecf.enrichment.outfile <- file.path(this.part.dir, "plot7_new-ecf-enrichment.png")
+ggsave(p.new.ecf.enrichment.outfile, p.new.ecf.enrichment, width = 8, height = 10)
 
 
-# ---- domain.cov.dt -> long format (dt_long) ----
-domain.cov.dt.long <- melt(
-  domain.cov.dt,
-  id.vars = "category",
-  variable.name = "database",
-  value.name = "coverage"
-)
+############################################
+### Make Figures
+############################################
 
-
-# Make database a factor to control order + match your palette names
-domain.cov.dt.long[, database := factor(database, levels = c("ECF", "ECOD", "Pfam"))]
-
-# Order categories (optional: keep your preferred order)
-cat_order <- c(
-  "head and packaging",
-  "connector",
-  "tail",
-  "DNA, RNA and nucleotide metabolism",
-  "integration and excision",
-  "moron, auxiliary metabolic gene and host takeover",
-  "transcription regulation",
-  "lysis",
-  "antidefence",
-  "other",
-  "unknown",
-  "total"
-)
-domain.cov.dt.long[, category := factor(category, levels = rev(cat_order))]
-
-# phrog.class.labels
-p.domain.cov.cat <- ggplot(domain.cov.dt.long, aes(x = coverage, y = category, fill = database)) +
-  geom_col(
-    position = position_dodge(width = 0.75),
-    width = 0.7,
-    color = "white",
-    linewidth = 0.2
-  ) +
-  scale_fill_manual(values = coverage_colours2, name = "Database") +
-  scale_x_continuous(
-    limits = c(0, 1),
-    labels = scales::percent_format(accuracy = 1),
-    expand = expansion(mult = c(0, 0.02))
-  ) +
-  scale_y_discrete(labels = phrog.class.labels) +   # <- THIS
-  labs(
-    x = "Fraction of proteins with ≥1 hit",
-    y = NULL
-  ) +
-  theme_classic(base_size = 12) +
-  theme(
-    legend.position = "top",
-    legend.title = element_text(face = "bold"),
-    axis.text.y = element_text(size = 8),
-    axis.text.x = element_text(size = 9),
-    panel.spacing = unit(0.35, "lines")
-  )
-# p.domain.cov.cat
-
-p.domain.cov.cat.outfile <- file.path(this.part.dir, "plot3_phrogs-domain-cov-class.png")
-ggsave(p.domain.cov.cat.outfile, p.domain.cov.cat, width = 4.5, height = 5.5)
-
-#################################
-### 4. Compare annotation
-### coverage between three 
-### domain db in PhageScope (UpSet)
-#################################
-
-phagescope.metadata[, ecf.hit := MGG_Protein_ID %in% ps.vs.ecf$qname]
-phagescope.metadata[, ecod.hit := MGG_Protein_ID %in% ps.vs.ecod$qname]
-phagescope.metadata[, pfam.hit := MGG_Protein_ID %in% ps.vs.pfam$qname]
-
-protein.vs.domains <- phagescope.metadata[, c("MGG_Protein_ID", "ecf.hit", "ecod.hit", "pfam.hit")]
-
-protein.vs.category <- phagescope.metadata[
-  , .(category = unlist(strsplit(Protein_classification, ";", fixed = TRUE))),
-  by = .(MGG_Protein_ID)
-]
-
-protein.vs.category[category %in% c("unsorted", "hypothetical")]$category <- "unknown"
-unique.categories <- unique(protein.vs.category$category)
-
-
-df.upset <- protein.vs.domains[, .(
-  ECF  = as.integer(as.logical(ecf.hit)),
-  ECOD = as.integer(as.logical(ecod.hit)),
-  Pfam = as.integer(as.logical(pfam.hit))
-)] |> as.data.frame()
-
-
-p.upset.phagescope <- upset(
-  df.upset,
-  intersect = colnames(df.upset),
-  mode = "exclusive_intersection",          # exclusive intersections (standard UpSet)
-  sort_intersections_by = "cardinality",    # largest intersections first
-  min_size = 1,                             # keep all
-  width_ratio = 0.40,                       # space for set sizes vs intersections
-  stripes = "white",                        # cleaner background
-  set_sizes = (
-    upset_set_size() +
-      labs(x = "Proteins annotated")   # <- your new label
-  ),
-  themes = upset_themes
-)
-p.upset.phagescope
-
-p.upset.phagescope.outfile <- file.path(this.part.dir, "plot4_upset-ps-domain-cov.png")
-ggsave(p.upset.phagescope.outfile, p.upset.phagescope, width = 5.5, height = 4.2)
-
-#################################
-### 4. Compare annotation
-### coverage between functional
-### categories in PhageScope
-#################################
-
-functional.cov.domains.table.list <- lapply(1:length(unique.categories), function(index){
-  this.category <- unique.categories[index]
-  this.category.proteins <- protein.vs.category[category %chin% this.category]$MGG_Protein_ID
-  this.category.proteins.no <- length(this.category.proteins)
-  this.category.proteins.vs.domains <- protein.vs.domains[MGG_Protein_ID %chin% this.category.proteins]
-  this.category.ecf.coverage <- length(which(this.category.proteins.vs.domains$ecf.hit))
-  this.category.ecod.coverage <- length(which(this.category.proteins.vs.domains$ecod.hit))
-  this.category.pfam.coverage <- length(which(this.category.proteins.vs.domains$pfam.hit))
-  this.category.out <- data.table(category = this.category,
-                                  ECF = this.category.ecf.coverage/this.category.proteins.no,
-                                  ECOD = this.category.ecod.coverage/this.category.proteins.no,
-                                  Pfam = this.category.pfam.coverage/this.category.proteins.no
-  )
-  return(this.category.out)
-})
-functional.cov.domains.table <- rbindlist(functional.cov.domains.table.list)
-
-ps.total.number.of.hits <- apply(protein.vs.domains[, .(ecf.hit, ecod.hit, pfam.hit)], 2, lw)
-ps.total.cov <- ps.total.number.of.hits/nrow(protein.vs.domains)
-functional.cov.domains.table <- rbind(
-  functional.cov.domains.table,
-  data.table(category = "total", 
-             ECF = ps.total.cov["ecf.hit"],
-             ECOD = ps.total.cov["ecod.hit"],
-             Pfam = ps.total.cov["pfam.hit"])
-)
-
-dt_long <- melt(
-  functional.cov.domains.table,
-  id.vars = "category",
-  variable.name = "database",
-  value.name = "coverage"
-)
-
-# functional.cov.domains.table$category
-# [1] "unknown"      "integration"  "replication"  "assembly"     "regulation"   "infection"    "lysis"        "tRNA_related" "packaging"   
-# [10] "immune"       "total"    
-
-cat_order <- c(
-  "lysis",
-  "integration",
-  "replication",
-  "tRNA_related",
-  "regulation",
-  "packaging",
-  "assembly",
-  "infection",
-  "immune",
-  "unknown",
-  "total"
-)
-dt_long[, category := factor(category, levels = rev(cat_order))]
-
-p.phagescope.cov <- ggplot(dt_long, aes(x = coverage, y = category, fill = database)) +
-  geom_col(
-    position = position_dodge(width = 0.75),
-    width = 0.7,
-    color = "white",
-    linewidth = 0.2
-  ) +
-  scale_fill_manual(values = coverage_colours2, name = "Database") +
-  scale_x_continuous(
-    limits = c(0, 1),
-    labels = scales::percent_format(accuracy = 1),
-    expand = expansion(mult = c(0, 0.02))
-  ) +
-  labs(
-    x = "Fraction of proteins with ≥1 hit",
-    y = NULL
-  ) +
-  theme_classic(base_size = 12) +
-  theme(
-    legend.position = "top",
-    legend.title = element_text(face = "bold"),
-    axis.text.y = element_text(size = 9),
-    axis.text.x = element_text(size = 9),
-    panel.spacing = unit(0.35, "lines")
-  )
-p.phagescope.cov
-
-p.phagescope.cov.outfile <- file.path(this.part.dir, "plot5_ps-domain-cov.png")
-ggsave(p.phagescope.cov.outfile, p.phagescope.cov, width = 4.5, height = 5.5)
-
-#################################
-### Generate Figure 4
-#################################
-
-# p.upset # panel A
-# p.domain.cov.cat # panel B
-# p.upset.phagescope # panel C
-# p.phagescope.cov # panel D
-
-
-# wrap the ComplexUpset objects so they count as ONE panel each
-p_upset_onepanel <- wrap_elements(full = p.upset)
-p_upset_ps_onepanel <- wrap_elements(full = p.upset.phagescope)
-
-fig4 <- (
-  (p_upset_onepanel | p.domain.cov.cat) /
-    (p_upset_ps_onepanel | p.phagescope.cov)
+fig5 <- (
+  (p.ecf.domain.coverage / p.ecod.domain.cat.by.length / p.ecod.links) |
+    plot_spacer() |
+    p.new.ecf.enrichment
 ) +
+  plot_layout(widths = c(1.3, 0.08, 1)) +   # middle number controls spacing
   plot_annotation(tag_levels = "A") &
   theme(
     plot.tag = element_text(face = "bold", size = 24),
     plot.tag.position = c(0.02, 0.98)
   )
+fig5.outfile <- file.path(ecf.figures.dir, "figure5.png")
+ggsave(fig5.outfile, fig5, width = 12, height = 10)
 
-fig4.outfile <- file.path(ecf.figures.dir, "figure4.png")
-ggsave(fig4.outfile, fig4, width = 12, height = 10)
+##########################################################
+##########################################################
+##########################################################
+##########################################################
 
-#################################
-### Generate Supplementary Figs
-#################################
 
-p.domain.cov.pretty.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p1_refseq-dom-cov-per-funct.png")
-ggsave(p.domain.cov.pretty.outfile, p.domain.cov.pretty,  width = 7.5, height = 9)
+
+# out <- ecfs.vs.ecod[qname == "ecf_00077"]
+# 
+# mean.pident <- function(dt) mean(dt$pident)
+# ecfs.vs.ecod[, .(mean_pident = mean.pident(.SD)), by = qname]
+# 
+# mean.vals <- function(dt){
+#   list(
+#     mean_pident = mean(dt$pident),
+#     min_pident = min(dt$pident),
+#     max_pident = max(dt$pident)
+#   )
+# }
+# mean.val <- function(dt){
+#   list(
+#     mean_pident = mean(dt$pident)
+#   )
+# }
+# ecfs.vs.ecod[, mean.vals(.SD), by = qname]
+# ecfs.vs.ecod[, mean.val(.SD), by = qname]
+# 
+# 
+# mean.vals.fast <- function(pident) {
+#   list(
+#     mean_pident = mean(pident),
+#     min_pident = min(pident),
+#     max_pident = max(pident)
+#   )
+# }
+# ecfs.vs.ecod[, mean.vals.fast(pident), by = qname]
