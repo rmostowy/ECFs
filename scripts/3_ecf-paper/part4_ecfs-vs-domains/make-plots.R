@@ -28,8 +28,8 @@ make.dir(this.part.dir)
 ### 2. domain tables
 ### 3. ecf vs domain tables
 ### 4. reprseq vs ecfs
-### 5. 
-### 6. 
+### 5. reprseq vs pfam
+### 6. reprseqs annotations
 ### 7. 
 #################################
 
@@ -49,6 +49,9 @@ ecfs.vs.pfam.hhsenser <- fread(ecfs.vs.pfam.hhsenser.output)
 
 # reprseq vs ecfs
 reprseq.vs.ecfs.all <- fread(reprseq.ecfs.output)
+
+# reprseq vs pfam
+reprseq.vs.pfam.all <- fread(reprseq.domains.pfam.output)
 
 # functional annotations
 reprseq.functions.unique <- fread(reprseq.functions.unique.output)
@@ -79,6 +82,14 @@ ecfs.vs.pfam.conf <- ecfs.vs.pfam %>%
   filter(eval <= MAX.EVALUE.FOR.ECF.DOMAIN.CONFIDENT & prob >= MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT)
 
 reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>% 
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM
+  )
+
+reprseq.vs.pfam <- reprseq.vs.pfam.all %>% 
   filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
          eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM, 
          qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
@@ -162,12 +173,13 @@ p.ecf.domain.coverage <- ggplot(counts_dt, aes(x = threshold, y = N, fill = cate
     y = "Number of ECFs"
   ) +
   theme_bw(base_size = 12) +
+  guides(fill = guide_legend(ncol = 2)) +
   theme(
     legend.position = "top",
-    legend.text  = element_text(size = 7),
-    legend.title = element_text(size = 7),
-    legend.key.width  = unit(0.4, "cm"),
-    legend.key.height = unit(0.4, "cm"),
+    legend.text  = element_text(size = 9),
+    legend.title = element_text(size = 9),
+    legend.key.width  = unit(0.5, "cm"),
+    legend.key.height = unit(0.5, "cm"),
     legend.margin = margin(t = 0),
     axis.title = element_text(face = "bold"),
     plot.title = element_text(face = "bold")
@@ -175,14 +187,11 @@ p.ecf.domain.coverage <- ggplot(counts_dt, aes(x = threshold, y = N, fill = cate
 p.ecf.domain.coverage.outfile <- file.path(this.part.dir, "plot1_ecf-domain-cov.png")
 ggsave(p.ecf.domain.coverage.outfile, p.ecf.domain.coverage, width = 6, height = 5)
 
-
 ############################################
-### 2. Classify ECFs based on domain hits and
+### 2. Classify ECFs based on ECOD hits and
 ### analyse the class distribution based
 ### on ECF length
 ############################################
-
-# A) ECOD comparisons
 
 mt <- copy(ecfs.vs.ecod)
 mt[, conf := (prob >= MIN.PROB.FOR.DOMAIN.RELATEDNESS)]
@@ -222,8 +231,8 @@ ecf.domain.assignment <- mt[, {
 
 ecf.ecod.domain.assignment <- merge(ecf.domain.assignment, ecf.table[, .(qname = ecf.name, length, size)], by = "qname")
 ecf.ecod.domain.assignment[, len_bin := cut(length,
-                                       breaks = quantile(length, probs = seq(0, 1, by = 0.1), na.rm = TRUE),
-                                       include.lowest = TRUE)]
+                                       breaks = round(quantile(length, probs = seq(0, 1, by = 0.1), na.rm = TRUE)),
+                                       include.lowest = TRUE, dig.lab = 10)]
 
 class.plotting.order <- c("equivalent", "subdomain", "superdomain", "related", "distant")
 prop_dt <- ecf.ecod.domain.assignment[, .N, by = .(len_bin, class.assignment)]
@@ -235,14 +244,15 @@ p.ecod.domain.cat.by.length <- ggplot(prop_dt, aes(x = len_bin, y = prop, fill =
   geom_col(width = 0.9) +
   scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_brewer(palette = "Set2") +
-  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "Class") +
+  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "ECF-ECOD\nclass") +
    theme_bw(base_size = 12) +
+  guides(fill = guide_legend(reverse = TRUE, ncol = 3, byrow = TRUE)) +
   theme(
     legend.position = "top",
-    legend.text  = element_text(size = 7),
-    legend.title = element_text(size = 7),
-    legend.key.width  = unit(0.4, "cm"),
-    legend.key.height = unit(0.4, "cm"),
+    legend.text  = element_text(size = 9),
+    legend.title = element_text(size = 9, face = "bold"),
+    legend.key.width  = unit(0.5, "cm"),
+    legend.key.height = unit(0.5, "cm"),
     legend.margin = margin(t = 0),
     axis.title = element_text(face = "bold"),
     plot.title = element_text(face = "bold"),
@@ -251,8 +261,11 @@ p.ecod.domain.cat.by.length <- ggplot(prop_dt, aes(x = len_bin, y = prop, fill =
 p.ecod.domain.cat.by.length.outfile <- file.path(this.part.dir, "plot2_dom-class-ecod.png")
 ggsave(p.ecod.domain.cat.by.length.outfile, p.ecod.domain.cat.by.length, width = 6, height = 5)
 
-
-# B) PFAM comparisons
+############################################
+### 3. Classify ECFs based on PFAM hits and
+### analyse the class distribution based
+### on ECF length
+############################################
 
 mt <- copy(ecfs.vs.pfam)
 mt[, conf := (prob >= MIN.PROB.FOR.DOMAIN.RELATEDNESS)]
@@ -315,7 +328,11 @@ p.pfam.domain.cat.by.length <- ggplot(prop_dt, aes(x = len_bin, y = prop, fill =
 p.pfam.domain.cat.by.length.outfile <- file.path(this.part.dir, "plot3_dom-class-pfam.png")
 ggsave(p.pfam.domain.cat.by.length.outfile, p.pfam.domain.cat.by.length, width = 6, height = 5)
 
-# C) Compare the two sets
+############################################
+### 4. Compare the ECOD-domain class
+### between ECOD and PFAM and analyse
+### correlation between them
+############################################
 
 ecod <- ecf.ecod.domain.assignment[, .(qname,
                  ecod_class = class.assignment,
@@ -406,7 +423,12 @@ sent <- sprintf(
 sent.outfile <- file.path(this.part.dir, "plot4_stats.txt")
 write(sent, file = sent.outfile, ncolumns = 1)
 
-# D) Look at class distribution within families
+############################################
+### 5. Look at distribution of ECF-ECOD 
+### classes within ECF families
+############################################
+
+
 ecf.ecod.domain.assignment[, len_bin := NULL]
 ecf.ecod.domain.assignment$family <- ecf.family.table[.(ecf.ecod.domain.assignment$qname)]$family
 ecf.ecod.domain.assignment[, w := 1L]        # unweighted
@@ -513,7 +535,7 @@ ggsave(p.domain.class.per.fam.outfile, p.domain.class.per.fam, width = 8, height
 # my.table(z$dom.class)
 
 ############################################
-### 3. Investigate ECFs which link ECODs
+### 6. Investigate ECFs which link ECODs
 ### and quantify how they link different 
 ### ECOD architectures
 ############################################
@@ -545,31 +567,28 @@ p.ecod.links <- ggplot(plot_dt, aes(x = class.assignment, y = no.unique.x, fill 
              alpha = .2, size = 1, colour = "grey10") +
   scale_y_continuous(breaks = sort(unique(plot_dt$no.unique.x))) +
   scale_fill_manual(values = RColorBrewer::brewer.pal(5, "Set2")[c(5,4,3,2)]) +
-  labs(x = "ECF–ECOD relationship", y = "ECOD X-groups linked") +
+  labs(x = "ECF–ECOD class", y = "Number of ECOD\nX-groups linked") +
   theme_classic(base_size = 12) +
   guides(fill = "none") +
   theme(
-    axis.title.x = element_text(margin = margin(t = 8)),
-    axis.title.y = element_text(margin = margin(r = 8)),
+    axis.title.x = element_text(margin = margin(t = 8), face = "bold"),
+    axis.title.y = element_text(margin = margin(r = 0), face = "bold"),
     axis.text.x  = element_text(angle = 0, vjust = 1),
     panel.grid.major.y = element_line(colour = "grey92", linewidth = .25),
     panel.grid.minor.y = element_blank()
   )
+p.ecod.links
 p.ecod.links.outfile <- file.path(this.part.dir, "plot6_ecod-links.png")
 ggsave(p.ecod.links.outfile, p.ecod.links, width = 4, height = 4)
 
 
 ############################################
-### 4. Look at the putative functions
-### of reprseq which contain "new" ECFs
+### 7. Look at the functional enrichment
+### of rHMMs which contain "new" ECFs
 ############################################
 
-# new.ecfs <- ecf.domain.coverage[ecod.eval0p1 == F]$ecf
-# reprseq.vs.new.ecfs <- reprseq.vs.ecfs[sname %chin% new.ecfs]
-# new.ecfs.linked.rhmms <- unique(reprseq.vs.new.ecfs$qname)
-
-new_ecfs <- ecf.domain.coverage[ecod.eval0p1 == FALSE, unique(ecf)]
-reprseq_new <- unique(reprseq.vs.ecfs[sname %chin% new_ecfs, qname])
+new.ecfs <- ecf.domain.coverage[ecod.eval0p1 == FALSE, unique(ecf)]
+reprseq.new <- unique(reprseq.vs.ecfs[sname %chin% new.ecfs, qname])
 
 # new.ecfs.vs.pfam <- ecfs.vs.pfam.conf[qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE & qname %chin% new_ecfs]
 # new.ecfs.linked.pfams <- unique(new.ecfs.vs.pfam$accession)
@@ -577,22 +596,22 @@ reprseq_new <- unique(reprseq.vs.ecfs[sname %chin% new_ecfs, qname])
 # -------------------------
 # 1) Build analysis table (one row per reprseq)
 # -------------------------
-dt <- copy(reprseq.functions.unique)
-setnames(dt, "reprseq", "qname")
-dt[, is_new := qname %chin% reprseq_new]
-dt[, funct2 := fifelse(is.na(funct) | funct == "", "unknown", funct)]
-dt[, class2 := fifelse(is.na(class) | class == "", "unknown", class)]
+rs2funct <- copy(reprseq.functions.unique)
+setnames(rs2funct, "reprseq", "qname")
+rs2funct[, is_new := qname %chin% reprseq.new]
+rs2funct[, funct2 := fifelse(is.na(funct) | funct == "", "unknown", funct)]
+rs2funct[, class2 := fifelse(is.na(class) | class == "", "unknown", class)]
 
 # -------------------------
-# 2) Enrichment per function (Fisher), include "unknown" in dt but exclude from tests
+# 2) Enrichment per function (Fisher), include "unknown" in rs2funct but exclude from tests
 # -------------------------
-dt_test <- dt[funct2 != "unknown"]
-enr <- dt_test[
+rs2funct.known <- rs2funct[funct2 != "unknown"]
+enrichment.phrogs <- rs2funct.known[
   , {
     a <- sum(is_new)                               # NEW & this funct
     b <- .N - a                                    # not-NEW & this funct
-    c <- sum(dt_test$is_new) - a                   # NEW & other funct
-    d <- (nrow(dt_test) - sum(dt_test$is_new)) - b # not-NEW & other funct
+    c <- sum(rs2funct.known$is_new) - a                   # NEW & other funct
+    d <- (nrow(rs2funct.known) - sum(rs2funct.known$is_new)) - b # not-NEW & other funct
     
     ft <- fisher.test(matrix(c(a,b,c,d), nrow = 2))
     .(n_new = a,
@@ -602,8 +621,7 @@ enr <- dt_test[
   },
   by = .(funct2, class2)
 ]
-
-enr[, `:=`(
+enrichment.phrogs[, `:=`(
   fdr = p.adjust(p, method = "BH"),
   log2OR = log2(odds),
   frac_new = n_new / n_total
@@ -615,19 +633,19 @@ enr[, `:=`(
 FDR_CUT <- 0.05
 SHOW_N  <- 40L
 NTOP <- 6
+CAP <- 7
 
-plot_dt <- enr[order(fdr)][fdr <= FDR_CUT, head(.SD, NTOP), by = class2]
-
-# plot_dt <- {
-#   sig <- enr[fdr <= FDR_CUT]
-#   if (nrow(sig) > 0L) sig else enr
-# }[order(fdr, -abs(log2OR))][1:min(.N, SHOW_N)]
-
-# order classes in facets
-plot_dt[, class2 := factor(class2, levels = phrogs.class.order)]
+plot.ecod.dt <- enrichment.phrogs[order(fdr)][fdr <= FDR_CUT, head(.SD, NTOP), by = class2]
+plot.ecod.dt[, class2 := factor(class2, levels = phrogs.class.order)]
 # make a facet-aware y key and order it by log2OR (globally, but unique per facet)
-plot_dt[, ykey := paste(funct2, class2, sep = "___")]
-plot_dt[, ykey := reorder(ykey, log2OR)]
+plot.ecod.dt[, ykey := paste(funct2, class2, sep = "___")]
+plot.ecod.dt[, ykey := reorder(ykey, log2OR)]
+
+# Cap Infinite ORs
+plot.ecod.dt[, log2OR_plot := log2OR]
+plot.ecod.dt[is.infinite(log2OR) & log2OR > 0, log2OR_plot := CAP]
+plot.ecod.dt[is.infinite(log2OR) & log2OR < 0, log2OR_plot := -CAP]
+plot.ecod.dt[, is_inf := !is.finite(log2OR)]
 
 
 # -------------------------
@@ -644,7 +662,7 @@ strip <- ggh4x::strip_themed(
   )
 )
 
-p.new.ecf.enrichment <- ggplot(plot_dt, aes(x = log2OR, y = ykey)) +
+p.new.ecf.enrichment <- ggplot(plot.ecod.dt, aes(x = log2OR_plot, y = ykey, shape = is_inf)) +
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey55", linewidth = 0.35) +
   geom_point(aes(size = n_total, colour = -log10(fdr)), alpha = 0.9) +
   ggh4x::facet_grid2(
@@ -658,14 +676,19 @@ p.new.ecf.enrichment <- ggplot(plot_dt, aes(x = log2OR, y = ykey)) +
   scale_colour_gradient(
     low = "#D7301F", high = "darkblue",
     trans = "sqrt",
-    limits = c(0, max(-log10(plot_dt$fdr), na.rm = TRUE)),
+    limits = c(0, max(-log10(plot.ecod.dt$fdr), na.rm = TRUE)),
     name = expression(-log[10]("FDR"))
   ) +
   scale_size_continuous(name = "N reprseqs", range = c(1.5, 5)) +
-  labs(
-    x = "Enrichment among NEW-ECF-associated reprseqs (log2 odds ratio)",
-    y = NULL
+  scale_x_continuous(
+    breaks = function(x) pretty(x, n = 7)
   ) +
+  labs(
+    x = "Functional enrichment in NEW-ECF-associated rHMMs\n(log2 odds ratio)",
+    y = NULL,
+    shape = "Infinite ORs"
+  ) +
+  # Enrichment in NEW-ECF proteins (log2 odds ratio)
   theme_bw(base_size = 12) +
   theme(
     legend.position = "right",
@@ -673,14 +696,127 @@ p.new.ecf.enrichment <- ggplot(plot_dt, aes(x = log2OR, y = ykey)) +
     strip.placement = "outside",
     strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", size = 9),
     axis.text.y = element_text(size = 8),
-    axis.text.x = element_text(size = 9),
+    # axis.text.x = element_text(size = 9),
+    axis.title.x = element_text(face = "bold"),
     panel.spacing = unit(0.35, "lines"),
     panel.grid.major.x = element_line(colour = "grey92", linewidth = .25)
   )
+# p.new.ecf.enrichment
 
 p.new.ecf.enrichment.outfile <- file.path(this.part.dir, "plot7_new-ecf-enrichment.png")
 ggsave(p.new.ecf.enrichment.outfile, p.new.ecf.enrichment, width = 8, height = 10)
 
+############################################
+### 8. Look at the functional enrichment
+### of PFAMs which contain "new" ECFs
+############################################
+
+
+# new.ecfs <- ecf.domain.coverage[ecod.eval0p1 == FALSE, unique(ecf)]
+# reprseq.new <- unique(reprseq.vs.ecfs[sname %chin% new.ecfs, qname])
+
+# new.ecfs.vs.pfam <- ecfs.vs.pfam.conf[qcov >= MIN.QCOV.FOR.DOMAIN.EQUIVALENCE & qname %chin% new_ecfs]
+# new.ecfs.linked.pfams <- unique(new.ecfs.vs.pfam$accession)
+
+# -------------------------
+# 1) Link rHMMs to PFAMs functions
+# -------------------------
+
+rs2pfam <- unique(reprseq.vs.pfam[, .(qname, accession)])
+rs2pfam[, is_new := qname %chin% reprseq.new]
+
+# -------------------------
+# 2) Enrichment per function (Fisher), include "unknown" in rs2funct but exclude from tests
+# -------------------------
+
+enrichment.pfams <- rs2pfam[
+  , {
+    a <- sum(is_new)
+    b <- .N - a
+    c <- sum(rs2pfam$is_new) - a
+    d <- (nrow(rs2pfam) - sum(rs2pfam$is_new)) - b
+    
+    ft <- fisher.test(matrix(c(a,b,c,d),2))
+    .(
+      n_new = a,
+      n_total = .N,
+      odds = unname(ft$estimate),
+      p = ft$p.value
+    )
+  },
+  by = accession
+]
+enrichment.pfams[, `:=`(
+  fdr = p.adjust(p,"BH"),
+  log2OR = log2(odds),
+  frac_new = n_new/n_total
+)]
+
+# -------------------------
+# 3) Choose what to plot: significant if any, else top N by FDR then effect size
+# -------------------------
+FDR_CUT <- 0.05
+SHOW_N  <- 40L
+
+plot.pfam.dt <- enrichment.pfams[order(fdr)][fdr <= FDR_CUT, head(.SD, SHOW_N)]
+
+# Cap Infinite ORs
+CAP <- ceiling(max(abs(range(plot.pfam.dt$log2OR, finite = T))))
+plot.pfam.dt[, log2OR_plot := log2OR]
+plot.pfam.dt[is.infinite(log2OR) & log2OR > 0, log2OR_plot := CAP]
+plot.pfam.dt[is.infinite(log2OR) & log2OR < 0, log2OR_plot := -CAP]
+plot.pfam.dt[, is_inf := !is.finite(log2OR)]
+plot.pfam.dt[, funct := pfam.domains[.(plot.pfam.dt$accession)]$description]
+
+# -------------------------
+# 4) Plot
+# -------------------------
+strip <- ggh4x::strip_themed(
+  background_y = ggh4x::elem_list_rect(
+    fill = grDevices::adjustcolor(
+      phrogs.col[match(phrogs.class.order, phrogs.class)],
+      alpha.f = 0.25
+    ),
+    colour = "black",
+    linewidth = 0.4
+  )
+)
+
+p.new.ecf.enrichment.pfams <- ggplot(plot.pfam.dt, aes(x = log2OR_plot, y = funct, shape = is_inf)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey55", linewidth = 0.35) +
+  geom_point(aes(size = n_total, colour = -log10(fdr)), alpha = 0.9) +
+  scale_colour_gradient(
+    low = "#D7301F", high = "darkblue",
+    trans = "sqrt",
+    limits = c(0, max(-log10(plot.ecod.dt$fdr), na.rm = TRUE)),
+    name = expression(-log[10]("FDR"))
+  ) +
+  scale_size_continuous(name = "N reprseqs", range = c(1.5, 5)) +
+  scale_x_continuous(
+    breaks = function(x) pretty(x, n = 7)
+  ) +
+  labs(
+    x = "PFAM enrichment in NEW-ECF-associated rHMMs\n(log2 odds ratio)",
+    y = NULL,
+    shape = "Infinite ORs"
+  ) +
+  # Enrichment in NEW-ECF proteins (log2 odds ratio)
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    strip.placement = "outside",
+    strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", size = 9),
+    axis.text.y = element_text(size = 8),
+    # axis.text.x = element_text(size = 9),
+    axis.title.x = element_text(face = "bold"),
+    panel.spacing = unit(0.35, "lines"),
+    panel.grid.major.x = element_line(colour = "grey92", linewidth = .25)
+  )
+# p.new.ecf.enrichment
+
+p.new.ecf.enrichment.pfams.outfile <- file.path(this.part.dir, "plot8_new-ecf-enrichment-pfams.png")
+ggsave(p.new.ecf.enrichment.pfams.outfile, p.new.ecf.enrichment.pfams, width = 8, height = 10)
 
 ############################################
 ### Make Figures
@@ -698,7 +834,22 @@ fig5 <- (
     plot.tag.position = c(0.02, 0.98)
   )
 fig5.outfile <- file.path(ecf.figures.dir, "figure5.png")
-ggsave(fig5.outfile, fig5, width = 12, height = 10)
+ggsave(fig5.outfile, fig5, width = 12, height = 11)
+
+
+### Supplementary
+
+p.pfam.domain.cat.by.length.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p1_dom-class-pfam.png")
+ggsave(p.pfam.domain.cat.by.length.outfile, p.pfam.domain.cat.by.length, width = 6, height = 5)
+
+p.ecod.pfam.agreement.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p2_ecod-pfam-agreement.png")
+ggsave(p.ecod.pfam.agreement.outfile, p.ecod.pfam.agreement, width = 6, height = 10)
+
+p.domain.class.per.fam.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p3_domain-class-per-fam.png")
+ggsave(p.domain.class.per.fam.outfile, p.domain.class.per.fam, width = 8, height = 8)
+
+p.new.ecf.enrichment.pfams.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p4_new-ecf-enrichment-pfams.png")
+ggsave(p.new.ecf.enrichment.pfams.outfile, p.new.ecf.enrichment.pfams, width = 8, height = 10)
 
 ##########################################################
 ##########################################################
