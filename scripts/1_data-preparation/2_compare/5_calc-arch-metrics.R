@@ -1,12 +1,6 @@
 ### load libraries
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-suppressWarnings(suppressPackageStartupMessages(library(patchwork)))
-suppressWarnings(suppressPackageStartupMessages(library(ggh4x)))
-# suppressWarnings(suppressPackageStartupMessages(library(ComplexUpset)))
-# suppressWarnings(suppressPackageStartupMessages(library(ggraph)))
-# suppressWarnings(suppressPackageStartupMessages(library(broom)))
 
 ### load config
 config.filename <- file.path(rprojroot::find_rstudio_root_file(), "config", "config.R")
@@ -15,14 +9,6 @@ source(config.filename)
 ####################################################################
 ############################### MAIN ###############################
 ####################################################################
-
-#################################
-### Set up output directory
-#################################
-this.part.dir <- file.path(ecf.proj.dir, "part5_mosaic-struct")
-make.dir(this.part.dir)
-
-protein.metrics.output <- "protein-metrics.txt"
 
 #################################
 ### Load all data:
@@ -121,7 +107,7 @@ reprseq.eff.mean <- reprseq.simpson.pos[, .(
 ), by = qname] # mean_eff_families -> mean.eff.fam, eff_mean -> reprseq.eff.mean
 setkey(reprseq.eff.mean, qname)
 
-# 4) segregation.overlap (segregation overlap index (0..1))
+# 4a) segregation.overlap (segregation overlap index (0..1))
 # ------------------------------------------------------------
 # Intuition: families are "segregated" if their position ranges overlap little.
 # Steps:
@@ -281,12 +267,12 @@ protein.metrics <- pm[, .(
   n.dom.segments
 )]
 
-# Append functional information
-pm.funct <- reprseq.functions.unique[.(protein.metrics$qname)][, .(qname = reprseq, funct, class)]
-protein.metrics <- merge(protein.metrics, pm.funct, by = "qname")
-protein.metrics[class == "", class := "unknown"]
-protein.metrics[funct == "", funct := "unknown"]
+# # Append functional information
+# pm.funct <- reprseq.functions.unique[.(protein.metrics$qname)][, .(qname = reprseq, funct, class)]
+# protein.metrics <- merge(protein.metrics, pm.funct, by = "qname")
+# protein.metrics[class == "", class := "unknown"]
+# protein.metrics[funct == "", funct := "unknown"]
 
 # Write to a file
-fwrite(protein.metrics, file = protein.metrics.output)
+fwrite(protein.metrics, file = reprseq.arch.metrics.output)
 

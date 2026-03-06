@@ -149,3 +149,63 @@ get.min.parms <- function(hhtable){
   
   invisible(NULL)
 }
+
+plot.ecf.distr.over.query <- function(protein_name, ecf.hits.dt, title = "ECF Domains and Query Alignment") {
+  
+  # Check if domain_data is NULL or empty
+  if (is.null(ecf.hits.dt) || all(is.na(ecf.hits.dt$qstart))) {
+    message("No domains detected for this protein.")
+    return(NULL)
+  }
+  
+  protein_length <- ecf.hits.dt$qlength[1]
+  
+  # sort by ECF family
+  setorder(ecf.hits.dt, family, qstart)
+  
+  # Add a y-axis level for each ECF domain, reducing vertical spread for clarity
+  ecf.hits.dt$y_level <- seq_len(nrow(ecf.hits.dt)) * 0.5
+  
+  # Define colors for families
+  family_colors <- unique(ecf.hits.dt$family)
+  no.fam <- length(family_colors)
+  # if(no.fam < 3) no.fam <- 3
+  # color_palette <- setNames(RColorBrewer::brewer.pal(no.fam, "Set3"), family_colors)
+  base_cols <- RColorBrewer::brewer.pal(12, "Set3")
+  color_palette <- setNames(
+    colorRampPalette(base_cols)(length(family_colors)),
+    family_colors
+  )
+  
+  # Create the plot
+  p <- ggplot() +
+    # Plot the query protein as a black line with the aligned segment in red
+    geom_segment(aes(x = 0, xend = protein_length, y = 0, yend = 0), linewidth = 2, color = "black") +
+    # geom_segment(aes(x = aln1_start, xend = aln1_end, y = 0, yend = 0), linewidth = 2, color = "red") +
+    # Plot each ECF domain as a coloured segment, positioned on its y_level
+    geom_segment(data = ecf.hits.dt, aes(x = qstart, xend = qend, y = y_level, yend = y_level, color = family),
+                 linewidth = 4) +
+    # Add labels for each ECF domain
+    geom_text(data = ecf.hits.dt, aes(x = (qstart + qend) / 2, y = y_level + 0.1, label = sname),
+              size = 3, hjust = 0.5, color = "black") +
+    # Define custom colours for families
+    scale_color_manual(values = color_palette) +
+    # Customise the plot
+    labs(
+      x = sprintf("rHMM position: %s", protein_name),
+      y = "",
+      title = title,
+      color = "Family"
+    ) +
+    # theme_classic(base_size = 12) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank()
+    ) +
+    coord_cartesian(xlim = c(0, protein_length))
+  
+  
+  return(p)
+}

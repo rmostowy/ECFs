@@ -221,11 +221,7 @@ phagescope.vs.ecf <- file.path(data.ps.dir, "phagescope-vs-ecf.txt")
 
 # comparisons
 reprseq.vs.reprseq.blast.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast.txt")
-# reprseq.vs.reprseq.blast.filtered.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast-filtered.txt")
 reprseq.vs.reprseq.blast.filtered.unordered.output <- file.path(data.comparisons.dir, "reprseq-vs-reprseq-blast-filt-unord.txt")
-# reprseq.ecf.vs.ecod.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod.txt")
-# reprseq.ecf.vs.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-pfam.txt")
-# reprseq.ecf.vs.ecod.and.pfam.output <- file.path(data.comparisons.dir, "reprseq_ecf-vs-ecod-and-pfam.txt")
 
 ecf.classification.table.output <- file.path(data.comparisons.dir, "ecf-classifications.txt")
 
@@ -237,6 +233,9 @@ rem.table.output <- file.path(data.comparisons.dir, "rem-table.txt")
 
 # Genome all-by-all megablast table
 genomes.aba.table.output <- file.path(data.comparisons.dir, "genomes-aba.txt")
+
+# Reprseq architecture metrics
+reprseq.arch.metrics.output <- file.path(data.comparisons.dir, "reprseq-arch-metrics.txt")
 
 #################
 ## ECF project dirs
@@ -398,6 +397,7 @@ RE.MIN.CLUSTER.SIZE=5
 RE.MIN.OVERLAP=0.8
 NO.GENES.TO.EXTEND <- 4L
 PAD.PARM=10L
+MIN.NO.ECF.PER.FAMILY.FOR.AHO <- 3
 # MIN.CDS.OVERLAP.WITH.NCBI <- 0.5
 
 
