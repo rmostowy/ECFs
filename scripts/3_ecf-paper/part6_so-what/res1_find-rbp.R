@@ -145,10 +145,28 @@ for(ri in 1:length(repr.rbps)){
 }
 
 
-shortlist <- rbps.arch.metrics.filtered.top.arch[grepl("EF0033", fam.key) & 
+shortlist2 <- rbps.arch.metrics.filtered.top.arch[grepl("EF0033", fam.key) & 
                                       grepl("EF0080", fam.key) &
                                       grepl("EF0079", fam.key)]$qname
-sort(shortlist)
+shortlist3 <- rbps.arch.metrics.filtered.top.arch[grepl("EF0212", fam.key) & 
+                                                   grepl("EF0255", fam.key)]$qname
+
+sort(shortlist2)
+sort(shortlist3)
+
+
+this.shortlist.dir <- file.path(rbp.vis.dir, "af-model-shortlist2")
+make.dir(this.shortlist.dir)
+for(ri in 1:length(shortlist2)){
+  this.ri <-  shortlist2[ri]
+  this.ri.ecf.hits <- reprseq.vs.ecfs[qname == this.ri]
+  this.ri.ecod.hits <- reprseq.vs.ecod.top[qname == this.ri]
+  this.ri.ecod.hits.formatted <- this.ri.ecod.hits %>% select(qname, qstart, qend, qlength, sname, sstart, send, slength, pident, bitscore, eval, prob, pval, hit.length, qcov, scov, family = t.id)
+  this.ri.all.hits <- rbind(this.ri.ecf.hits, this.ri.ecod.hits.formatted)
+  this.ri.plot <- plot.ecf.distr.over.query(this.ri, this.ri.all.hits)
+  this.ri.plot.outfile <- file.path(this.shortlist.dir, sprintf("%s.png", this.ri))
+  ggsave(this.ri.plot.outfile, this.ri.plot, width = 7, height = 6)  
+}
 
 af.model.set <- c("reprseq019028", "reprseq000317", "reprseq012341", "reprseq031110", "reprseq048029", "reprseq057378", "reprseq125186")
 af.model.set.dir <- file.path(rbp.vis.dir, "af-model-set")
@@ -170,6 +188,130 @@ for(ri in 1:length(af.model.set)){
   this.ri.plot.outfile <- file.path(af.model.set.dir, sprintf("%s.png", this.ri))
   ggsave(this.ri.plot.outfile, this.ri.plot, width = 7, height = 6)  
 }
+
+# # Consensus EF coordinates
+# 
+# ri=1
+# this.ri <-  af.model.set[ri]
+# 
+# # --- Get hits for focal protein ---
+# ecf.hits <- this.ri.ecf.hits[qname == this.ri]
+# prot.length <- ecf.hits[, max(qlength)]
+# 
+# # --- Step 1: Compute robust family boundaries (denoised) ---
+# family.coords <- ecf.hits[, .(
+#   map.start = as.integer(quantile(qstart, 0.25)),
+#   map.end   = as.integer(quantile(qend,   0.75)),
+#   n.ecfs    = .N
+# ), by = family]
+# 
+# # --- Step 2: Per-position family assignment ---
+# # For each position, count how many ECFs of each family cover it
+# # using DENOISED boundaries (map.start/map.end), not raw hit coordinates
+# 
+# # Expand each family's denoised interval into per-position counts
+# position.counts <- family.coords[, {
+#   data.table(position = seq(map.start, map.end))
+# }, by = .(family, n.ecfs)
+# ][, .(
+#   weighted.count = sum(n.ecfs)  # n.ecfs is the weight
+# ), by = .(family, position)]
+# 
+# # At each position, assign the family with the highest weighted count
+# position.assignment <- position.counts[
+#   position.counts[, .I[which.max(weighted.count)], by = position]$V1
+# ][, .(position, family, weighted.count)]
+# 
+# # --- Step 3: Collapse into contiguous blocks for PyMOL ---
+# setorder(position.assignment, position)
+# position.assignment[, block := rleid(family)]
+# 
+# structure.blocks <- position.assignment[, .(
+#   family    = family[1],
+#   res.start = min(position),
+#   res.end   = max(position)
+# ), by = block][, block := NULL]
+# 
+# # PyMOL selections
+# pymol.by.family <- structure.blocks[, .(
+#   selection = paste(paste0("resi ", res.start, "-", res.end), 
+#                     collapse = " or ")
+# ), by = family]
+# 
+# cat("\n=== Denoised family coordinates (for geom_rect) ===\n")
+# print(family.coords[order(map.start)])
+# 
+# cat("\n=== Structure coloring blocks ===\n")
+# print(structure.blocks[order(res.start)])
+# 
+# cat("\n=== PyMOL selections ===\n")
+# print(pymol.by.family)
+# 
+# 
+# #############
+# 
+# # Colour palette - adjust to match your existing figures
+# family.colors <- c(
+#   "EF0007" = "#4E79A7",
+#   "EF0013" = "#F28E2B", 
+#   "EF0079" = "#B07AA1",
+#   "EF0080" = "#FF9DA7",
+#   "EF0033" = "#76B7B2",
+#   "EF2655" = "#EDC948"
+# )
+# 
+# # Stack families by priority for y-axis placement
+# # Nested families get higher y so they appear on top
+# family.coords[, y.level := frank(map.start - (map.end - map.start), 
+#                                  ties.method = "first")]
+# 
+# p.cartoon <- ggplot(family.coords) +
+#   # Protein backbone
+#   annotate("segment",
+#            x = 1, xend = prot.length,
+#            y = 0, yend = 0,
+#            linewidth = 2, color = "black") +
+#   # One rect per family
+#   geom_rect(aes(
+#     xmin = map.start,
+#     xmax = map.end,
+#     ymin = y.level - 0.4,
+#     ymax = y.level + 0.4,
+#     fill = family
+#   ), alpha = 0.85) +
+#   # Family labels
+#   geom_text(aes(
+#     x = (map.start + map.end) / 2,
+#     y = y.level,
+#     label = family
+#   ), size = 3, fontface = "bold") +
+#   scale_fill_manual(values = family.colors) +
+#   scale_x_continuous(
+#     limits = c(0, prot.length),
+#     breaks = seq(0, prot.length, by = 100),
+#     expand = c(0.01, 0)
+#   ) +
+#   labs(
+#     x = paste0("Position in ", this.ri, " (aa)"),
+#     y = NULL,
+#     fill = "ECF family"
+#   ) +
+#   theme_minimal() +
+#   theme(
+#     axis.text.y  = element_blank(),
+#     axis.ticks.y = element_blank(),
+#     panel.grid.major.y = element_blank(),
+#     panel.grid.minor.y = element_blank(),
+#     legend.position = "bottom"
+#   )
+# 
+# print(p.cartoon)
+# 
+# 
+# 
+# 
+# 
+# 
 
 
 
