@@ -421,19 +421,20 @@ p.cont.cont
 # p.asym.len # panel C
 # p.cont.cont # panel D
 
-fig3 <- (
+fig <- (
   (p.cov.heatmap | p.connect.cov.heatmap) /
     (p.asym.len    | p.cont.cont)
 ) +
   plot_annotation(tag_levels = "A") &
   theme(
     plot.tag = element_text(face = "bold", size = 14),
-    plot.tag.position = c(0.02, 0.98)
+    plot.tag.position = c(0.1, 1.05),
+    plot.margin =  margin(10, 10, 10, 10)
   )
 # fig3
 
-fig3.outfile <- file.path(ecf.figures.dir, "figure3.png")
-ggsave(fig3.outfile, fig3, width = 9, height = 7)
+fig.outfile <- file.path(ecf.figures.dir, "figure2.png")
+ggsave(fig.outfile, fig, width = 9, height = 7)
 
 #################################
 ### Generate Supplementary Figs
@@ -444,7 +445,7 @@ ggsave(fig3.outfile, fig3, width = 9, height = 7)
 # p.asym.deg
 # p.glm.model
 
-p.asym.dist.outfile <- file.path(ecf.suppl.figures.dir, "suppl-3p1_asymm-dist.png")
+p.asym.dist.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p1_asymm-dist.png")
 ggsave(p.asym.dist.outfile, p.asym.dist, width = 5, height = 4)
 
 p.no.fam.asymm <- (
@@ -455,7 +456,7 @@ p.no.fam.asymm <- (
     plot.tag = element_text(face = "bold", size = 14),
     plot.tag.position = c(0.02, 0.98)
   )
-p.no.fam.asymm.outfile <- file.path(ecf.suppl.figures.dir, "suppl-3p2_asymm-nofam.png")
+p.no.fam.asymm.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p2_asymm-nofam.png")
 ggsave(p.no.fam.asymm.outfile, p.no.fam.asymm, width = 5, height = 9)
 
 # polish the GLM table
@@ -498,7 +499,7 @@ colnames(tab_final) <- c(
 )
 # tab_final
 
-tab.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-3p1_GLM-results.csv")
+tab.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-2p1_GLM-results.csv")
 write.csv(tab_final, tab.outfile, row.names = FALSE)
 
 
@@ -533,6 +534,6 @@ make_latex_table <- function(tab_final,
   sink()
 }
 
-tab.latex.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-3p1_GLM-results-latex.txt")
+tab.latex.outfile <- file.path(ecf.suppl.figures.dir, "suppl-tab-2p1_GLM-results-latex.txt")
 make_latex_table(tab_final, file = tab.latex.outfile)
 

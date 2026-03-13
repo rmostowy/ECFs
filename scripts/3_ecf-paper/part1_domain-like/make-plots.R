@@ -511,13 +511,13 @@ fig2 <-
   (p.ef.per.reprseq / p.domain.vs.ecf.cov)
   )+
   plot_layout(heights = c(1.2, 1)) +
-  plot_annotation(tag_levels = "A") & 
+  plot_annotation(tag_levels = list(c("B","C","D"))) & 
   theme(
-    plot.tag = element_text(face = "bold", size = 14),
+    plot.tag = element_text(face = "bold", size = 24),
     plot.tag.position = c(0.02, 0.98)
   )
 
-fig2.outfile <- file.path(ecf.figures.dir, "figure2.png")
+fig2.outfile <- file.path(ecf.figures.dir, "figure1B.png")
 ggsave(fig2.outfile, fig2, width = 10, height = 7)
 
 #################################
@@ -540,10 +540,10 @@ suppl.p.ecfs.vs.rhmms <-
     # ,
     # plot.tag.position = c(0.02, 0.98)
   )
-suppl.p.ecfs.vs.rhmms.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p1_ecfs-vs-rhmm.png")
+suppl.p.ecfs.vs.rhmms.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p1_ecfs-vs-rhmm.png")
 ggsave(suppl.p.ecfs.vs.rhmms.outfile, suppl.p.ecfs.vs.rhmms, width = 5, height = 8)
 
-suppl.p.no.ecf.per.ef.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p2_ecfs-vs-efs.png")
+suppl.p.no.ecf.per.ef.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p2_ecfs-vs-efs.png")
 ggsave(suppl.p.no.ecf.per.ef.outfile, p.no.ecf.per.ef, width = 5, height = 4)
 
 suppl.p.2d.domain.occur <- 
@@ -555,5 +555,5 @@ suppl.p.2d.domain.occur <-
     # ,
     # plot.tag.position = c(0.02, 0.98)
   )
-suppl.p.2d.domain.occur.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p3_domain-occur.png")
+suppl.p.2d.domain.occur.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p3_domain-occur.png")
 ggsave(suppl.p.2d.domain.occur.outfile, suppl.p.2d.domain.occur, width = 6, height = 14)
