@@ -601,7 +601,7 @@ ggsave(p.phagescope.cov.outfile, p.phagescope.cov, width = 4.5, height = 5.5)
 p_upset_onepanel <- wrap_elements(full = p.upset)
 p_upset_ps_onepanel <- wrap_elements(full = p.upset.phagescope)
 
-fig4 <- (
+fig <- (
   (p_upset_onepanel | p.domain.cov.cat) /
     (p_upset_ps_onepanel | p.phagescope.cov)
 ) +
@@ -611,12 +611,12 @@ fig4 <- (
     plot.tag.position = c(0.02, 0.98)
   )
 
-fig4.outfile <- file.path(ecf.figures.dir, "figure4.png")
-ggsave(fig4.outfile, fig4, width = 12, height = 10)
+fig.outfile <- file.path(ecf.figures.dir, "figure3.png")
+ggsave(fig.outfile, fig, width = 12, height = 10)
 
 #################################
 ### Generate Supplementary Figs
 #################################
 
-p.domain.cov.pretty.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p1_refseq-dom-cov-per-funct.png")
+p.domain.cov.pretty.outfile <- file.path(ecf.suppl.figures.dir, "suppl-3p1_refseq-dom-cov-per-funct.png")
 ggsave(p.domain.cov.pretty.outfile, p.domain.cov.pretty,  width = 7.5, height = 9)
