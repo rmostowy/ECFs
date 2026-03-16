@@ -224,11 +224,16 @@ p.fam.div.vs.ecf.depth <- ggplot(curve_dt, aes(x = threshold)) +
 ###########################################
 
 
+segregation.range <- range(reprseq.arch.metrics$n.fams)
+segregation.range.min <- floor(min(segregation.range))
+segregation.range.max <- floor(max(segregation.range))
+
 # Punchline 2 — Family diversity and spatial organization are distinct axes
 p.fam.div.spatial.separation.bary <- ggplot(reprseq.arch.metrics, aes(x = n.fams, y = segregation.bary)) +
   geom_bin2d(bins = 60) +
   theme_bw(base_size = 14) +
   scale_fill_viridis_c(trans = "sqrt", name = "Count") +
+  scale_x_sqrt(breaks = c(1,2,3,4,5,10,15,20,30,40)) +
   labs(
     x = "Number of ECF Families in rHMM",
     y = "Segregation index (Bary)\nalong protein sequence"
@@ -242,6 +247,7 @@ p.fam.div.spatial.separation.overlap <- ggplot(reprseq.arch.metrics, aes(x = n.f
   geom_bin2d(bins = 60) +
   theme_bw(base_size = 14) +
   scale_fill_viridis_c(trans = "sqrt", name = "Count") +
+  scale_x_sqrt(breaks = c(1,2,3,4,5,10,15,20,30,40)) +
   labs(
     x = "Number of ECF Families in rHMM",
     y = "ECF family segregation index along protein sequence"
@@ -698,7 +704,7 @@ p.fam.div.spatial.separation.bary # PanelB
 p.segreg.across.fam # PanelC
 p.examples # panelD
 
-fig6 <- (
+fig <- (
   (p.fam.div.vs.ecf.depth | p.fam.div.spatial.separation.bary) /
   p.segreg.across.fam /
     wrap_elements(p.examples)
@@ -711,8 +717,8 @@ fig6 <- (
     plot.tag.position = c(0.1, 1.05),
     plot.margin =  margin(10, 10, 10, 10)
   )
-fig6.outfile <- file.path(ecf.figures.dir, "figure6.png")
-ggsave(fig6.outfile, fig6, width = 14, height = 18)
+fig.outfile <- file.path(ecf.figures.dir, "figure5.png")
+ggsave(fig.outfile, fig, width = 14, height = 18)
 
 ### Supplementary Figures
 p.aho.top.funct # Within-ECF-family mean AHO in top function
@@ -722,21 +728,21 @@ p.sup.arch.corr # Correlation matrix of architectures
 p.depth # ECF depth vs arch stats
 p.arch.class # Distribution of archtecture metrics across classes
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p1_within-fam-aho.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p1_within-fam-aho.png"),
        p.aho.top.funct, width = 6, height = 8)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p2_aho-distr.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p2_aho-distr.png"),
        p.aho.dist, width = 5, height = 4)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p3_fam-div-seg-overlap.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p3_fam-div-seg-overlap.png"),
        p.fam.div.spatial.separation.overlap, width = 5, height = 4)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p4_corr-arch.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p4_corr-arch.png"),
        p.sup.arch.corr, width = 7, height = 6)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p5_depth-vs.arch.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p5_depth-vs.arch.png"),
        p.depth, width = 13, height = 4)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-6p6_corr-arch.png"),
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p6_corr-arch.png"),
        p.arch.class, width = 12, height = 16)
 
