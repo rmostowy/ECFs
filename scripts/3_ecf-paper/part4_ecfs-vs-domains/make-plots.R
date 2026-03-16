@@ -822,7 +822,7 @@ ggsave(p.new.ecf.enrichment.pfams.outfile, p.new.ecf.enrichment.pfams, width = 8
 ### Make Figures
 ############################################
 
-fig5 <- (
+fig <- (
   (p.ecf.domain.coverage / p.ecod.domain.cat.by.length / p.ecod.links) |
     plot_spacer() |
     p.new.ecf.enrichment
@@ -833,22 +833,22 @@ fig5 <- (
     plot.tag = element_text(face = "bold", size = 24),
     plot.tag.position = c(0.02, 0.98)
   )
-fig5.outfile <- file.path(ecf.figures.dir, "figure5.png")
-ggsave(fig5.outfile, fig5, width = 12, height = 11)
+fig.outfile <- file.path(ecf.figures.dir, "figure4.png")
+ggsave(fig.outfile, fig, width = 12, height = 11)
 
 
 ### Supplementary
 
-p.pfam.domain.cat.by.length.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p1_dom-class-pfam.png")
+p.pfam.domain.cat.by.length.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p1_dom-class-pfam.png")
 ggsave(p.pfam.domain.cat.by.length.outfile, p.pfam.domain.cat.by.length, width = 6, height = 5)
 
-p.ecod.pfam.agreement.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p2_ecod-pfam-agreement.png")
+p.ecod.pfam.agreement.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p2_ecod-pfam-agreement.png")
 ggsave(p.ecod.pfam.agreement.outfile, p.ecod.pfam.agreement, width = 6, height = 10)
 
-p.domain.class.per.fam.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p3_domain-class-per-fam.png")
+p.domain.class.per.fam.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p3_domain-class-per-fam.png")
 ggsave(p.domain.class.per.fam.outfile, p.domain.class.per.fam, width = 8, height = 8)
 
-p.new.ecf.enrichment.pfams.outfile <- file.path(ecf.suppl.figures.dir, "suppl-5p4_new-ecf-enrichment-pfams.png")
+p.new.ecf.enrichment.pfams.outfile <- file.path(ecf.suppl.figures.dir, "suppl-4p4_new-ecf-enrichment-pfams.png")
 ggsave(p.new.ecf.enrichment.pfams.outfile, p.new.ecf.enrichment.pfams, width = 8, height = 10)
 
 ##########################################################
