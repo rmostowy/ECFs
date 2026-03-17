@@ -179,7 +179,7 @@ p.upset <- upset(
   ),
   base_annotations = list(
     "Intersection size" = intersection_size(
-      text = list(size = 3),
+      text = list(size = 2.5),
       counts = TRUE
     )
   ),
@@ -228,45 +228,7 @@ melted_data <- melt(funct.cov, id.vars = c("funct", "class"),
                     measure.vars = c("ecf_coverage", "ecod_coverage", "pfam_coverage"),
                     variable.name = "database", value.name = "coverage")
 
-
-# # Define the colours for the domain coverages
-# coverage_colours <- c("ecf_coverage" = "#08306B", "ecod_coverage" = "#006D2C", "pfam_coverage" = "#800026")
-# # Set the order of the facets
-# melted_data$class <- factor(melted_data$class, levels = phrogs.class.order)
-# # Count the number of functions per class
-# n_funct <- melted_data[, .N, by = class]
-# # Define strip backgrounds using ggh4x
-# strip <- strip_themed(
-#   background_x = elem_list_rect(fill = phrogs.col[match(levels(melted_data$class), phrogs.class)])
-# )
-# 
-# # Create the ggplot object with customized strips and varying plot heights
-# p.domain.cov <- ggplot(melted_data) +
-#   geom_col(aes(x = funct, y = coverage, fill = database), 
-#            position = "dodge", width = 0.7, linewidth = 0.2) +
-#   scale_fill_manual(values = coverage_colours) +
-#   theme(strip.text.y = element_text(face = "bold", size = 7, angle = 360)) +
-#   labs(x = "Function", y = "Domain Coverage") +  
-#   facet_grid2(cols = vars(class), scales = "free_x",  
-#               labeller = labeller(class = phrog.class.labels),
-#               strip = strip, axes = "x", space = "free") +  # Apply the `strip` object
-#   guides(color = "none") + 
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),  
-#         strip.placement = "outside",
-#         panel.spacing = unit(0.1, "lines"))
-# 
-# p.domain.cov.outfile <- file.path(this.part.dir, "plot2_phrogs-domain-cov.png")
-# ggsave(p.domain.cov.outfile, p.domain.cov, width = 14, height = 6)
-
-
-
-########################
-### GPT's version
-########################
-
 ### after you create `melted_data` and set factor levels for class
-
-# Pretty DB labels + consistent factor order
 melted_data[, database := factor(
   database,
   levels = c("ecf_coverage", "ecod_coverage", "pfam_coverage"),
@@ -471,6 +433,14 @@ protein.vs.category <- phagescope.metadata[
 protein.vs.category[category %in% c("unsorted", "hypothetical")]$category <- "unknown"
 unique.categories <- unique(protein.vs.category$category)
 
+ps.annot.dt <- protein.vs.domains[, .(
+  ECF  = as.integer(as.logical(ecf.hit)),
+  ECOD = as.integer(as.logical(ecod.hit)),
+  Pfam = as.integer(as.logical(pfam.hit))
+)]
+ps.annot.dt[, combo := paste0(ECF, ECOD, Pfam)]
+ps.combo.counts <- ps.annot.dt[, .N, by = combo][order(-N)]
+
 
 df.upset <- protein.vs.domains[, .(
   ECF  = as.integer(as.logical(ecf.hit)),
@@ -490,6 +460,12 @@ p.upset.phagescope <- upset(
   set_sizes = (
     upset_set_size() +
       labs(x = "Proteins annotated")   # <- your new label
+  ),
+  base_annotations = list(
+    "Intersection size" = intersection_size(
+      text = list(size = 2.5),
+      counts = TRUE
+    )
   ),
   themes = upset_themes
 )
