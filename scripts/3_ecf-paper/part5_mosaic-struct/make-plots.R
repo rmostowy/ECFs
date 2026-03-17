@@ -250,7 +250,7 @@ p.fam.div.spatial.separation.overlap <- ggplot(reprseq.arch.metrics, aes(x = n.f
   scale_x_sqrt(breaks = c(1,2,3,4,5,10,15,20,30,40)) +
   labs(
     x = "Number of ECF Families in rHMM",
-    y = "ECF family segregation index along protein sequence"
+    y = "ECF family segregation index\nalong protein sequence"
   ) + 
   theme(
     axis.title = element_text(face = "bold"),
@@ -589,6 +589,7 @@ corr.vars <- c(
 corr.dt <- copy(reprseq.arch.metrics[, ..corr.vars])
 corr.mat <- suppressWarnings(cor(corr.dt, use = "pairwise.complete.obs", method = "spearman"))
 
+
 corr.long <- as.data.table(as.table(corr.mat))
 setnames(corr.long, c("V1", "V2", "N"), c("x", "y", "rho"))
 
@@ -637,7 +638,7 @@ p.depth.2c <- ggplot(reprseq.arch.metrics[coverage.fraction > 0 & !is.na(n.dom.s
     y = "Number of dominant-family segments"
   )
 
-p.depth <- (p.depth.2a | p.depth.2b | p.depth.2c) +
+p.depth <- (p.depth.2a / p.depth.2b / p.depth.2c) +
   plot_annotation(tag_levels = "A") &
   theme(
     plot.tag = element_text(face = "bold", size = 18),
@@ -651,6 +652,16 @@ p.depth <- (p.depth.2a | p.depth.2b | p.depth.2c) +
 
 class.plot.dt <- copy(reprseq.arch.metrics[class != "unknown"])
 class.plot.dt[, class := factor(class, levels = phrogs.class.order)]
+
+vars <- c("n.fams", "mean.eff.fam", "n.dom.segments")
+quantile.probs <- c(0, 0.5, 0.75, 0.9, 0.95, 0.99)
+res <- class.plot.dt[
+  , lapply(.SD, function(x)
+    quantile(x, probs = quantile.probs, na.rm = TRUE)
+  ),
+  by = class,
+  .SDcols = vars
+]
 
 strip.y <- ggh4x::strip_themed(
   background_x = ggh4x::elem_list_rect(
@@ -735,13 +746,13 @@ ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p2_aho-distr.png"),
        p.aho.dist, width = 5, height = 4)
 
 ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p3_fam-div-seg-overlap.png"),
-       p.fam.div.spatial.separation.overlap, width = 5, height = 4)
+       p.fam.div.spatial.separation.overlap, width = 6, height = 5)
 
 ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p4_corr-arch.png"),
        p.sup.arch.corr, width = 7, height = 6)
 
-ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p5_depth-vs.arch.png"),
-       p.depth, width = 13, height = 4)
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p5_depth-vs-arch.png"),
+       p.depth, width = 6, height = 13)
 
 ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p6_corr-arch.png"),
        p.arch.class, width = 12, height = 16)
