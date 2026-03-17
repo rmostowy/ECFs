@@ -143,6 +143,8 @@ annot.dt[, combo := paste0(as.integer(ECF), as.integer(Pfam), as.integer(ECOD))]
 combo_counts <- annot.dt[, .N, by = combo][order(-N)]
 upset.df <- as.data.frame(annot.dt[, .(ECF, Pfam, ECOD)])
 
+# annot.dt[ECF == T & Pfam == F & ECOD == F]
+
 # A minimal, clean theme set
 upset_themes <- list(
   "overall_sizes" = theme_bw(base_size = 8) +
