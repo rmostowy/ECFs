@@ -86,6 +86,20 @@ names(reprseq.seqs.l) <- reprseq.seqs.n
 
 reprseqs.with.domains <- unique(c(reprseq.vs.ecfs$qname, reprseq.vs.ecod$qname, reprseq.vs.pfam$qname))
 
+#################################
+### ggplot2 styling parms
+#################################
+
+ecf.fig.theme <- theme_bw(base_size = 14) +
+  theme(
+    panel.grid.minor   = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.title         = element_text(face = "bold"),
+    axis.text          = element_text(colour = "black"),
+    legend.background  = element_blank(),
+    legend.key         = element_blank()
+  )
+
 
 #################################
 ### Analysis 1: 
@@ -270,16 +284,12 @@ p.quant.distr <- ggplot(length.quantiles, aes(x = prob, y = length, colour = db)
     labels = c("1st", "Q1", "Q2", "Q3", "Q4", "99th")
   ) +
   # scale_colour_manual(values = db.colours, name = NULL) +
-  scale_colour_manual(values = c("ECF" = "#1f77b4", "PFAM" = "#ff7f0e", "ECOD" = "#2ca02c")) +  # Custom colors
+  # scale_colour_manual(values = c("ECF" = "#1f77b4", "PFAM" = "#ff7f0e", "ECOD" = "#2ca02c")) +  # Custom colors
+  scale_colour_manual(values = c("ECF" = "#1f77b4", "PFAM" = "#ff7f0e", "ECOD" = "#2ca02c"),
+                      name = NULL) +
   labs(x = "Percentile", y = "Length (aa)") +
-  theme_bw(base_size = 14) +
-  theme(
-    panel.grid.minor  = element_blank(),
-    legend.position   = c(0.15, 0.85),
-    legend.background = element_blank(),
-    axis.title        = element_text(face = "bold"),
-    axis.text         = element_text(colour = "black")
-  )
+  ecf.fig.theme +
+  theme(legend.position = c(0.15, 0.85))
 
 p.quant.distr.outfile <- file.path(this.part.dir, "plot4b_quant-distr.png")
 ggsave(p.quant.distr.outfile, p.quant.distr, width = 5, height = 4)
@@ -337,8 +347,8 @@ plot.rel.pos <- function(dt, no.bins = 200, title = "2D interval map of ECF occu
     ) +
     coord_equal(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
     labs(
-      x = "Relative start position (qstart / protein length)",
-      y = "Relative end position (qend / protein length)",
+      x = "Relative start position (qstart / rHMM length)",
+      y = "Relative end position (qend / rHMM length)",
       fill = "Count",
       title = title
     ) +
@@ -438,16 +448,13 @@ p.ef.per.reprseq <- ggplot(prop_dt, aes(length_bin_q, prop, fill = efs_cat)) +
   scale_y_continuous(labels = percent_format(accuracy = 1),
                      expand = expansion(mult = c(0, 0.04))) +
   labs(
-    x = "Protein length (quantile bins)",
-    y = "Proteins (proportion)",
+    x = "rHMM length (quantile bins)",
+    y = "rHMMs (proportion)",
     fill = "Number of EFs\nper rHMM"
   ) +
   theme_bw(base_size = 14) +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor = element_blank(),
-    legend.position = "right"
-  )
+  ecf.fig.theme +
+  theme(legend.position = "right")
 
 p.ef.per.reprseq.outfile <- file.path(this.part.dir, "plot8_efs-per-rhmm.png")
 ggsave(p.ef.per.reprseq.outfile, p.ef.per.reprseq, width = 7, height = 5)
@@ -532,23 +539,18 @@ p.domain.vs.ecf.cov <- ggplot(conditional.probs.dt, aes(x = log.OR)) +
   geom_vline(xintercept = median.log.OR,   linewidth = 0.5, linetype = "dashed",
              colour = "#D62728") +
   labs(
-    x = expression(log ~ OR ~ "(ECF coverage: inside vs. outside domain regions)"),
-    y = "Number of proteins"
+    x = "ECF enrichment within\ndomain regions (log OR)",
+    y = "Number of rHMMs"
   ) +
   theme_bw(base_size = 14) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_blank(),
-    axis.title = element_text(face = "bold"),
-    axis.text  = element_text(colour = "black")
-  )
+  ecf.fig.theme
 
 p.domain.vs.ecf.cov.outfile <- file.path(this.part.dir, "plot9_ecf-cov-dom-reg.png")
 ggsave(p.domain.vs.ecf.cov.outfile, p.domain.vs.ecf.cov, width = 6, height = 5)
 
 
 #################################
-### Generate Figure 2
+### Generate Figure 1
 #################################
 
 # p.length.distr # panel A
@@ -572,6 +574,8 @@ ggsave(fig1.outfile, fig1, width = 14, height = 4)
 ### Save supplementary figures
 #################################
 
+make.dir(ecf.suppl.figures.dir)
+
 # p.ecf.size (ECF size histogram)
 # p.repr.per.ecf (No of reprseqs mapped onto each ECF)
 # p.no.ecf.per.ef (No of EFs per ECF barplot)
@@ -594,7 +598,10 @@ ggsave(suppl.p.ecfs.vs.rhmms.outfile, suppl.p.ecfs.vs.rhmms, width = 5, height =
 suppl.p.no.ecf.per.ef.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p2_ecfs-vs-efs.png")
 ggsave(suppl.p.no.ecf.per.ef.outfile, p.no.ecf.per.ef, width = 5, height = 4)
 
-suppl.p.2d.domain.occur <- 
+suppl.p.length.distr.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p3_length-distr.png")
+ggsave(suppl.p.length.distr.outfile, p.length.distr, width = 4, height = 6)
+
+ suppl.p.2d.domain.occur <- 
   (rel.pos.ecfs / rel.pos.pfam / rel.pos.ecod) +
   plot_layout(heights = c(1, 1, 1)) +
   plot_annotation(tag_levels = "A") & 
@@ -603,5 +610,10 @@ suppl.p.2d.domain.occur <-
     # ,
     # plot.tag.position = c(0.02, 0.98)
   )
-suppl.p.2d.domain.occur.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p3_domain-occur.png")
+suppl.p.2d.domain.occur.outfile <- file.path(ecf.suppl.figures.dir, "suppl-1p4_domain-occur.png")
 ggsave(suppl.p.2d.domain.occur.outfile, suppl.p.2d.domain.occur, width = 6, height = 14)
+
+
+
+
+
