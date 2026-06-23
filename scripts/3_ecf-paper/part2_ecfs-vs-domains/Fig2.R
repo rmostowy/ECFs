@@ -26,6 +26,7 @@ suppressWarnings(suppressPackageStartupMessages({
   library(patchwork)
   library(broom)
   library(ggh4x)
+  library(ggExtra)
 }))
 
 ### load config -----------------------------------------------------------------
@@ -263,6 +264,72 @@ contain.neighbour.cov.max.list <- lapply(seq_len(no.nodes.cg), function(node.ind
   out
 })
 contain.neighbour.cov.max <- rbindlist(contain.neighbour.cov.max.list)
+
+contain.neighbour.no.fams.list <- lapply(seq_len(no.nodes.cg), function(node.index) {
+  out <- NULL
+  this.node  <- containment.graph.nodes[node.index]
+  neighbours <- neighbors(containment.graph, this.node, mode = "out")
+  if (length(neighbours) >= 2) {
+    neighbour.fams <- ecf.family.table[.(neighbours$name)]$family
+    no.fams <- length(unique(neighbour.fams))
+    out <- data.table(ecf = this.node, no.fams = no.fams)
+  }
+  out 
+})
+contain.neighbour.no.fams <- rbindlist(contain.neighbour.no.fams.list)
+
+scov.bins <-  seq(0,1,0.1)
+nbins <- length(scov.bins)
+
+fragment.cov.stats.list <- lapply(1:(nbins-1), function(range.index){
+  this.range <- c(scov.bins[range.index], scov.bins[range.index+1])
+  this.range.ecf.table <- ecf.connectivity.stats[med.qcov >= DOMAIN.CONTAINMENT.COV.THR & 
+                                                   med.scov >= this.range[1] & 
+                                                   med.scov < this.range[2]]
+  size <- length(this.range.ecf.table$query)
+  this.range.cov <- contain.neighbour.cov.max[ecf %chin% this.range.ecf.table$query]$neighbour.cov.max
+  
+  mean.no.fams <- mean(contain.neighbour.no.fams[ecf %chin% this.range.ecf.table$query]$no.fams)
+  
+  prop.unrelated <- lw(this.range.cov < 0.5)/length(this.range.cov)
+  mean.length <- mean(this.range.ecf.table$length)
+  data.table(scov.min = this.range[1], scov.max = this.range[2], size, mean.length, prop.unrelated, mean.no.fams)  
+})
+fragment.cov.stats <- rbindlist(fragment.cov.stats.list)
+fragment.cov.stats[, scov.mid := (scov.min + scov.max) / 2]
+fragB <- fragment.cov.stats[scov.max <= 0.9]
+
+ci <- mapply(function(p, n) {
+  if (is.na(p) || n == 0) return(c(NA_real_, NA_real_))
+  binom.test(round(p * n), n)$conf.int[1:2]
+}, fragB$prop.unrelated, fragB$size)
+fragB[, `:=`(lo = ci[1, ], hi = ci[2, ])]
+
+col_unrel <- "#3B6D11"
+
+pB <- ggplot(fragB, aes(x = scov.mid, y = prop.unrelated)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), fill = "#C0DD97", alpha = 0.4) +
+  geom_line(colour = col_unrel, linewidth = 0.7) +
+  geom_point(aes(size = mean.length), colour = col_unrel) +
+  scale_size(range = c(2, 13), limits = range(fragB$mean.length),
+             breaks = pretty(fragB$mean.length, n = 4),
+             name = "Mean ECF\nlength (aa)") +
+  scale_x_continuous(breaks = seq(0, 0.9, 0.1), limits = c(0, 0.9)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "Median subject coverage  (low \u2192 more deeply contained)",
+       y = "Unrelated neighbour pairs (cov < 0.5)") +
+  theme_bw(base_size = 13) +
+  theme(axis.title = element_text(face = "bold"),
+        panel.grid.minor = element_blank())
+
+pB
+
+
+
+#||||||||||||||||
+#################
+
 
 p.cont.cont <- ggplot(contain.neighbour.cov.max, aes(x = neighbour.cov.max)) +
   geom_histogram(bins = 40, fill = "#335BAA", color = "white", linewidth = 0.2) +
