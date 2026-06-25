@@ -59,7 +59,9 @@ ecfs.vs.pfam.hhsenser <- fread(ecfs.vs.pfam.hhsenser.output)
 reprseq.vs.ecfs.all   <- fread(reprseq.ecfs.output)
 
 # reprseq vs pfam
+reprseq.vs.ecod.all   <- fread(reprseq.domains.ecod.output)
 reprseq.vs.pfam.all   <- fread(reprseq.domains.pfam.output)
+
 
 # reprseq functional annotations
 reprseq.functions.unique <- fread(reprseq.functions.unique.output)
@@ -71,10 +73,11 @@ reprseq.functions.all    <- fread(reprseq.functions.all.output)
 ## Keys and lookups used throughout. Both source files keyed `ecf.family.table`
 ## on `ecf` and `ecf.table` on `ecf.name` -- both are set explicitly here so
 ## every downstream `.( )` lookup is unambiguous regardless of analysis order.
-setkey(ecf.table,         ecf.name)
-setkey(ecf.family.table,  ecf)
-setkey(ecod.domains,      full.id)
-setkey(pfam.domains,      accession)
+setkey(ecf.table,                  ecf.name)
+setkey(ecf.family.table,           ecf)
+setkey(ecod.domains,               full.id)
+setkey(pfam.domains,               accession)
+setkey(reprseq.functions.unique,   reprseq)
 
 all.ecfs <- unique(ecf.table$ecf.name)
 Ne <- length(all.ecfs)
@@ -123,6 +126,13 @@ reprseq.vs.ecfs <- reprseq.vs.ecfs.all %>%
          hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM)
 
 reprseq.vs.pfam <- reprseq.vs.pfam.all %>%
+  filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
+         eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM,
+         qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
+         hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM)
+
+reprseq.vs.ecod <- reprseq.vs.ecod.all %>%
   filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
          eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM,
          qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
@@ -743,6 +753,68 @@ p.ecod.links <- ggplot(plot_dt.links, aes(x = class.assignment, y = no.unique.x,
 ggsave(file.path(this.part.dir, "suppS4_ecod-links.png"),
        p.ecod.links, width = 4, height = 4)
 
+### confident hits only (you already filter upstream; keep consistent)
+links <- copy(ecfs.vs.ecod.link[prob >= MIN.PROB.FOR.ECF.DOMAIN.CONFIDENT])
+
+### --- per-ECF bridging level (nested, mutually exclusive) ---
+### MIN.SECOND = minimum hits to a second group for it to "count"
+MIN.SECOND <- 2L
+
+bridge.level <- links[, {
+  ## count hits per group at each level
+  t.tab <- table(t.id)
+  h.tab <- table(h.id)
+  x.tab <- table(x.id)
+  ## a level is "bridged" if >=2 groups each have >= MIN.SECOND hits
+  n.t <- sum(t.tab >= MIN.SECOND)
+  n.h <- sum(h.tab >= MIN.SECOND)
+  n.x <- sum(x.tab >= MIN.SECOND)
+  level <- if (n.x >= 2) "Bridges X-group"
+  else if (n.h >= 2) "Bridges H-group"
+  else if (n.t >= 2) "Bridges T-group"
+  else "Within T-group"
+  .(level = level, n.hits = .N)
+}, by = qname]
+
+### attach ECF-ECOD class (from your existing per-ECF assignment)
+bridge.level <- merge(
+  bridge.level,
+  ecf.ecod.domain.assignment[, .(qname, class.assignment)],
+  by = "qname", all.x = TRUE
+)
+
+### keep the meaningful classes, set orders
+class.ord <- c("equivalent", "subdomain", "superdomain", "related", "distant")
+level.ord <- c("Within T-group", "Bridges T-group", "Bridges H-group", "Bridges X-group")
+plot.dt <- bridge.level[class.assignment %chin% class.ord]
+plot.dt[, class.assignment := factor(class.assignment, levels = class.ord)]
+plot.dt[, level := factor(level, levels = level.ord)]
+
+### proportions within each class
+prop.dt <- plot.dt[, .N, by = .(class.assignment, level)]
+prop.dt[, prop := N / sum(N), by = class.assignment]
+### bin counts for axis annotation
+class.n <- plot.dt[, .(n = .N), by = class.assignment]
+
+pD <- ggplot(prop.dt, aes(x = class.assignment, y = prop, fill = level)) +
+  geom_col(width = 0.85, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c("Within T-group"  = "#D3D1C7",
+               "Bridges T-group"  = "#97C459",
+               "Bridges H-group"  = "#1D9E75",
+               "Bridges X-group"  = "#185FA5"),
+    name = NULL) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     expand = expansion(mult = c(0, 0.03))) +
+  labs(x = "ECF\u2013ECOD class", y = "Proportion of ECFs") +
+  theme_bw(base_size = 13) +
+  theme(axis.title = element_text(face = "bold"),
+        legend.position = "right",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+
+pD
+
 ####################################################################
 ####################################################################
 ###  STEP 5: Examples of ECFs linking diverse X
@@ -750,16 +822,160 @@ ggsave(file.path(this.part.dir, "suppS4_ecod-links.png"),
 ####################################################################
 
 SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV <- 0.9
-SUBDOMAIN.ECF.EXAMPLE.MIN.PROB <- 99
-SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV <- 0.5
+SUBDOMAIN.ECF.EXAMPLE.MIN.PROB <- 95
+SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV <- 0.7
 SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X <- 2
 
 ecfs.vs.ecod.link.subdomain.shortlist <- ecfs.vs.ecod.link[qname %chin% ecf.ecod.linking.stats[no.unique.x >= SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X]$qname & 
                                                              prob >= SUBDOMAIN.ECF.EXAMPLE.MIN.PROB & 
                                                              qcov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV & 
                                                              scov <= SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV]
-# ecf.ecod.linking.stats
 
+reprseq.vs.ecod.complete.domains <- reprseq.vs.ecod[scov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV]
+reprseq.vs.ecod.best <- reprseq.vs.ecod.complete.domains[
+  order(-bitscore),
+  .(reprseq      = qname[1],
+    rs.start     = qstart[1],     # ECOD's coordinates ON the reprseq
+    rs.end       = qend[1],
+    rs.length    = qlength[1],
+    rs.bitscore  = bitscore[1],
+    rs.prob      = prob[1],
+    rs.qcov      = qcov[1],
+    rs.scov      = scov[1]),
+  by = .(sname)]  
+
+ecf.ecod.reprseq <- merge(
+  ecfs.vs.ecod.link.subdomain.shortlist,
+  reprseq.vs.ecod.best,
+  by = "sname",
+  all.x = TRUE)
+
+setorder(ecf.ecod.reprseq, qname, x.id, -bitscore)
+print(ecf.ecod.reprseq[, .(qname, sname, x.id, h.id, reprseq,
+                           rs.start, rs.end, rs.length, rs.bitscore)])
+
+ecf.ecod.reprseq.match <- ecf.ecod.reprseq[!is.na(reprseq)]
+ecf.ecod.reprseq.match[, funct := reprseq.functions.unique[.(ecf.ecod.reprseq.match$reprseq)]$funct]
+
+all.matching.ecfs <- unique(ecf.ecod.reprseq.match$qname)
+x.stats <- ecf.ecod.reprseq.match[, .(no.x = uniqueN(x.level)), by = .(qname)]
+shortlist.ecfs <- unique(x.stats[no.x > 1]$qname)
+
+ecf.ecod.reprseq.match.shortlist <- ecf.ecod.reprseq.match[qname %chin% shortlist.ecfs]
+ecf.ecod.reprseq.match.shortlist[, t.name := ecod.domains[.(ecf.ecod.reprseq.match.shortlist$sname)]$t_name]
+
+
+# index=1
+# z <- ecf.ecod.reprseq.match[qname == all.matching.ecfs[index]]
+# unique(z$x.level)
+
+## drop rows with no recovered function (can't judge "interesting" without it)
+dt <- ecf.ecod.reprseq.match.shortlist[!is.na(funct) & funct != ""]
+
+## 1. per (ECF, X-group): which function(s) does that X-group map to
+ecf.x.funct <- dt[, .(
+  functions = paste(sort(unique(funct)), collapse = " / "),
+  domains = paste(sort(unique(t.name)), collapse = " / "),
+  n.reprseq = uniqueN(reprseq),
+  n.ecod    = uniqueN(sname)
+), by = .(qname, x.id)]
+
+## 2. per ECF: do its X-groups carry DIFFERENT functions?
+ecf.pairs <- ecf.x.funct[, .(
+  n.x          = uniqueN(x.id),
+  n.functions  = uniqueN(unlist(strsplit(functions, " / "))),
+  x.groups     = paste(sort(unique(x.id)), collapse = " | "),
+  funct.by.x   = paste(sprintf("X%s: %s", x.id, functions), collapse = "  ||  "),
+  domain.by.x   = paste(sprintf("X%s: %s", x.id, domains), collapse = "  ||  ")
+), by = qname]
+
+## 3. the interesting ones: bridge >=2 X-groups AND >=2 distinct functions
+interesting <- ecf.pairs[n.x >= 2 & n.functions >= 2][order(-n.functions, -n.x)]
+
+### PICKING EXAMPLES
+
+ecf.example1 <- "ecf_00108"
+ecf.example2 <- "ecf_01881"
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+################################################################################
+## 1. ECF position on each reprseq  (reprseq.vs.ecfs: ECF=sname, reprseq=qname)
+################################################################################
+ecf.on.reprseq <- reprseq.vs.ecfs[
+  sname %chin% c(ecf.example1, ecf.example2),
+  .(ecf = sname, reprseq = qname,
+    ecf.start = qstart, ecf.end = qend, rs.length = qlength, rs.prob = prob)]
+
+################################################################################
+## 2. Candidate table: ECF + its ECOD domain (sname) + X-group + function
+##    + ECF coords on the reprseq. Keep sname explicitly.
+################################################################################
+cand <- merge(
+  ecf.ecod.reprseq.match.shortlist[
+    qname %chin% c(ecf.example1, ecf.example2),
+    .(ecf = qname, sname, x.id, t.name, reprseq, funct)],
+  ecf.on.reprseq,
+  by = c("ecf", "reprseq"))
+cand <- unique(cand[!is.na(ecf.start) & !is.na(funct) & funct != ""])
+
+################################################################################
+## 3. ECOD-domain coords on the SAME reprseq, joined by reprseq + sname
+################################################################################
+dom.on.same.rs <- unique(reprseq.vs.ecod[
+  , .(reprseq = qname, sname, dom.start = qstart, dom.end = qend)])
+
+cand <- merge(cand, dom.on.same.rs, by = c("reprseq", "sname"), all.x = TRUE)
+
+################################################################################
+## 4. Pick ONE representative reprseq per (ECF, X-group)
+##    Prefer rows where the ECOD domain is co-located (drawable), then by
+##    best ECF-placement confidence.
+################################################################################
+cand[, drawable := !is.na(dom.start)]
+setorder(cand, ecf, x.id, -drawable, -rs.prob)
+rep.per.x <- cand[, .SD[1], by = .(ecf, x.id)]
+
+cat("\n--- chosen representatives ---\n")
+print(rep.per.x[, .(ecf, x.id, t.name, funct, reprseq,
+                    rs.length, dom.start, dom.end, ecf.start, ecf.end, drawable)])
+
+################################################################################
+## 5. Draw one ECF: backbone -> ECOD domain -> ECF nested inside
+################################################################################
+draw.ecf <- function(ecf.id, dom.col = "#F2C14E", ecf.col = "#1D6F9E", title = NULL) {
+  d <- rep.per.x[ecf == ecf.id]
+  setorder(d, x.id)
+  d[, y := .N - seq_len(.N) + 1]
+  d[, label := sprintf("%s  \u2014  %s  (X%s)", reprseq, funct, x.id)]
+  
+  ggplot(d) +
+    geom_segment(aes(x = 1, xend = rs.length, y = y, yend = y),
+                 linewidth = 2.4, colour = "grey85", lineend = "round") +
+    geom_rect(data = d[!is.na(dom.start)],
+              aes(xmin = dom.start, xmax = dom.end,
+                  ymin = y - 0.26, ymax = y + 0.26),
+              fill = dom.col, colour = "grey35", linewidth = 0.3) +
+    geom_rect(aes(xmin = ecf.start, xmax = ecf.end,
+                  ymin = y - 0.16, ymax = y + 0.16),
+              fill = ecf.col, colour = "grey15", linewidth = 0.3) +
+    geom_text(data = d[!is.na(dom.start)],
+              aes(x = (dom.start + dom.end)/2, y = y + 0.34, label = t.name),
+              size = 2.4, colour = "grey25", vjust = 0) +
+    scale_y_continuous(breaks = d$y, labels = d$label,
+                       expand = expansion(add = 0.8)) +
+    scale_x_continuous(expand = expansion(mult = c(0.01, 0.03))) +
+    labs(x = "Residue position", y = NULL, title = title %||% ecf.id) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid = element_blank(),
+          axis.text.y = element_text(hjust = 0, colour = "grey15"),
+          axis.title.x = element_text(face = "bold"),
+          plot.title = element_text(face = "bold"))
+}
+
+g1 <- draw.ecf(ecf.example1, title = ecf.example1)
+g2 <- draw.ecf(ecf.example2, ecf.col = "#C8102E", title = ecf.example2)
+g1
+g2
 
 ##################
 
