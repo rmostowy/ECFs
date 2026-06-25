@@ -743,11 +743,53 @@ p.ecod.links <- ggplot(plot_dt.links, aes(x = class.assignment, y = no.unique.x,
 ggsave(file.path(this.part.dir, "suppS4_ecod-links.png"),
        p.ecod.links, width = 4, height = 4)
 
-## ---- MAIN E : worked example (TODO) -----------------------------------------
-## One ECF that merges non-homologous proteins of different functions.
-## Example not yet selected; build the panel here once chosen.
-## p.worked.example <- ...
-## ggsave(file.path(this.part.dir, "mainE_worked-example.png"), p.worked.example, ...)
+####################################################################
+####################################################################
+###  STEP 5: Examples of ECFs linking diverse X
+####################################################################
+####################################################################
+
+SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV <- 0.9
+SUBDOMAIN.ECF.EXAMPLE.MIN.PROB <- 99
+SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV <- 0.5
+SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X <- 2
+
+ecfs.vs.ecod.link.subdomain.shortlist <- ecfs.vs.ecod.link[qname %chin% ecf.ecod.linking.stats[no.unique.x >= SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X]$qname & 
+                                                             prob >= SUBDOMAIN.ECF.EXAMPLE.MIN.PROB & 
+                                                             qcov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV & 
+                                                             scov <= SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV]
+# ecf.ecod.linking.stats
+
+
+##################
+
+## "Anchor" hit: the ECF must have at least one clean subdomain hit
+ANCHOR.MIN.QCOV <- 0.90
+ANCHOR.MIN.PROB <- 99
+ANCHOR.MAX.SCOV <- 0.50
+## "Bridging" partner: allowed to be weaker, so the second fold can be partial
+BRIDGE.MIN.QCOV <- 0.80
+BRIDGE.MIN.PROB <- 98
+BRIDGE.MAX.SCOV <- 0.60
+## require the ECF to bridge >=2 X-groups among its qualifying hits
+MIN.NO.X <- 2
+## bridging hits must land on ECF positions overlapping the anchor (real bridge,
+## not a fusion of two sub-fragments). Min fractional overlap of query ranges.
+MIN.QRANGE.OVERLAP <- 0.50
+
+## 1. Build the qualifying hit set (anchor OR bridge quality)
+hits <- copy(ecfs.vs.ecod.link)
+hits[, is.anchor := qcov >= ANCHOR.MIN.QCOV & prob >= ANCHOR.MIN.PROB & scov <= ANCHOR.MAX.SCOV]
+hits[, is.bridge := qcov >= BRIDGE.MIN.QCOV & prob >= BRIDGE.MIN.PROB & scov <= BRIDGE.MAX.SCOV]
+qual <- hits[is.anchor | is.bridge]
+
+## keep only ECFs that have >=1 anchor hit AND span >=2 X-groups among qual hits
+ecf.anchor   <- qual[is.anchor == TRUE, unique(qname)]
+ecf.xspan    <- qual[, .(n.x = uniqueN(x.id)), by = qname][n.x >= MIN.NO.X, qname]
+candidate.ecfs <- intersect(ecf.anchor, ecf.xspan)
+
+qual <- qual[qname %chin% candidate.ecfs]
+
 
 ################################################################################
 ###  ASSEMBLE MAIN FIGURE  (A -> B -> C -> D ; E added once built)
