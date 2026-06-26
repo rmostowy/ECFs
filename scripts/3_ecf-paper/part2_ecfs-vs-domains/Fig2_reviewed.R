@@ -190,7 +190,7 @@ ecf.connectivity.stats[, strength_mean := (mean.qcov + mean.scov) / 2]
 ecf.connectivity.stats[, strength_med  := (med.qcov  + med.scov)  / 2]
 ecf.connectivity.stats <- merge(ecf.connectivity.stats, ecf.no.fams, by = "query")
 
-## ---- MAIN A : per-node median qcov/scov diagonal (p.qs.node) ----------------
+## ---- PLOT 1: per-node median qcov/scov diagonal (p.qs.node) ----------------
 ## The clean per-node containment view: most ECFs sit hard against one axis,
 ## i.e. they are predominantly contained-in or container-of, not symmetric.
 p.qs.node <- ggplot(ecf.connectivity.stats, aes(x = med.qcov, y = med.scov)) +
@@ -203,22 +203,22 @@ p.qs.node <- ggplot(ecf.connectivity.stats, aes(x = med.qcov, y = med.scov)) +
   base_theme
 p.qs.node.marg <- ggMarginal(
   p.qs.node, type = "histogram", bins = 60,
-  fill = "#16396b", colour = "white", size = 5
+  fill = "#16396b", colour = "white", size = 5, margins = "x"
 )
-ggsave(file.path(this.part.dir, "mainA_node-qcov-scov.png"),
+ggsave(file.path(this.part.dir, "plot1_node-qcov-scov.png"),
        p.qs.node.marg, width = 6, height = 5)
 
-## ---- SUPP S1 : raw pairwise heatmap (p.cov.heatmap) -------------------------
+## ---- PLOT 2: raw pairwise heatmap (p.cov.heatmap) -------------------------
 p.cov.heatmap <- ggplot(eve.conf, aes(x = qcov, y = scov)) +
   geom_bin2d(bins = 60) +
   heatmap_fill +
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(x = "Query coverage", y = "Subject coverage") +
   base_theme
-ggsave(file.path(this.part.dir, "suppS1_cov-heatmap.png"),
+ggsave(file.path(this.part.dir, "plot2_cov-heatmap.png"),
        p.cov.heatmap, width = 6, height = 5)
 
-## ---- SUPP S1 : per-node average heatmap (p.connect.cov.heatmap) -------------
+## ---- PLOT 3: per-node average heatmap (p.connect.cov.heatmap) -------------
 ## Doubles as evidence that containment is global, not hub-driven.
 p.connect.cov.heatmap <- ggplot(ecf.connectivity.stats,
                                 aes(x = mean.qcov, y = mean.scov)) +
@@ -227,19 +227,19 @@ p.connect.cov.heatmap <- ggplot(ecf.connectivity.stats,
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(x = "Mean query coverage", y = "Mean subject coverage") +
   base_theme
-ggsave(file.path(this.part.dir, "suppS1_connect-cov-heatmap.png"),
+ggsave(file.path(this.part.dir, "plot3_connect-cov-heatmap.png"),
        p.connect.cov.heatmap, width = 6, height = 5)
 
-## ---- SUPP S1 : asymmetry distribution (p.asym.dist) -------------------------
+## ---- PLOT 4: asymmetry distribution (p.asym.dist) -------------------------
 p.asym.dist <- ggplot(ecf.connectivity.stats, aes(x = asym_med)) +
   geom_histogram(bins = 60, fill = "#2c7fb8", color = "white") +
   geom_vline(xintercept = 0, linetype = "dashed") +
   theme_bw(base_size = 14) +
   labs(x = "Asymmetry (median qcov - median scov)", y = "Number of ECFs")
-ggsave(file.path(this.part.dir, "suppS1_asym-dist.png"),
+ggsave(file.path(this.part.dir, "plot4_asym-dist.png"),
        p.asym.dist, width = 5, height = 4)
 
-## ---- SUPP S1 : asymmetry vs length (p.asym.len) -----------------------------
+## ---- PLOT 5: asymmetry vs length (p.asym.len) -----------------------------
 ## Shows that the contained-in (fragment) role concentrates among shorter ECFs.
 p.asym.len <- ggplot(ecf.connectivity.stats, aes(x = asym_mean, y = length)) +
   geom_bin2d(bins = 60) +
@@ -248,7 +248,7 @@ p.asym.len <- ggplot(ecf.connectivity.stats, aes(x = asym_mean, y = length)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.6) +
   labs(x = "Asymmetry (mean qcov - mean scov)", y = "ECF length (aa, log10)") +
   base_theme
-ggsave(file.path(this.part.dir, "suppS1_asym-vs-length.png"),
+ggsave(file.path(this.part.dir, "plot5_asym-vs-length.png"),
        p.asym.len, width = 6, height = 5)
 
 ####################################################################
@@ -259,7 +259,7 @@ ggsave(file.path(this.part.dir, "suppS1_asym-vs-length.png"),
 ####################################################################
 
 
-## ---- SUPP S4 : container-container similarity (p.cont.cont) -----------------
+## ---- container-container similarity (p.cont.cont) -----------------
 ## Supports Step 4 (artefact control / the 11% result) but is computed here
 ## because it needs the containment graph. Saved with the S4 group.
 containment.network <- ecf.network[qcov >= DOMAIN.CONTAINMENT.COV.THR]
@@ -329,6 +329,8 @@ fragB <- fragment.cov.stats[scov.decile != n.scov.bins]   # drop top decile (nea
 
 col_unrel <- "#3B6D11"
 
+## ---- PLOT 6: Do fragments connect more diverse ECFs?
+
 p.fragments.connect <- ggplot(fragB, aes(x = scov.mid, y = prop.unrelated)) +
   geom_line(colour = col_unrel, linewidth = 0.7) +
   geom_point(aes(size = mean.length), colour = col_unrel) +
@@ -342,7 +344,10 @@ p.fragments.connect <- ggplot(fragB, aes(x = scov.mid, y = prop.unrelated)) +
        y = "Proportion of unrelated neighbours (cov < 0.5)") +
   base_theme
 
-## ---- SUPP (sister plot) : full distribution of container-container
+ggsave(file.path(this.part.dir, "plot6_fragments-connect.png"),
+       p.fragments.connect, width = 7, height = 4.5)
+
+## ---- PLOT 7: full distribution of container-container
 ## similarity within each scov decile -----------------------------------------
 ## `prop.unrelated` in the main panel collapses each bin to one number (% of
 ## neighbour pairs below the 0.5 "unrelated" threshold). This shows the
@@ -374,9 +379,9 @@ p.fragments.connect.dist <- ggplot(neighbour.cov.by.decile,
   base_theme +
   theme(panel.grid.minor = element_blank())
 
-p.fragments.connect.dist
+# p.fragments.connect.dist
 
-ggsave(file.path(this.part.dir, "suppS4_fragments-cov-distribution.png"),
+ggsave(file.path(this.part.dir, "plot7_fragments-cov-distribution.png"),
        p.fragments.connect.dist, width = 7, height = 4.5)
 
 
@@ -463,7 +468,7 @@ prop_dt.ecod <- ecf.ecod.domain.assignment[, .N, by = .(len_bin, class.assignmen
 prop_dt.ecod[, prop := N / sum(N), by = len_bin]
 prop_dt.ecod[, class.assignment := factor(class.assignment, levels = rev(class.plotting.order))]
 
-## ---- MAIN B : ECOD class by length (p.ecod.domain.cat.by.length) ------------
+## ---- PLOT 8: ECOD class by length (p.ecod.domain.cat.by.length) ------------
 ## Read two ways: by length -> subdomain/equivalent/superdomain spectrum;
 ## by row -> exact equivalence is never dominant.
 
@@ -484,10 +489,10 @@ p.ecod.domain.cat.by.length <- ggplot(prop_dt.ecod,
         legend.key.height = unit(0.5, "cm"),
         axis.title   = element_text(face = "bold"),
         axis.text.x  = element_text(angle = 45, hjust = 1))
-ggsave(file.path(this.part.dir, "mainB_dom-class-ecod.png"),
+ggsave(file.path(this.part.dir, "plot8_dom-class-ecod.png"),
        p.ecod.domain.cat.by.length, width = 6, height = 5)
 
-## ---- SUPP S2 : Pfam class by length (p.pfam.domain.cat.by.length) -----------
+## ---- PLOT 9: Pfam class by length (p.pfam.domain.cat.by.length) -----------
 ecf.domain.assignment.pfam <- classify.ecf.domain(ecfs.vs.pfam)
 ecf.no.domain.assignment.pfam <- all.ecfs[!all.ecfs %in% ecf.domain.assignment.pfam$qname]
 ecf.domain.assignment.pfam <- rbind(ecf.domain.assignment.pfam, data.table(qname = ecf.no.domain.assignment.pfam, class.assignment = "new"))
@@ -516,10 +521,10 @@ p.pfam.domain.cat.by.length <- ggplot(prop_dt.pfam,
   theme_bw(base_size = 12) +
   theme(axis.title = element_text(face = "bold"),
         axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(file.path(this.part.dir, "suppS2_dom-class-pfam.png"),
+ggsave(file.path(this.part.dir, "plot9_dom-class-pfam.png"),
        p.pfam.domain.cat.by.length, width = 6, height = 5)
 
-## ---- SUPP: ECOD-Pfam agreement (p.ecod.pfam.agreement) ------------------
+## ---- PLOT 10: ECOD-Pfam agreement (p.ecod.pfam.agreement) ------------------
 ecod.assign <- ecf.ecod.domain.assignment[, .(qname, ecod_class = class.assignment, length, size)]
 pfam.assign <- ecf.pfam.domain.assignment[, .(qname, pfam_class = class.assignment, length, size)]
 
@@ -548,7 +553,7 @@ p.ecod.pfam.agreement <- (p_cm_counts / p_cm_rowprop) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(face = "bold", size = 24),
         plot.tag.position = c(0.02, 0.98))
-ggsave(file.path(this.part.dir, "suppS2_ecod-pfam-agreement.png"),
+ggsave(file.path(this.part.dir, "plot10_ecod-pfam-agreement.png"),
        p.ecod.pfam.agreement, width = 6, height = 10)
 
 ## chi-squared agreement -> inline prose sentence (not a figure).
@@ -564,9 +569,9 @@ sent <- sprintf(
          "(chi-squared: X2(%d) = %.0f, p %s; Cramer's V = %.3f)."),
   unname(chi$parameter), unname(chi$statistic), pval_txt, V
 )
-write(sent, file = file.path(this.part.dir, "suppS2_agreement-sentence.txt"))
+write(sent, file = file.path(this.part.dir, "plot10-table_agreement-sentence.txt"))
 
-## ---- MAIN C : ECF-domain coverage across e-value thresholds -----------------
+## ---- plot11: ECF-domain coverage across e-value thresholds -----------------
 ecf.domain.coverage <- data.table(ecf = all.ecfs)
 ecf.domain.coverage[, ecod.eval0p1   := all.ecfs %in% ecfs.vs.ecod$qname]
 ecf.domain.coverage[, ecod.eval0p001 := all.ecfs %in% ecfs.vs.ecod.conf$qname]
@@ -605,7 +610,7 @@ p.ecf.domain.coverage <- ggplot(counts_dt, aes(x = threshold, y = N, fill = cate
   theme(legend.position = "top",
         legend.text  = element_text(size = 9),
         axis.title   = element_text(face = "bold"))
-ggsave(file.path(this.part.dir, "mainC_ecf-domain-cov.png"),
+ggsave(file.path(this.part.dir, "plot11_ecf-domain-cov.png"),
        p.ecf.domain.coverage, width = 6, height = 5)
 
 ## ---- Define "new" (off-edge) ECFs and their rHMMs (shared by D and supp) ----
@@ -671,10 +676,10 @@ p.new.ecf.enrichment <- ggplot(plot.ecod.dt, aes(x = log2OR_plot, y = ykey, shap
         axis.title.x = element_text(face = "bold"),
         panel.spacing = unit(0.35, "lines"),
         panel.grid.major.x = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "mainD_new-ecf-enrichment.png"),
+ggsave(file.path(this.part.dir, "plot12_new-ecf-enrichment.png"),
        p.new.ecf.enrichment, width = 8, height = 10)
 
-## ---- SUPP S3 : same enrichment, Pfam-based (p.new.ecf.enrichment.pfams) -----
+## ---- PLOT 13: same enrichment, Pfam-based (p.new.ecf.enrichment.pfams) -----
 rs2pfam <- unique(reprseq.vs.pfam[, .(qname, accession)])
 rs2pfam[, is_new := qname %chin% reprseq.new]
 
@@ -713,7 +718,7 @@ p.new.ecf.enrichment.pfams <- ggplot(plot.pfam.dt, aes(x = log2OR_plot, y = func
         axis.text.y = element_text(size = 8),
         axis.title.x = element_text(face = "bold"),
         panel.grid.major.x = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "suppS3_new-ecf-enrichment-pfams.png"),
+ggsave(file.path(this.part.dir, "plot13_new-ecf-enrichment-pfams.png"),
        p.new.ecf.enrichment.pfams, width = 8, height = 10)
 
 ####################################################################
@@ -750,7 +755,7 @@ p.ecod.links <- ggplot(plot_dt.links, aes(x = class.assignment, y = no.unique.x,
   theme(axis.title.x = element_text(margin = margin(t = 8), face = "bold"),
         axis.title.y = element_text(face = "bold"),
         panel.grid.major.y = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "suppS4_ecod-links.png"),
+ggsave(file.path(this.part.dir, "plot14_ecod-links.png"),
        p.ecod.links, width = 4, height = 4)
 
 ### confident hits only (you already filter upstream; keep consistent)
@@ -795,8 +800,12 @@ prop.dt <- plot.dt[, .N, by = .(class.assignment, level)]
 prop.dt[, prop := N / sum(N), by = class.assignment]
 ### bin counts for axis annotation
 class.n <- plot.dt[, .(n = .N), by = class.assignment]
+## NOTE: `class.n` isn't used anywhere below -- looks like it was meant to
+## annotate the x-axis with per-class N (per the comment above) but that
+## never got wired into the ggplot call. Harmless either way; flagging in
+## case it was meant to show up in the final figure.
 
-pD <- ggplot(prop.dt, aes(x = class.assignment, y = prop, fill = level)) +
+p.class.assignment <- ggplot(prop.dt, aes(x = class.assignment, y = prop, fill = level)) +
   geom_col(width = 0.85, colour = "white", linewidth = 0.3) +
   scale_fill_manual(
     values = c("Within T-group"  = "#D3D1C7",
@@ -813,7 +822,8 @@ pD <- ggplot(prop.dt, aes(x = class.assignment, y = prop, fill = level)) +
         panel.grid.major.x = element_blank(),
         panel.grid.minor = element_blank())
 
-pD
+ggsave(file.path(this.part.dir, "plot15_class-assignment.png"),
+       p.class.assignment, width = 7, height = 4)
 
 ####################################################################
 ####################################################################
@@ -826,33 +836,39 @@ SUBDOMAIN.ECF.EXAMPLE.MIN.PROB <- 95
 SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV <- 0.7
 SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X <- 2
 
-ecfs.vs.ecod.link.subdomain.shortlist <- ecfs.vs.ecod.link[qname %chin% ecf.ecod.linking.stats[no.unique.x >= SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X]$qname & 
-                                                             prob >= SUBDOMAIN.ECF.EXAMPLE.MIN.PROB & 
-                                                             qcov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV & 
-                                                             scov <= SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV]
+##############################################################################
+### STEP A -- find ECFs that bridge >=2 X-groups AND map to >=2 distinct
+###           functions (the candidate pool for the worked example)
+##############################################################################
+
+ecfs.vs.ecod.link.subdomain.shortlist <- ecfs.vs.ecod.link[
+  qname %chin% ecf.ecod.linking.stats[no.unique.x >= SUBDOMAIN.ECF.EXAMPLE.MIN.NO.X]$qname &
+    prob >= SUBDOMAIN.ECF.EXAMPLE.MIN.PROB &
+    qcov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV &
+    scov <= SUBDOMAIN.ECF.EXAMPLE.MAX.SCOV
+]
 
 reprseq.vs.ecod.complete.domains <- reprseq.vs.ecod[scov >= SUBDOMAIN.ECF.EXAMPLE.MIN.QCOV]
 reprseq.vs.ecod.best <- reprseq.vs.ecod.complete.domains[
   order(-bitscore),
   .(reprseq      = qname[1],
-    rs.start     = qstart[1],     # ECOD's coordinates ON the reprseq
+    rs.start     = qstart[1],
     rs.end       = qend[1],
     rs.length    = qlength[1],
     rs.bitscore  = bitscore[1],
     rs.prob      = prob[1],
     rs.qcov      = qcov[1],
     rs.scov      = scov[1]),
-  by = .(sname)]  
+  by = .(sname)
+]
 
 ecf.ecod.reprseq <- merge(
   ecfs.vs.ecod.link.subdomain.shortlist,
   reprseq.vs.ecod.best,
   by = "sname",
-  all.x = TRUE)
-
+  all.x = TRUE
+)
 setorder(ecf.ecod.reprseq, qname, x.id, -bitscore)
-print(ecf.ecod.reprseq[, .(qname, sname, x.id, h.id, reprseq,
-                           rs.start, rs.end, rs.length, rs.bitscore)])
 
 ecf.ecod.reprseq.match <- ecf.ecod.reprseq[!is.na(reprseq)]
 ecf.ecod.reprseq.match[, funct := reprseq.functions.unique[.(ecf.ecod.reprseq.match$reprseq)]$funct]
@@ -864,163 +880,289 @@ shortlist.ecfs <- unique(x.stats[no.x > 1]$qname)
 ecf.ecod.reprseq.match.shortlist <- ecf.ecod.reprseq.match[qname %chin% shortlist.ecfs]
 ecf.ecod.reprseq.match.shortlist[, t.name := ecod.domains[.(ecf.ecod.reprseq.match.shortlist$sname)]$t_name]
 
+ecf.ecod.with.funct <- ecf.ecod.reprseq.match.shortlist[!is.na(funct) & funct != ""]
 
-# index=1
-# z <- ecf.ecod.reprseq.match[qname == all.matching.ecfs[index]]
-# unique(z$x.level)
-
-## drop rows with no recovered function (can't judge "interesting" without it)
-dt <- ecf.ecod.reprseq.match.shortlist[!is.na(funct) & funct != ""]
-
-## 1. per (ECF, X-group): which function(s) does that X-group map to
-ecf.x.funct <- dt[, .(
+ecf.x.funct <- ecf.ecod.with.funct[, .(
   functions = paste(sort(unique(funct)), collapse = " / "),
-  domains = paste(sort(unique(t.name)), collapse = " / "),
+  domains   = paste(sort(unique(t.name)), collapse = " / "),
   n.reprseq = uniqueN(reprseq),
   n.ecod    = uniqueN(sname)
 ), by = .(qname, x.id)]
 
-## 2. per ECF: do its X-groups carry DIFFERENT functions?
 ecf.pairs <- ecf.x.funct[, .(
-  n.x          = uniqueN(x.id),
-  n.functions  = uniqueN(unlist(strsplit(functions, " / "))),
-  x.groups     = paste(sort(unique(x.id)), collapse = " | "),
-  funct.by.x   = paste(sprintf("X%s: %s", x.id, functions), collapse = "  ||  "),
-  domain.by.x   = paste(sprintf("X%s: %s", x.id, domains), collapse = "  ||  ")
+  n.x         = uniqueN(x.id),
+  n.functions = uniqueN(unlist(strsplit(functions, " / "))),
+  x.groups    = paste(sort(unique(x.id)), collapse = " | "),
+  funct.by.x  = paste(sprintf("X%s: %s", x.id, functions), collapse = "  ||  "),
+  domain.by.x = paste(sprintf("X%s: %s", x.id, domains), collapse = "  ||  ")
 ), by = qname]
 
-## 3. the interesting ones: bridge >=2 X-groups AND >=2 distinct functions
 interesting <- ecf.pairs[n.x >= 2 & n.functions >= 2][order(-n.functions, -n.x)]
 
-### PICKING EXAMPLES
+##############################################################################
+### STEP B -- hand-picked examples: build candidate rows per (ECF, X-group)
+##############################################################################
 
-ecf.example1 <- "ecf_00108"
-ecf.example2 <- "ecf_01881"
+## Hand-picked from `interesting` above -- update as the shortlist evolves.
+# ecf.examples <- c("ecf_00043", "ecf_00108", "ecf_01881", "ecf_04622", "ecf_06876")
+ecf.examples <- c("ecf_00043", "ecf_00108", "ecf_01881", "ecf_04622")
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
-################################################################################
-## 1. ECF position on each reprseq  (reprseq.vs.ecfs: ECF=sname, reprseq=qname)
-################################################################################
 ecf.on.reprseq <- reprseq.vs.ecfs[
-  sname %chin% c(ecf.example1, ecf.example2),
+  sname %chin% ecf.examples,
   .(ecf = sname, reprseq = qname,
-    ecf.start = qstart, ecf.end = qend, rs.length = qlength, rs.prob = prob)]
+    ecf.start = qstart, ecf.end = qend, rs.length = qlength, rs.prob = prob)
+]
 
-################################################################################
-## 2. Candidate table: ECF + its ECOD domain (sname) + X-group + function
-##    + ECF coords on the reprseq. Keep sname explicitly.
-################################################################################
 cand <- merge(
   ecf.ecod.reprseq.match.shortlist[
-    qname %chin% c(ecf.example1, ecf.example2),
+    qname %chin% ecf.examples,
     .(ecf = qname, sname, x.id, t.name, reprseq, funct)],
   ecf.on.reprseq,
-  by = c("ecf", "reprseq"))
+  by = c("ecf", "reprseq")
+)
 cand <- unique(cand[!is.na(ecf.start) & !is.na(funct) & funct != ""])
 
-################################################################################
-## 3. ECOD-domain coords on the SAME reprseq, joined by reprseq + sname
-################################################################################
 dom.on.same.rs <- unique(reprseq.vs.ecod[
   , .(reprseq = qname, sname, dom.start = qstart, dom.end = qend)])
+## NOTE: if a single (reprseq, sname) pair ever has more than one hit window
+## (e.g. a tandemly repeated domain), the merge below will silently fan out
+## into duplicate cand rows. Worth a one-off check if row counts ever look
+## off: dom.on.same.rs[, .N, by = .(reprseq, sname)][N > 1]
 
 cand <- merge(cand, dom.on.same.rs, by = c("reprseq", "sname"), all.x = TRUE)
 
-################################################################################
-## 4. Pick ONE representative reprseq per (ECF, X-group)
-##    Prefer rows where the ECOD domain is co-located (drawable), then by
-##    best ECF-placement confidence.
-################################################################################
 cand[, drawable := !is.na(dom.start)]
 setorder(cand, ecf, x.id, -drawable, -rs.prob)
-rep.per.x <- cand[, .SD[1], by = .(ecf, x.id)]
 
-cat("\n--- chosen representatives ---\n")
-print(rep.per.x[, .(ecf, x.id, t.name, funct, reprseq,
-                    rs.length, dom.start, dom.end, ecf.start, ecf.end, drawable)])
 
-################################################################################
-## 5. Draw one ECF: backbone -> ECOD domain -> ECF nested inside
-################################################################################
-draw.ecf <- function(ecf.id, dom.col = "#F2C14E", ecf.col = "#1D6F9E", title = NULL) {
-  d <- rep.per.x[ecf == ecf.id]
-  setorder(d, x.id)
-  d[, y := .N - seq_len(.N) + 1]
-  d[, label := sprintf("%s  \u2014  %s  (X%s)", reprseq, funct, x.id)]
+# # Option A: pick automatically
+# rep.per.x <- cand[, {
+#   used <- character(0)
+#   x.ids <- unique(x.id)
+#   ord <- x.ids[order(sapply(x.ids, function(xx) uniqueN(reprseq[x.id == xx])))]
+#   
+#   picked <- vector("list", length(ord))
+#   for (i in seq_along(ord)) {
+#     rows   <- .SD[x.id == ord[i]]
+#     free   <- rows[!reprseq %chin% used]
+#     chosen <- if (nrow(free) > 0) free[1] else rows[1]
+#     chosen[, reused := nrow(free) == 0]
+#     picked[[i]] <- chosen
+#     used <- c(used, chosen$reprseq)
+#   }
+#   rbindlist(picked)
+# }, by = ecf]
+# setorder(rep.per.x, ecf, x.id)
+
+# Option B: pick by hand
+# index=3
+# this.ex <- cand[ecf == ecf.examples[index]]
+# View(this.ex)
+example.choices <- c(
+  list(c("ECOD_000010092_e1s2dA1", "ECOD_002630372_e6lhxA2")),
+  list(c("ECOD_000011272_e1ttzA1", "ECOD_001108045_e3j46n1")),
+  list(c("ECOD_001772495_e3g7dA1", "ECOD_000002765_e1lmb31", "ECOD_000005961_e1nr3A1")),
+  list(c("ECOD_000143750_e3rgoA1", "ECOD_002130862_e6apxA3"))
+)
+
+rep.per.x.list <- lapply(1:length(example.choices), function(index){
+  this.ecf <- ecf.examples[index]
+  this.ecods <- example.choices[[index]]
+  cand[ecf == this.ecf & sname %chin% this.ecods]  
+})
+rep.per.x <- rbindlist(rep.per.x.list)
+
+## SAFETY NET: `cand` is never deduplicated to one-row-per-domain before the
+## filter above. If a chosen ECOD domain happens to be hit by more than one
+## reprseq for the same ECF (common -- e.g. ECOD_d1 hit by both rsA and rsB),
+## ALL of those rows pass the `sname %chin% this.ecods` filter, so a single
+## hand-picked domain can silently produce two rows -- i.e. two bars -- in
+## the final figure instead of one. Collapsing to the single best (highest
+## rs.prob) reprseq per (ecf, sname) guarantees exactly one row per chosen
+## domain, regardless of how many reprseqs happen to hit it.
+setorder(rep.per.x, ecf, sname, -rs.prob)
+rep.per.x <- rep.per.x[, .SD[1], by = .(ecf, sname)]
+setorder(rep.per.x, ecf, x.id)
+
+
+# ## attach n.reprseq (how many reprseqs back this ECF/X-group/function combo,
+# ## not just the single chosen representative) for the panel labels below
+# rep.per.x <- merge(rep.per.x, ecf.x.funct[, .(qname, x.id, n.reprseq)],
+#                    by.x = c("ecf", "x.id"), by.y = c("qname", "x.id"), all.x = TRUE)
+# setorder(rep.per.x, ecf, x.id)
+# 
+# print(rep.per.x[, .(ecf, x.id, t.name, funct, n.reprseq, reprseq,
+#                     rs.length, dom.start, dom.end, ecf.start, ecf.end,
+#                     drawable, reused)])
+
+##############################################################################
+### STEP C -- publication panel: 2-4 hand-picked ECFs, 2 columns, shared
+###           ECF colour legend, each ECF's X-group pair kept adjacent
+##############################################################################
+
+## Public entry point: pick 2-4 ECFs, get back one combined figure with
+## `ncol` columns, one correctly-merged ECF-colour legend, light vertical
+## gridlines for residue position, and no clipped domain-name titles.
+##
+## This is a single ggplot object (facet_wrap by column) rather than two
+## separate ggplots glued together with patchwork. That matters here:
+## patchwork's guide collection isn't reliable across ggplot2/patchwork
+## versions when each panel only uses a subset of the fill levels (that was
+## the cause of the broken/duplicated ECF legend) -- a single shared scale
+## sidesteps the issue entirely instead of working around it.
+draw.ecf.examples <- function(ecf.ids, ncol = 2, dom.col = "#F2C14E", ecf.cols = NULL) {
+  stopifnot(length(ecf.ids) >= 1)
+  if (is.null(ecf.cols)) {
+    ecf.cols <- setNames(scales::hue_pal()(length(ecf.ids)), ecf.ids)
+  }
+  
+  d <- rep.per.x[ecf %chin% ecf.ids]
+  d[, ecf := factor(ecf, levels = ecf.ids)]
+  
+  ## assign each ECF to a column, preserving the caller's order so each
+  ## ECF's X-group pair stays adjacent within its column
+  split.idx <- rep(seq_len(ncol), each = ceiling(length(ecf.ids) / ncol),
+                   length.out = length(ecf.ids))
+  col.of.ecf <- setNames(split.idx, ecf.ids)
+  d[, column := col.of.ecf[as.character(ecf)]]
+  
+  setorder(d, column, ecf, x.id)
+  d[, y := .N - seq_len(.N) + 1, by = column]
+  d[, label     := sprintf("%s\n%s", reprseq, funct)]
+  d[, dom.label := sprintf("%s (X%s)", t.name, x.id)]
+  
+  ## per-facet y-axis breaks/labels: each column shows its own reprseq/
+  ## function text rather than one global set forced onto every panel.
+  y.scales <- lapply(sort(unique(d$column)), function(cc) {
+    sub <- d[column == cc]
+    scale_y_continuous(breaks = sub$y, labels = sub$label,
+                       expand = expansion(add = 0.3))
+  })
+  names(y.scales) <- as.character(sort(unique(d$column)))
   
   ggplot(d) +
     geom_segment(aes(x = 1, xend = rs.length, y = y, yend = y),
-                 linewidth = 2.4, colour = "grey85", lineend = "round") +
+                 linewidth = 3.2, colour = "grey30", lineend = "round") +
     geom_rect(data = d[!is.na(dom.start)],
-              aes(xmin = dom.start, xmax = dom.end,
-                  ymin = y - 0.26, ymax = y + 0.26),
+              aes(xmin = dom.start, xmax = dom.end, ymin = y - 0.12, ymax = y + 0.12),
               fill = dom.col, colour = "grey35", linewidth = 0.3) +
-    geom_rect(aes(xmin = ecf.start, xmax = ecf.end,
-                  ymin = y - 0.16, ymax = y + 0.16),
-              fill = ecf.col, colour = "grey15", linewidth = 0.3) +
+    geom_rect(aes(xmin = ecf.start, xmax = ecf.end, ymin = y - 0.06, ymax = y + 0.06,
+                  fill = ecf),
+              colour = "grey15", linewidth = 0.3) +
     geom_text(data = d[!is.na(dom.start)],
-              aes(x = (dom.start + dom.end)/2, y = y + 0.34, label = t.name),
-              size = 2.4, colour = "grey25", vjust = 0) +
-    scale_y_continuous(breaks = d$y, labels = d$label,
-                       expand = expansion(add = 0.8)) +
-    scale_x_continuous(expand = expansion(mult = c(0.01, 0.03))) +
-    labs(x = "Residue position", y = NULL, title = title %||% ecf.id) +
-    theme_minimal(base_size = 12) +
-    theme(panel.grid = element_blank(),
-          axis.text.y = element_text(hjust = 0, colour = "grey15"),
+              aes(x = (dom.start + dom.end) / 2, y = y + 0.40, label = dom.label),
+              size = 2.5, colour = "grey20", vjust = 0, fontface = "bold") +
+    facet_wrap(~ column, ncol = ncol, scales = "free") +
+    ggh4x::facetted_pos_scales(y = y.scales) +
+    scale_fill_manual(values = ecf.cols, name = "ECF") +
+    scale_x_continuous(expand = expansion(mult = c(0.04, 0.08))) +
+    coord_cartesian(clip = "off") +
+    labs(x = "Residue position", y = NULL) +
+    theme_classic(base_size = 12) +
+    theme(panel.grid.major.x = element_line(colour = "grey85", linewidth = 0.3),
+          panel.grid.minor.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          strip.background = element_blank(),
+          strip.text        = element_blank(),
+          axis.text.y  = element_text(hjust = 0, colour = "grey15", lineheight = 0.9),
+          axis.ticks.y = element_blank(),
+          axis.line.y  = element_blank(),
           axis.title.x = element_text(face = "bold"),
-          plot.title = element_text(face = "bold"))
+          panel.spacing.x = unit(2.2, "lines"),
+          plot.margin = margin(t = 18, r = 10, b = 5.5, l = 5.5))
 }
+# draw.ecf.examples(ecf.examples)
 
-g1 <- draw.ecf(ecf.example1, title = ecf.example1)
-g2 <- draw.ecf(ecf.example2, ecf.col = "#C8102E", title = ecf.example2)
-g1
-g2
+p.examples <- draw.ecf.examples(ecf.examples)
+ggsave(file.path(this.part.dir, "plot16_examples.png"),
+       p.examples, width = 10, height = 4)
 
-##################
 
-## "Anchor" hit: the ECF must have at least one clean subdomain hit
-ANCHOR.MIN.QCOV <- 0.90
-ANCHOR.MIN.PROB <- 99
-ANCHOR.MAX.SCOV <- 0.50
-## "Bridging" partner: allowed to be weaker, so the second fold can be partial
-BRIDGE.MIN.QCOV <- 0.80
-BRIDGE.MIN.PROB <- 98
-BRIDGE.MAX.SCOV <- 0.60
-## require the ECF to bridge >=2 X-groups among its qualifying hits
-MIN.NO.X <- 2
-## bridging hits must land on ECF positions overlapping the anchor (real bridge,
-## not a fusion of two sub-fragments). Min fractional overlap of query ranges.
-MIN.QRANGE.OVERLAP <- 0.50
-
-## 1. Build the qualifying hit set (anchor OR bridge quality)
-hits <- copy(ecfs.vs.ecod.link)
-hits[, is.anchor := qcov >= ANCHOR.MIN.QCOV & prob >= ANCHOR.MIN.PROB & scov <= ANCHOR.MAX.SCOV]
-hits[, is.bridge := qcov >= BRIDGE.MIN.QCOV & prob >= BRIDGE.MIN.PROB & scov <= BRIDGE.MAX.SCOV]
-qual <- hits[is.anchor | is.bridge]
-
-## keep only ECFs that have >=1 anchor hit AND span >=2 X-groups among qual hits
-ecf.anchor   <- qual[is.anchor == TRUE, unique(qname)]
-ecf.xspan    <- qual[, .(n.x = uniqueN(x.id)), by = qname][n.x >= MIN.NO.X, qname]
-candidate.ecfs <- intersect(ecf.anchor, ecf.xspan)
-
-qual <- qual[qname %chin% candidate.ecfs]
+# ## B4. Draw one ECF: backbone -> ECOD domain -> ECF nested inside
+# draw.ecf <- function(ecf.id, dom.col = "#F2C14E", ecf.col = "#1D6F9E", title = NULL) {
+#   d <- rep.per.x[ecf == ecf.id]
+#   setorder(d, x.id)
+#   d[, y := .N - seq_len(.N) + 1]
+#   d[, label := sprintf("%s  \u2014  %s  (X%s)", reprseq, funct, x.id)]
+#   
+#   ggplot(d) +
+#     geom_segment(aes(x = 1, xend = rs.length, y = y, yend = y),
+#                  linewidth = 2.4, colour = "grey85", lineend = "round") +
+#     geom_rect(data = d[!is.na(dom.start)],
+#               aes(xmin = dom.start, xmax = dom.end,
+#                   ymin = y - 0.26, ymax = y + 0.26),
+#               fill = dom.col, colour = "grey35", linewidth = 0.3) +
+#     geom_rect(aes(xmin = ecf.start, xmax = ecf.end,
+#                   ymin = y - 0.16, ymax = y + 0.16),
+#               fill = ecf.col, colour = "grey15", linewidth = 0.3) +
+#     geom_text(data = d[!is.na(dom.start)],
+#               aes(x = (dom.start + dom.end) / 2, y = y + 0.34, label = t.name),
+#               size = 2.4, colour = "grey25", vjust = 0) +
+#     scale_y_continuous(breaks = d$y, labels = d$label,
+#                        expand = expansion(add = 0.8)) +
+#     scale_x_continuous(expand = expansion(mult = c(0.01, 0.03))) +
+#     labs(x = "Residue position", y = NULL, title = title %||% ecf.id) +
+#     theme_minimal(base_size = 12) +
+#     theme(panel.grid = element_blank(),
+#           axis.text.y = element_text(hjust = 0, colour = "grey15"),
+#           axis.title.x = element_text(face = "bold"),
+#           plot.title = element_text(face = "bold"))
+# }
+# 
+# index=4
+# draw.ecf(ecf.examples[index], title = ecf.examples[index])
+# 
 
 
 ################################################################################
-###  ASSEMBLE MAIN FIGURE  (A -> B -> C -> D ; E added once built)
+###  ASSEMBLE MAIN FIGURE
+###  Row 1: A = p.qs.node.marg            | B = p.fragments.connect
+###  Row 2: C = p.ecod.domain.cat.by.length | D = p.class.assignment
+###  Row 3: E = p.examples (full width)
 ################################################################################
-## Layout placeholder. Panel E (worked example) is inserted when ready.
-fig.main <- (
-  (p.qs.node | p.ecod.domain.cat.by.length) /
-    (p.ecf.domain.coverage | p.new.ecf.enrichment)
-) +
+
+## Font/style harmonization, applied ONLY at assembly time -- every panel's
+## own definition above (theme_bw(12), theme_bw(13), legend.position="top"
+## with a 3-column legend, theme_classic for the gene diagrams, etc.) is left
+## completely untouched. This is a non-complete theme() (not theme_bw() /
+## theme_classic(), which would replace the whole theme outright) so it
+## MERGES into each panel's existing theme element-by-element -- structural
+## choices (legend position, axis-text angle, grid lines) survive; only
+## axis titles/text are forced to a consistent size and weight.
+##
+## Deliberately NOT touching legend.text/legend.title: panel C's 3-column
+## legend was hand-tuned at 9pt with fixed-size keys to fit compactly above
+## the plot, and forcing it up to match the others clips the labels (tested
+## this directly -- "superdomain" got cut off). Also deliberately not
+## touching strip.text: panel E (p.examples) explicitly hides its facet strip
+## labels (they're just the internal left/right column index, not real
+## information) and a blanket strip.text override silently brings them back.
+unify_fonts <- theme(
+  text       = element_text(size = 14),
+  plot.title = element_text(size = 14, face = "bold", hjust = 0),
+  axis.title = element_text(size = 14, face = "bold"),
+  axis.text  = element_text(size = 11, colour = "black")
+)
+
+## Panel A (p.qs.node.marg) is NOT a ggplot object -- ggMarginal() returns a
+## pre-rendered gtable, so it must be wrapped with wrap_elements() to embed
+## in a patchwork layout. Its fonts are already baked in (it inherited
+## base_theme when p.qs.node was built, before ggMarginal() ran), so
+## unify_fonts can't reach inside it after the fact -- that's fine, it
+## already matches because the upstream panel used base_theme correctly.
+row1 <- wrap_elements(full = p.qs.node.marg) | (p.fragments.connect + unify_fonts)
+row2 <- (p.ecod.domain.cat.by.length + unify_fonts) | (p.class.assignment + unify_fonts)
+row3 <- p.examples + unify_fonts
+
+fig.main <- (row1 / row2 / row3) +
+  plot_layout(heights = c(1, 1, 1)) +
   plot_annotation(tag_levels = "A") &
-  theme(plot.tag = element_text(face = "bold", size = 16),
+  theme(plot.tag = element_text(face = "bold", size = 18),
         plot.margin = margin(8, 8, 8, 8))
 
 fig.main.outfile <- file.path(ecf.figures.dir, "figure2.png")
-ggsave(fig.main.outfile, fig.main, width = 12, height = 11)
+ggsave(fig.main.outfile, fig.main, width = 13, height = 15, dpi = 300)
 
 ################################################################################
 ###  NOTES ON WHAT WAS CUT / RELOCATED (intentionally NOT generated here)
