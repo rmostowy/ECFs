@@ -223,6 +223,44 @@ p.fam.div.vs.ecf.depth <- ggplot(curve_dt, aes(x = threshold)) +
 ### family segregation
 ###########################################
 
+#########################################################################################
+#########################################################################################
+#|||||||||
+
+arch.pca.vars <- c("n.fams", "mean.eff.fam", "n.dom.segments", "segregation.bary", "segregation.overlap")
+
+pca.dt <- copy(reprseq.arch.metrics[, ..arch.pca.vars])
+pca.dt <- na.omit(pca.dt)
+
+# rank-transform to stay Spearman-consistent with the rest of the paper
+pca.dt.ranked <- pca.dt[, lapply(.SD, rank)]
+
+arch.pca <- prcomp(pca.dt.ranked, scale. = TRUE)
+
+# variance explained by each component
+var.explained <- arch.pca$sdev^2 / sum(arch.pca$sdev^2)
+print(round(var.explained, 3))
+print(round(cumsum(var.explained), 3))
+
+# loadings for PC1 / PC2
+print(round(arch.pca$rotation[, 1:2], 2))
+
+# the number that matters: do n.fams and segregation.bary actually track PC1/PC2?
+pc.scores <- as.data.table(arch.pca$x[, 1:2])
+check.dt <- cbind(pca.dt, pc.scores)
+
+cor(check.dt$n.fams, check.dt$PC1, method = "spearman")
+cor(check.dt$segregation.bary, check.dt$PC2, method = "spearman")
+
+arch.pca.vars.full <- c(arch.pca.vars, "n.ecf.hits", "length", "coverage.fraction")
+pca.dt.full <- na.omit(reprseq.arch.metrics[, ..arch.pca.vars.full])
+pca.dt.full.ranked <- pca.dt.full[, lapply(.SD, rank)]
+arch.pca.full <- prcomp(pca.dt.full.ranked, scale. = TRUE)
+print(round((arch.pca.full$sdev^2 / sum(arch.pca.full$sdev^2))[1:4], 3))
+
+#|||||||||
+#########################################################################################
+
 
 segregation.range <- range(reprseq.arch.metrics$n.fams)
 segregation.range.min <- floor(min(segregation.range))
@@ -290,44 +328,6 @@ phrog.class.labels2 <- c(phrog.class.labels, "unknown")
 names(phrog.class.labels2)[phrog.class.labels2 == "unknown"] <- "unknown"
 
 function.vs.arch[, panel := factor(class, levels = phrogs.class2)]
-
-# strip <- ggh4x::strip_themed(
-#   background_y = ggh4x::elem_list_rect(
-#     fill = grDevices::adjustcolor(
-#       phrogs.col[match(levels(function.vs.arch$panel), phrogs.class2)],
-#       alpha.f = 0.25
-#     ),
-#     colour = "black",
-#     linewidth = 0.4
-#   )
-# )
-# 
-# p.segreg.across.fam <- ggplot(
-#   function.vs.arch[!is.na(segregation.bary) & panel != "ALL"],
-#   aes(x = segregation.bary, y = reorder(funct, segregation.bary, FUN = median, na.rm = TRUE))
-# ) +
-#   geom_violin(scale = "width", trim = TRUE) +
-#   geom_boxplot(width = 0.18, outlier.shape = NA) +
-#   facet_grid2(
-#     rows = vars(panel),
-#     scales = "free_y",
-#     space  = "free_y",
-#     labeller = labeller(panel = phrog.class.labels),
-#     strip = strip
-#   ) +
-#   geom_vline(xintercept = mean(reprseq.arch.metrics$segregation.bary, na.rm = T), linetype = "dashed", color = "red", linewidth = 0.6) +
-#   labs(
-#     x = "Segregation index",
-#     y = NULL
-#   ) +
-#   theme_classic(base_size = 12) +
-#   theme(
-#     strip.placement = "outside",
-#     strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", size = 9),
-#     axis.text.y = element_text(size = 8),
-#     axis.text.x = element_text(size = 9),
-#     panel.spacing = unit(0.35, "lines")
-#   )
 
 strip <- ggh4x::strip_themed(
   background_x = ggh4x::elem_list_rect(
@@ -757,4 +757,76 @@ ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p5_depth-vs-arch.png"),
 
 ggsave(file.path(ecf.suppl.figures.dir, "suppl-5p6_corr-arch.png"),
        p.arch.class, width = 12, height = 16)
+
+
+#####################################
+### WORKSHOP: NOVEL FIGURES
+
+MIN.N.FOR.FUNCT.SUMMARY <- 30
+
+function.2d.summary <- reprseq.arch.metrics[
+  !is.na(segregation.bary) & !is.na(n.fams) & class != "unknown" & funct != "unknown",
+  .(
+    n_proteins = .N,
+    med.fam = as.double(median(n.fams, na.rm = TRUE)),
+    med.seg = median(segregation.bary, na.rm = TRUE)
+  ),
+  by = .(class, funct)
+][n_proteins >= MIN.N.FOR.FUNCT.SUMMARY]
+
+# reference = median of function-level medians, not the raw pooled protein median
+ref.fam <- median(function.2d.summary$med.fam)
+ref.seg <- median(function.2d.summary$med.seg)
+
+# sign-only classification — no division, so no degenerate denominator possible
+function.2d.summary[, `:=`(
+  fam.sign = sign(med.fam - ref.fam),
+  seg.sign = sign(med.seg - ref.seg)
+)]
+
+function.2d.summary[, quadrant := fcase(
+  fam.sign >  0 & seg.sign >= 0, "high diversity, high segregation",
+  fam.sign <= 0 & seg.sign >= 0, "low diversity, high segregation",
+  fam.sign >  0 & seg.sign <  0, "high diversity, low segregation",
+  fam.sign <= 0 & seg.sign <  0, "low diversity, low segregation"
+)]
+
+N.REPS.PER.QUADRANT <- 4
+# percentile rank instead of a MAD-scaled z-score — robust to ties, never divides by zero
+function.2d.summary[, fam.pct := frank(med.fam, ties.method = "average") / .N]
+function.2d.summary[, seg.pct := frank(med.seg, ties.method = "average") / .N]
+function.2d.summary[, quad.dist := sqrt((fam.pct - 0.5)^2 + (seg.pct - 0.5)^2)]
+
+top.reps <- function.2d.summary[order(-quad.dist), head(.SD, N.REPS.PER.QUADRANT), by = quadrant]
+
+
+library(ggrepel)
+
+p.func.quadrant <- ggplot(function.2d.summary, aes(x = med.fam, y = med.seg)) +
+  annotate("rect", xmin = ref.fam, xmax = Inf, ymin = ref.seg, ymax = Inf, fill = "#1D9E75", alpha = 0.08) +
+  annotate("rect", xmin = -Inf, xmax = ref.fam, ymin = ref.seg, ymax = Inf, fill = "#534AB7", alpha = 0.08) +
+  annotate("rect", xmin = ref.fam, xmax = Inf, ymin = -Inf, ymax = ref.seg, fill = "#D85A30", alpha = 0.08) +
+  annotate("rect", xmin = -Inf, xmax = ref.fam, ymin = -Inf, ymax = ref.seg, fill = "grey50", alpha = 0.05) +
+  geom_vline(xintercept = ref.fam, linetype = "dashed", color = "grey40", linewidth = 0.4) +
+  geom_hline(yintercept = ref.seg, linetype = "dashed", color = "grey40", linewidth = 0.4) +
+  geom_point(
+    data = function.2d.summary[!(funct %chin% top.reps$funct)],
+    position = position_jitter(width = 0.12, height = 0, seed = 1),
+    color = "grey75", size = 1.1, alpha = 0.45
+  ) +
+  geom_point(data = top.reps, aes(size = n_proteins, color = quadrant)) +
+  geom_text_repel(data = top.reps, aes(label = funct),
+                  size = 3, color = "black", segment.size = 0.3,
+                  max.overlaps = 30, box.padding = 0.4, force = 2) +
+  scale_color_manual(values = c(
+    "high diversity, high segregation" = "#0F6E56",
+    "low diversity, high segregation"  = "#534AB7",
+    "high diversity, low segregation"  = "#D85A30",
+    "low diversity, low segregation"   = "grey40"
+  ), guide = "none") +
+  labs(x = "Median number of EF families (per function)",
+       y = "Median segregation index (per function)") +
+  theme_classic(base_size = 12)
+
+p.func.quadrant
 
