@@ -1048,17 +1048,6 @@ rep.per.x.list <- lapply(1:length(example.choices), function(index){
 })
 rep.per.x <- rbindlist(rep.per.x.list)
 
-
-# ## attach n.reprseq (how many reprseqs back this ECF/X-group/function combo,
-# ## not just the single chosen representative) for the panel labels below
-# rep.per.x <- merge(rep.per.x, ecf.x.funct[, .(qname, x.id, n.reprseq)],
-#                    by.x = c("ecf", "x.id"), by.y = c("qname", "x.id"), all.x = TRUE)
-# setorder(rep.per.x, ecf, x.id)
-# 
-# print(rep.per.x[, .(ecf, x.id, t.name, funct, n.reprseq, reprseq,
-#                     rs.length, dom.start, dom.end, ecf.start, ecf.end,
-#                     drawable, reused)])
-
 ##############################################################################
 ### STEP C -- publication panel: 2-4 hand-picked ECFs, 2 columns, shared
 ###           ECF colour legend, each ECF's X-group pair kept adjacent
@@ -1141,53 +1130,6 @@ p.examples <- draw.ecf.examples(ecf.examples)
 ggsave(file.path(this.part.dir, "plot17_examples.png"),
        p.examples, width = 10, height = 4)
 
-# 
-# left.data <- ecf.examples[1:2]
-# right.data <- ecf.examples[3:4]
-# 
-# p.left  <- draw.ecf.examples(left.data)
-# p.right <- draw.ecf.examples(right.data)
-# 
-# p.examples <-
-#   (p.left | p.right) +
-#   plot_layout(guides = "collect") &
-#   theme(legend.position = "right")
-
-# ## B4. Draw one ECF: backbone -> ECOD domain -> ECF nested inside
-# draw.ecf <- function(ecf.id, dom.col = "#F2C14E", ecf.col = "#1D6F9E", title = NULL) {
-#   d <- rep.per.x[ecf == ecf.id]
-#   setorder(d, x.id)
-#   d[, y := .N - seq_len(.N) + 1]
-#   d[, label := sprintf("%s  \u2014  %s  (X%s)", reprseq, funct, x.id)]
-#   
-#   ggplot(d) +
-#     geom_segment(aes(x = 1, xend = rs.length, y = y, yend = y),
-#                  linewidth = 2.4, colour = "grey85", lineend = "round") +
-#     geom_rect(data = d[!is.na(dom.start)],
-#               aes(xmin = dom.start, xmax = dom.end,
-#                   ymin = y - 0.26, ymax = y + 0.26),
-#               fill = dom.col, colour = "grey35", linewidth = 0.3) +
-#     geom_rect(aes(xmin = ecf.start, xmax = ecf.end,
-#                   ymin = y - 0.16, ymax = y + 0.16),
-#               fill = ecf.col, colour = "grey15", linewidth = 0.3) +
-#     geom_text(data = d[!is.na(dom.start)],
-#               aes(x = (dom.start + dom.end) / 2, y = y + 0.34, label = t.name),
-#               size = 2.4, colour = "grey25", vjust = 0) +
-#     scale_y_continuous(breaks = d$y, labels = d$label,
-#                        expand = expansion(add = 0.8)) +
-#     scale_x_continuous(expand = expansion(mult = c(0.01, 0.03))) +
-#     labs(x = "Residue position", y = NULL, title = title %||% ecf.id) +
-#     theme_minimal(base_size = 12) +
-#     theme(panel.grid = element_blank(),
-#           axis.text.y = element_text(hjust = 0, colour = "grey15"),
-#           axis.title.x = element_text(face = "bold"),
-#           plot.title = element_text(face = "bold"))
-# }
-# 
-# index=4
-# draw.ecf(ecf.examples[index], title = ecf.examples[index])
-# 
-
 
 ################################################################################
 ###  ASSEMBLE MAIN FIGURE  (A -> B -> C -> D ; E added once built)
@@ -1236,10 +1178,9 @@ suppl.p.asym.nofam.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p2_asymm-
 ggsave(suppl.p.asym.nofam.outfile, p.asym.nofam, width = 14, height = 4.5)
 
 
-p.cov.heatmap
-p.connect.cov.heatmap
-
-p.asym.dist
+# p.cov.heatmap
+# p.connect.cov.heatmap
+# p.asym.dist
 
 # plot1: p.qs.node.marg (panel A)
 # plot2: p.cov.heatmap (suppl-2p1)
@@ -1258,3 +1199,40 @@ p.asym.dist
 # plot15: p.ecod.links (drop)
 # plot16: p.class.assignment (panel D)
 # plot17: p.examples (panel E)
+
+## suppl-2p1: raw pairwise vs. per-node mean coverage heatmaps
+p.suppl.2p1 <- (p.cov.heatmap | p.connect.cov.heatmap) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(face = "bold", size = 16))
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p1_cov-heatmaps.png"),
+       p.suppl.2p1, width = 12, height = 5)
+
+## suppl-2p2: asymmetry distribution and asymmetry vs. length
+p.suppl.2p2 <- (p.asym.dist | p.asym.len) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(face = "bold", size = 16))
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p2_asymm-dist-len.png"),
+       p.suppl.2p2, width = 11, height = 5)
+
+## suppl-2p3: fragment coverage distribution (single panel)
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p3_fragments-cov-dist.png"),
+       p.fragments.connect.dist, width = 7, height = 4.5)
+
+## suppl-2p4: Pfam domain class by length (single panel)
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p4_dom-class-pfam.png"),
+       p.pfam.domain.cat.by.length, width = 6, height = 5)
+
+## suppl-2p5: ECOD-Pfam agreement (already a combined A/B object)
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p5_ecod-pfam-agreement.png"),
+       p.ecod.pfam.agreement, width = 6, height = 10)
+
+## suppl-2p6: ECF-domain coverage across e-value thresholds (single panel)
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p6_ecf-domain-cov.png"),
+       p.ecf.domain.coverage, width = 6, height = 5)
+
+## suppl-2p7: new-ECF functional enrichment, ECOD-classified vs Pfam-classified
+p.suppl.2p7 <- (p.new.ecf.enrichment | p.new.ecf.enrichment.pfams) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(face = "bold", size = 16))
+ggsave(file.path(ecf.suppl.figures.dir, "suppl-2p7_new-ecf-enrichment.png"),
+       p.suppl.2p7, width = 16, height = 10)
