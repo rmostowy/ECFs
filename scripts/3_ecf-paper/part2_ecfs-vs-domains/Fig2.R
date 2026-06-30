@@ -203,7 +203,7 @@ p.qs.node <- ggplot(ecf.connectivity.stats, aes(x = med.qcov, y = med.scov)) +
   base_theme
 p.qs.node.marg <- ggMarginal(
   p.qs.node, type = "histogram", bins = 60,
-  fill = "#16396b", colour = "white", size = 5
+  fill = "#16396b", colour = "white", size = 5, margins = "x"
 )
 ggsave(file.path(this.part.dir, "plot1_node-qcov-scov.png"),
        p.qs.node.marg, width = 6, height = 5)
@@ -250,6 +250,64 @@ p.asym.len <- ggplot(ecf.connectivity.stats, aes(x = asym_mean, y = length)) +
   base_theme
 ggsave(file.path(this.part.dir, "plot5_asym-vs-length.png"),
        p.asym.len, width = 6, height = 5)
+
+## ---- PLOT 5b/5c: asymmetry vs neighbour-family diversity / degree ----------
+## (p.asym.fam, p.asym.deg) -- RESTORED. These feed suppl-2p2 / Supplementary
+## Figure \ref{sup:asymmfam} in manuscript.tex (panels A and B), which is still
+## cited in the text. They had been dropped from this script (see "NOTES on
+## what was cut" near the bottom), but the manuscript still depends on them,
+## so they're reconstructed here from columns already present in
+## `ecf.connectivity.stats` (degree, length, asym_mean/asym_med, no.fam).
+## Re-verify the GLM output below against the published table
+## (log(1+degree) IRR ~1.5, asymmetry IRR ~1.1, log10(length) IRR ~1.6) once
+## this is run against real data -- it could not be executed/validated here.
+p.asym.fam <- ggplot(ecf.connectivity.stats, aes(x = asym_med, y = no.fam)) +
+  geom_bin2d(bins = 60) +
+  heatmap_fill +
+  scale_y_continuous(trans = "log10") +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.6) +
+  labs(x = "Asymmetry (median qcov - median scov)",
+       y = "Number of distinct neighbour\nECF families (log10)") +
+  base_theme
+
+p.asym.deg <- ggplot(ecf.connectivity.stats, aes(x = asym_med, y = degree)) +
+  geom_bin2d(bins = 60) +
+  heatmap_fill +
+  scale_y_continuous(trans = "log10") +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.6) +
+  labs(x = "Asymmetry (median qcov - median scov)",
+       y = "Network degree (log10)") +
+  base_theme
+
+## ---- PLOT 5d: Poisson GLM -- neighbour-family diversity ~ degree, asymmetry,
+## length, fitted simultaneously to disentangle the raw associations above
+## (p.glm.model). Matches the predictor set in Supplementary Table
+## \ref{sup:glmtab}.
+glm.model <- glm(no.fam ~ log(1 + degree) + asym_mean + log10(length),
+                  family = poisson(), data = ecf.connectivity.stats)
+# print(summary(glm.model))   # uncomment to inspect/compare against sup:glmtab
+
+glm.tidy <- broom::tidy(glm.model, conf.int = TRUE, exponentiate = TRUE)
+glm.tidy <- glm.tidy[glm.tidy$term != "(Intercept)", ]
+glm.tidy$term <- factor(
+  glm.tidy$term,
+  levels = rev(c("log(1 + degree)", "asym_mean", "log10(length)")),
+  labels = rev(c("log(1+degree)", "asymmetry", "log10(length)"))
+)
+
+p.glm.model <- ggplot(glm.tidy, aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey40") +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.15) +
+  geom_point(size = 3, colour = "#2c7fb8") +
+  labs(x = "Incidence rate ratio (IRR, 95% CI)", y = NULL) +
+  base_theme
+
+p.asym.nofam <- (p.asym.fam / p.asym.deg / p.glm.model) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(face = "bold", size = 14))
+
+ggsave(file.path(this.part.dir, "plot6_asym-stats.png"),
+       p.asym.nofam, width = 6, height = 5)
 
 ####################################################################
 ####################################################################
@@ -329,25 +387,25 @@ fragB <- fragment.cov.stats[scov.decile != n.scov.bins]   # drop top decile (nea
 
 col_unrel <- "#3B6D11"
 
-## ---- PLOT 6: Do fragments connect more diverse ECFs?
+## ---- PLOT 7: Do fragments connect more diverse ECFs?
 
 p.fragments.connect <- ggplot(fragB, aes(x = scov.mid, y = prop.unrelated)) +
   geom_line(colour = col_unrel, linewidth = 0.7) +
   geom_point(aes(size = mean.length), colour = col_unrel) +
-  scale_size(range = c(2, 13), limits = range(fragB$mean.length),
+  scale_size(range = c(1, 8), limits = range(fragB$mean.length),
              breaks = pretty(fragB$mean.length, n = 4),
-             name = "Mean ECF\nsize") +
+             name = "Mean ECF\nsize (aa)") +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 8), limits = c(0.2, 0.8)) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1),
                      limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
-  labs(x = "Median subject coverage  (low \u2192 more fragment like)",
-       y = "Proportion of unrelated neighbours (cov < 0.5)") +
+  labs(x = "Median subject coverage\n(low \u2192 more fragment like)",
+       y = "Proportion of unrelated\nneighbours (cov < 0.5)") +
   base_theme
 
-ggsave(file.path(this.part.dir, "plot6_fragments-connect.png"),
+ggsave(file.path(this.part.dir, "plot7_fragments-connect.png"),
        p.fragments.connect, width = 7, height = 4.5)
 
-## ---- PLOT 7: full distribution of container-container
+## ---- PLOT 8: full distribution of container-container
 ## similarity within each scov decile -----------------------------------------
 ## `prop.unrelated` in the main panel collapses each bin to one number (% of
 ## neighbour pairs below the 0.5 "unrelated" threshold). This shows the
@@ -381,7 +439,7 @@ p.fragments.connect.dist <- ggplot(neighbour.cov.by.decile,
 
 # p.fragments.connect.dist
 
-ggsave(file.path(this.part.dir, "plot7_fragments-cov-distribution.png"),
+ggsave(file.path(this.part.dir, "plot8_fragments-cov-distribution.png"),
        p.fragments.connect.dist, width = 7, height = 4.5)
 
 
@@ -468,31 +526,54 @@ prop_dt.ecod <- ecf.ecod.domain.assignment[, .N, by = .(len_bin, class.assignmen
 prop_dt.ecod[, prop := N / sum(N), by = len_bin]
 prop_dt.ecod[, class.assignment := factor(class.assignment, levels = rev(class.plotting.order))]
 
-## ---- PLOT 8: ECOD class by length (p.ecod.domain.cat.by.length) ------------
+## ---- PLOT 9: ECOD class by length (p.ecod.domain.cat.by.length) ------------
 ## Read two ways: by length -> subdomain/equivalent/superdomain spectrum;
 ## by row -> exact equivalence is never dominant.
-
-
 
 p.ecod.domain.cat.by.length <- ggplot(prop_dt.ecod,
                                       aes(x = len_bin, y = prop, fill = class.assignment)) +
   geom_col(width = 0.9) +
   scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(values = class.plotting.cols) +
-  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "ECF-ECOD\nclass") +
+  labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "ECF-ECOD class") +
   theme_bw(base_size = 12) +
-  guides(fill = guide_legend(reverse = TRUE, ncol = 3, byrow = TRUE)) +
+  ## title.position = "top" stacks the legend title above its keys instead of
+  ## beside them; combined with legend.justification = "left" below, this stops
+  ## a legend that is wider than the panel from centering the whole guide-box
+  ## (and the panel under it) off to the right when patchwork composes this
+  ## plot next to others -- see panel-alignment fix notes at the bottom of
+  ## this script.
+  guides(fill = guide_legend(reverse = TRUE, ncol = 3, byrow = TRUE, title.position = "top")) +
   theme(legend.position = "top",
+        legend.justification = "left",
         legend.text  = element_text(size = 9),
         legend.title = element_text(size = 9, face = "bold"),
         legend.key.width  = unit(0.5, "cm"),
         legend.key.height = unit(0.5, "cm"),
         axis.title   = element_text(face = "bold"),
         axis.text.x  = element_text(angle = 45, hjust = 1))
-ggsave(file.path(this.part.dir, "plot8_dom-class-ecod.png"),
-       p.ecod.domain.cat.by.length, width = 6, height = 5)
+# p.ecod.domain.cat.by.length <- ggplot(prop_dt.ecod,
+#                                       aes(x = len_bin, y = prop, fill = class.assignment)) +
+#   geom_col(width = 0.9) +
+#   scale_y_continuous(labels = scales::percent_format()) +
+#   scale_fill_manual(values = class.plotting.cols) +
+#   labs(x = "ECF length (quantile bins)", y = "Proportion", fill = "ECF-ECOD\nclass") +
+#   theme_bw(base_size = 12) +
+#   guides(fill = guide_legend(reverse = TRUE, ncol = 3, byrow = TRUE,
+#                              title.position = "top")) +        # <- added
+#   theme(legend.position = "top",
+#         legend.justification = "left",                          # <- added
+#         legend.text  = element_text(size = 9),
+#         legend.title = element_text(size = 9, face = "bold"),
+#         legend.key.width  = unit(0.5, "cm"),
+#         legend.key.height = unit(0.5, "cm"),
+#         axis.title   = element_text(face = "bold"),
+#         axis.text.x  = element_text(angle = 45, hjust = 1))
 
-## ---- PLOT 9: Pfam class by length (p.pfam.domain.cat.by.length) -----------
+ggsave(file.path(this.part.dir, "plot9_dom-class-ecod.png"),
+       p.ecod.domain.cat.by.length, width = 4, height = 5)
+
+## ---- PLOT 10: Pfam class by length (p.pfam.domain.cat.by.length) -----------
 ecf.domain.assignment.pfam <- classify.ecf.domain(ecfs.vs.pfam)
 ecf.no.domain.assignment.pfam <- all.ecfs[!all.ecfs %in% ecf.domain.assignment.pfam$qname]
 ecf.domain.assignment.pfam <- rbind(ecf.domain.assignment.pfam, data.table(qname = ecf.no.domain.assignment.pfam, class.assignment = "new"))
@@ -521,10 +602,10 @@ p.pfam.domain.cat.by.length <- ggplot(prop_dt.pfam,
   theme_bw(base_size = 12) +
   theme(axis.title = element_text(face = "bold"),
         axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(file.path(this.part.dir, "plot9_dom-class-pfam.png"),
+ggsave(file.path(this.part.dir, "plot10_dom-class-pfam.png"),
        p.pfam.domain.cat.by.length, width = 6, height = 5)
 
-## ---- PLOT 10: ECOD-Pfam agreement (p.ecod.pfam.agreement) ------------------
+## ---- PLOT 11: ECOD-Pfam agreement (p.ecod.pfam.agreement) ------------------
 ecod.assign <- ecf.ecod.domain.assignment[, .(qname, ecod_class = class.assignment, length, size)]
 pfam.assign <- ecf.pfam.domain.assignment[, .(qname, pfam_class = class.assignment, length, size)]
 
@@ -536,7 +617,7 @@ dt.agree[, ecod_class := factor(ecod_class, levels = class.plotting.order)]
 dt.agree[, pfam_class := factor(pfam_class, levels = class.plotting.order)]
 
 cm <- dt.agree[, .N, by = .(ecod_class, pfam_class)]
-p_cm_counts <- ggplot(cm, aes(x = pfam_class, y = ecod_class, fill = N)) +
+`p_cm_counts` <- ggplot(cm, aes(x = pfam_class, y = ecod_class, fill = N)) +
   geom_tile(color = "white", linewidth = 0.2) +
   scale_fill_viridis_c(trans = "sqrt") +
   labs(x = "Pfam assignment class", y = "ECOD assignment class", fill = "Count") +
@@ -553,7 +634,7 @@ p.ecod.pfam.agreement <- (p_cm_counts / p_cm_rowprop) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(face = "bold", size = 24),
         plot.tag.position = c(0.02, 0.98))
-ggsave(file.path(this.part.dir, "plot10_ecod-pfam-agreement.png"),
+ggsave(file.path(this.part.dir, "plot11_ecod-pfam-agreement.png"),
        p.ecod.pfam.agreement, width = 6, height = 10)
 
 ## chi-squared agreement -> inline prose sentence (not a figure).
@@ -569,9 +650,9 @@ sent <- sprintf(
          "(chi-squared: X2(%d) = %.0f, p %s; Cramer's V = %.3f)."),
   unname(chi$parameter), unname(chi$statistic), pval_txt, V
 )
-write(sent, file = file.path(this.part.dir, "plot10-table_agreement-sentence.txt"))
+write(sent, file = file.path(this.part.dir, "plot11-table_agreement-sentence.txt"))
 
-## ---- plot11: ECF-domain coverage across e-value thresholds -----------------
+## ---- plot12: ECF-domain coverage across e-value thresholds -----------------
 ecf.domain.coverage <- data.table(ecf = all.ecfs)
 ecf.domain.coverage[, ecod.eval0p1   := all.ecfs %in% ecfs.vs.ecod$qname]
 ecf.domain.coverage[, ecod.eval0p001 := all.ecfs %in% ecfs.vs.ecod.conf$qname]
@@ -608,9 +689,10 @@ p.ecf.domain.coverage <- ggplot(counts_dt, aes(x = threshold, y = N, fill = cate
   theme_bw(base_size = 12) +
   guides(fill = guide_legend(ncol = 2)) +
   theme(legend.position = "top",
+        legend.justification = "left",
         legend.text  = element_text(size = 9),
         axis.title   = element_text(face = "bold"))
-ggsave(file.path(this.part.dir, "plot11_ecf-domain-cov.png"),
+ggsave(file.path(this.part.dir, "plot12_ecf-domain-cov.png"),
        p.ecf.domain.coverage, width = 6, height = 5)
 
 ## ---- Define "new" (off-edge) ECFs and their rHMMs (shared by D and supp) ----
@@ -676,10 +758,10 @@ p.new.ecf.enrichment <- ggplot(plot.ecod.dt, aes(x = log2OR_plot, y = ykey, shap
         axis.title.x = element_text(face = "bold"),
         panel.spacing = unit(0.35, "lines"),
         panel.grid.major.x = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "plot12_new-ecf-enrichment.png"),
+ggsave(file.path(this.part.dir, "plot13_new-ecf-enrichment.png"),
        p.new.ecf.enrichment, width = 8, height = 10)
 
-## ---- PLOT 13: same enrichment, Pfam-based (p.new.ecf.enrichment.pfams) -----
+## ---- PLOT 14: same enrichment, Pfam-based (p.new.ecf.enrichment.pfams) -----
 rs2pfam <- unique(reprseq.vs.pfam[, .(qname, accession)])
 rs2pfam[, is_new := qname %chin% reprseq.new]
 
@@ -718,7 +800,7 @@ p.new.ecf.enrichment.pfams <- ggplot(plot.pfam.dt, aes(x = log2OR_plot, y = func
         axis.text.y = element_text(size = 8),
         axis.title.x = element_text(face = "bold"),
         panel.grid.major.x = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "plot13_new-ecf-enrichment-pfams.png"),
+ggsave(file.path(this.part.dir, "plot14_new-ecf-enrichment-pfams.png"),
        p.new.ecf.enrichment.pfams, width = 8, height = 10)
 
 ####################################################################
@@ -755,7 +837,7 @@ p.ecod.links <- ggplot(plot_dt.links, aes(x = class.assignment, y = no.unique.x,
   theme(axis.title.x = element_text(margin = margin(t = 8), face = "bold"),
         axis.title.y = element_text(face = "bold"),
         panel.grid.major.y = element_line(colour = "grey92", linewidth = .25))
-ggsave(file.path(this.part.dir, "plot14_ecod-links.png"),
+ggsave(file.path(this.part.dir, "plot15_ecod-links.png"),
        p.ecod.links, width = 4, height = 4)
 
 ### confident hits only (you already filter upstream; keep consistent)
@@ -816,9 +898,10 @@ p.class.assignment <- ggplot(prop.dt, aes(x = class.assignment, y = prop, fill =
   theme(axis.title = element_text(face = "bold"),
         legend.position = "right",
         panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        axis.text.x  = element_text(angle = 45, hjust = 1))
 
-ggsave(file.path(this.part.dir, "plot15_class-assignment.png"),
+ggsave(file.path(this.part.dir, "plot16_class-assignment.png"),
        p.class.assignment, width = 7, height = 4)
 
 ####################################################################
@@ -1033,7 +1116,7 @@ draw.ecf.examples <- function(ecf.ids, ncol = 2, dom.col = "#F2C14E", ecf.cols =
     geom_text(data = d[!is.na(dom.start)],
               aes(x = (dom.start + dom.end) / 2, y = y + 0.40, label = dom.label),
               size = 2.5, colour = "grey20", vjust = 0, fontface = "bold") +
-    facet_wrap(~ column, ncol = ncol, scales = "free") +
+    facet_wrap(~ column, ncol = ncol, scales = "free_y") +
     ggh4x::facetted_pos_scales(y = y.scales) +
     scale_fill_manual(values = ecf.cols, name = "ECF") +
     scale_x_continuous(expand = expansion(mult = c(0.04, 0.08))) +
@@ -1055,9 +1138,20 @@ draw.ecf.examples <- function(ecf.ids, ncol = 2, dom.col = "#F2C14E", ecf.cols =
 # draw.ecf.examples(ecf.examples)
 
 p.examples <- draw.ecf.examples(ecf.examples)
-ggsave(file.path(this.part.dir, "plot16_examples.png"),
+ggsave(file.path(this.part.dir, "plot17_examples.png"),
        p.examples, width = 10, height = 4)
 
+# 
+# left.data <- ecf.examples[1:2]
+# right.data <- ecf.examples[3:4]
+# 
+# p.left  <- draw.ecf.examples(left.data)
+# p.right <- draw.ecf.examples(right.data)
+# 
+# p.examples <-
+#   (p.left | p.right) +
+#   plot_layout(guides = "collect") &
+#   theme(legend.position = "right")
 
 # ## B4. Draw one ECF: backbone -> ECOD domain -> ECF nested inside
 # draw.ecf <- function(ecf.id, dom.col = "#F2C14E", ecf.col = "#1D6F9E", title = NULL) {
@@ -1098,28 +1192,69 @@ ggsave(file.path(this.part.dir, "plot16_examples.png"),
 ################################################################################
 ###  ASSEMBLE MAIN FIGURE  (A -> B -> C -> D ; E added once built)
 ################################################################################
-## Layout placeholder. Panel E (worked example) is inserted when ready.
-fig.main <- (
-  (p.qs.node | p.ecod.domain.cat.by.length) /
-    (p.ecf.domain.coverage | p.new.ecf.enrichment)
-) +
+unify_fonts <- theme(
+  text       = element_text(size = 14),
+  plot.title = element_text(size = 14, face = "bold", hjust = 0),
+  axis.title = element_text(size = 14, face = "bold"),
+  axis.text  = element_text(size = 11, colour = "black")
+)
+
+## Panel A (p.qs.node.marg) is NOT a ggplot object -- ggMarginal() returns a
+## pre-rendered gtable, so it must be wrapped with wrap_elements() to embed
+## in a patchwork layout. Its fonts are already baked in (it inherited
+## base_theme when p.qs.node was built, before ggMarginal() ran), so
+## unify_fonts can't reach inside it after the fact -- that's fine, it
+## already matches because the upstream panel used base_theme correctly.
+row1 <- wrap_elements(full = p.qs.node.marg) | (p.fragments.connect + unify_fonts)
+# row2 <- (p.ecod.domain.cat.by.length + unify_fonts) | (p.class.assignment + unify_fonts)
+row2 <- free(p.ecod.domain.cat.by.length + unify_fonts, side = "l") | (p.class.assignment + unify_fonts)
+# row3 <- wrap_elements(p.examples + unify_fonts)
+row3 <- p.examples + unify_fonts
+
+fig.main <- (row1 / row2 / row3) +
+  plot_layout(heights = c(1, 1, 1)) +
   plot_annotation(tag_levels = "A") &
-  theme(plot.tag = element_text(face = "bold", size = 16),
+  theme(plot.tag = element_text(face = "bold", size = 18),
         plot.margin = margin(8, 8, 8, 8))
+# fig.main
 
 fig.main.outfile <- file.path(ecf.figures.dir, "figure2.png")
-ggsave(fig.main.outfile, fig.main, width = 12, height = 11)
+ggsave(fig.main.outfile, fig.main, width = 13, height = 13)
 
 ################################################################################
-###  NOTES ON WHAT WAS CUT / RELOCATED (intentionally NOT generated here)
+###  Save supplementary figures
 ################################################################################
-## CUT (former part2):
-##   p.asym.fam, p.asym.deg, p.glm.model + GLM table  -> IRR ~ 1.1 neighbour-
-##     family-diversity result. Reduce to a single supplementary sentence.
-##   p.asym.str (asymmetry vs strength), p.str.len (strength vs length) -> sanity
-##     checks, dropped.
-## RELOCATE (former part4):
-##   p.domain.class.per.fam (pA/pB/pC/pD: per-family domain-class diversity) ->
-##     concerns ECF *families*, belongs with the architecture figure's supplement
-##     (or cut). Not generated in this subsection.
-################################################################################
+## Ordered to match first appearance in the text (manuscript.tex), matching
+## the suppl-Np<k>_<description>.png convention used in Fig1.R:
+##   suppl-2p1  <- p.asym.dist    (\ref{sup:asym-dist}  -- asymmetry distribution)
+##   suppl-2p2  <- p.asym.nofam   (\ref{sup:asymmfam}   -- asymmetry/degree/GLM, panels A-C)
+
+suppl.p.asym.dist.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p1_asymm-dist.png")
+ggsave(suppl.p.asym.dist.outfile, p.asym.dist, width = 5, height = 4)
+
+suppl.p.asym.nofam.outfile <- file.path(ecf.suppl.figures.dir, "suppl-2p2_asymm-nofam.png")
+ggsave(suppl.p.asym.nofam.outfile, p.asym.nofam, width = 14, height = 4.5)
+
+
+p.cov.heatmap
+p.connect.cov.heatmap
+
+p.asym.dist
+
+# plot1: p.qs.node.marg (panel A)
+# plot2: p.cov.heatmap (suppl-2p1)
+# plot3: p.connect.cov.heatmap (suppl-2p1)
+# plot4: p.asym.dist (suppl-2p2)
+# plot5: p.asym.len (suppl-2p2)
+# plot6: p.asym.nofam (drop it)
+# plot7: p.fragments.connect (panel B)
+# plot8: p.fragments.connect.dist (suppl-2p3)
+# plot9: p.ecod.domain.cat.by.length (panel C)
+# plot10: p.pfam.domain.cat.by.length  (suppl-2p4)
+# plot11: p.ecod.pfam.agreement (suppl-2p5)
+# plot12: p.ecf.domain.coverage (suppl-2p6)
+# plot13: p.new.ecf.enrichment (suppl-2p7)
+# plot14: p.new.ecf.enrichment.pfams (suppl-2p7)
+# plot15: p.ecod.links (drop)
+# plot16: p.class.assignment (panel D)
+# plot17: p.examples (panel E)
