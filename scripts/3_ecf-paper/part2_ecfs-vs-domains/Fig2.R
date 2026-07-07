@@ -543,11 +543,11 @@ p.ecod.domain.cat.by.length <- ggplot(prop_dt.ecod,
   ## (and the panel under it) off to the right when patchwork composes this
   ## plot next to others -- see panel-alignment fix notes at the bottom of
   ## this script.
-  guides(fill = guide_legend(reverse = TRUE, ncol = 3, byrow = TRUE, title.position = "top")) +
+  guides(fill = guide_legend(reverse = FALSE, ncol = 3, byrow = TRUE, title.position = "top")) +
   theme(legend.position = "top",
         legend.justification = "left",
-        legend.text  = element_text(size = 9),
-        legend.title = element_text(size = 9, face = "bold"),
+        legend.text  = element_text(size = 12),
+        legend.title = element_text(size = 12, face = "bold"),
         legend.key.width  = unit(0.5, "cm"),
         legend.key.height = unit(0.5, "cm"),
         axis.title   = element_text(face = "bold"),
