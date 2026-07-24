@@ -19,7 +19,7 @@ source(config.filename)
 #################################
 ### Set up output directory
 #################################
-this.part.dir <- file.path(ecf.proj.dir, "part7_funct-rescue")
+this.part.dir <- file.path(ecf.proj.dir, "part5_funct-rescue")
 make.dir(this.part.dir)
 
 #################################
@@ -422,6 +422,10 @@ p.dotplot <- ggplot(
     axis.title = element_text(face = "bold"),
     axis.text.y       = element_text(size = 9)
   )
+
+ggsave(file.path(this.part.dir, "plot1_scatter.png"), p.scatter, width = 8, height = 6)
+ggsave(file.path(this.part.dir, "plot2_top3.png"), p.dotplot, width = 5, height = 7)
+
 
 # --- Combine
 p.combined <- p.scatter / p.dotplot +

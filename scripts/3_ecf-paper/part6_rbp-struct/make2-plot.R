@@ -497,3 +497,101 @@ fwrite(all.cf.out, file = ef.coord.table.outfile)
 # )
 
 
+#############################################################
+### 2. Build a per-residue colour-mapping table for PyMOL
+### Combines the consensus ECF assignment, ECOD hits and Pfam
+### hits for the five focal RBPs into one table: protein,
+### domain type, residue range, and a colour. A companion
+### PyMOL script consumes this table to colour the AlphaFold
+### models accordingly.
+#############################################################
+
+# =============================================================================
+# ECF BLOCKS
+# Use the raw per-family denoised boundaries (family.coords - the same
+# object all.fc is built from for the 2D panel), NOT structure.blocks.
+# structure.blocks resolves overlaps by picking one dominant family per
+# residue position, which erases exactly the thing we want to see here:
+# ECF calls legitimately overlap in places, and that overlap is itself
+# informative about the block structure of these RBPs.
+# =============================================================================
+
+ecf.blocks <- rbindlist(lapply(results, `[[`, "family.coords"))
+ecf.blocks <- ecf.blocks[protein %chin% focal.proteins]
+setnames(ecf.blocks, c("map.start", "map.end"), c("res.start", "res.end"))
+ecf.blocks[, domain.type := "ECF"]
+ecf.blocks[, domain.id   := family]
+ecf.blocks[, label       := family]
+ecf.blocks[, color       := family.colors[family]]
+
+# =============================================================================
+# ECOD BLOCKS
+# Recomputed across all five focal proteins: the plotting section above
+# subsets all.ecod.coords down to the two panel proteins, so it can't be
+# reused directly here.
+# =============================================================================
+
+ecod.blocks <- rbindlist(
+  lapply(focal.proteins, process.ecod, ecod.data = reprseq.vs.ecod.top)
+)
+ecod.blocks[, t.name := sapply(t.id, function(x) ecod.domains[t_id == x]$t_name[1])]
+ecod.blocks[, domain.type := "ECOD"]
+ecod.blocks[, domain.id   := t.id]
+ecod.blocks[, label       := paste0(t.id, " (", t.name, ")")]
+ecod.blocks[, color       := ecod.colors[t.id]]
+setnames(ecod.blocks, c("map.start", "map.end"), c("res.start", "res.end"))
+
+# =============================================================================
+# PFAM BLOCKS
+# all.pfam.coords already spans all five focal proteins and is never
+# subset elsewhere in this script, so it can be reused as-is.
+# Pfam wasn't part of the original ECF/ECOD palette, so we add one here:
+# a distinct qualitative palette sized to however many Pfam accessions
+# are actually present in the focal proteins.
+# =============================================================================
+
+pfam.ids <- sort(unique(all.pfam.coords$accession))
+pfam.colors <- setNames(
+  grDevices::hcl.colors(length(pfam.ids), palette = "Dark 3"),
+  pfam.ids
+)
+
+pfam.blocks <- copy(all.pfam.coords)
+pfam.blocks[, domain.type := "Pfam"]
+pfam.blocks[, domain.id   := accession]
+pfam.blocks[, label       := paste0(accession, " (", description, ")")]
+pfam.blocks[, color       := pfam.colors[accession]]
+setnames(pfam.blocks, c("map.start", "map.end"), c("res.start", "res.end"))
+
+# =============================================================================
+# COMBINE AND VALIDATE
+# =============================================================================
+
+pymol.color.table <- rbindlist(list(
+  ecf.blocks[,  .(protein, domain.type, domain.id, label, res.start, res.end, color)],
+  ecod.blocks[, .(protein, domain.type, domain.id, label, res.start, res.end, color)],
+  pfam.blocks[, .(protein, domain.type, domain.id, label, res.start, res.end, color)]
+))
+setorder(pymol.color.table, protein, res.start)
+
+missing.color <- pymol.color.table[is.na(color)]
+if (nrow(missing.color) > 0) {
+  warning("Domains missing a colour assignment: ",
+          paste(unique(missing.color$domain.id), collapse = ", "))
+}
+
+# Add 0-1 RGB triplets alongside the hex code, for tools (e.g. PyMOL's
+# cmd.set_color) that expect floats rather than hex strings.
+rgb.mat <- matrix(NA_real_, nrow = nrow(pymol.color.table), ncol = 3)
+valid.color <- !is.na(pymol.color.table$color)
+if (any(valid.color)) {
+  rgb.mat[valid.color, ] <- t(grDevices::col2rgb(pymol.color.table$color[valid.color])) / 255
+}
+pymol.color.table[, `:=`(
+  color.r = round(rgb.mat[, 1], 4),
+  color.g = round(rgb.mat[, 2], 4),
+  color.b = round(rgb.mat[, 3], 4)
+)]
+
+pymol.table.outfile <- file.path(this.part.dir, "pymol-domain-colors.csv")
+fwrite(pymol.color.table, file = pymol.table.outfile)
