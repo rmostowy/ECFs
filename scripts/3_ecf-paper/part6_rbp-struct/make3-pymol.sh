@@ -11,6 +11,14 @@
 # Model files are expected to be named "fold_<reprseq_id>.cif", matching
 # the AF3 representatives directory, e.g. fold_reprseq019028.cif.
 #
+# pymol-domain-colors.csv columns:
+#   protein, domain.type, domain.id, res.start, res.end, color
+#   chain      (optional) - if set (e.g. "A"), that chain becomes the
+#              focus chain: it is rendered solid/coloured, and every other
+#              chain in the model is either ghosted or hidden entirely,
+#              depending on --chain-mode (see below). Leave blank/absent
+#              to paint the whole model as before (no single-chain focus).
+#
 # Usage:
 #   ./make3-pymol.sh [options]
 #
@@ -41,6 +49,21 @@
 #                      protein - viewport is matched to --resolution
 #                      before fitting, so this shouldn't need per-structure
 #                      tuning even for elongated tail fibres.
+#   --chain-mode      ghost | hide  (default: ghost). Only takes effect for
+#                      proteins whose CSV row has a 'chain' value set, or
+#                      when --default-chain is given (see below).
+#                        ghost: non-focus chains stay visible, faded and
+#                          light grey - keeps oligomeric context.
+#                        hide:  non-focus chains are removed from the
+#                          render entirely - a true single-chain/monomer
+#                          view, e.g. for folds that don't model sensibly
+#                          as an isolated chain when shown faded nearby.
+#   --default-chain   fallback focus chain (e.g. "A") used for any protein
+#                      whose CSV row leaves 'chain' blank/absent - handy
+#                      when every model is the same oligomeric state (e.g.
+#                      all homotrimers) and you don't want to edit the CSV
+#                      or the R script per protein. A CSV 'chain' value,
+#                      when present, always takes priority over this.
 #
 # Requires PyMOL on PATH (e.g. `conda install -c conda-forge pymol-open-source`,
 # or Schrodinger's PyMOL app with its command-line tool linked).
@@ -56,13 +79,15 @@ set -euo pipefail
 DATA_DIR="/Users/rmostowy/MGG Dropbox/Rafal Mostowy/Projects/Data/ECFs/v4/paper-ecf/part6_rbp-struct"
 TABLE="$DATA_DIR/pymol-domain-colors.csv"
 MODELS_DIR="/Users/rmostowy/MGG Dropbox/Rafal Mostowy/Projects/Data/ECFs/v4/AF3/Fig7/2026-06/AF3/representatives"
-OUT_DIR="$DATA_DIR/pymol-out"
-RESOLUTION=3000
+OUT_DIR="$DATA_DIR/pymol-out-test"
+RESOLUTION=1000
 DPI=300
 TRACKS=""
 NO_RAY=0
 MODE="per-segment"
-BUFFER=15
+BUFFER=50
+CHAIN_MODE="ghost"
+DEFAULT_CHAIN=""
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -78,6 +103,8 @@ while [[ $# -gt 0 ]]; do
     --no-ray)        NO_RAY=1; shift ;;
     --mode)          MODE="$2"; shift 2 ;;
     --buffer)        BUFFER="$2"; shift 2 ;;
+    --chain-mode)    CHAIN_MODE="$2"; shift 2 ;;
+    --default-chain) DEFAULT_CHAIN="$2"; shift 2 ;;
     -h|--help)
       sed -n '2,40p' "$0" | sed 's/^#//; s/^ //'
       exit 0
@@ -141,6 +168,14 @@ def parse_args():
     p.add_argument("--buffer", type=float, default=15,
                     help="Angstrom margin around the structure passed to cmd.zoom(); "
                          "one shared value for every protein.")
+    p.add_argument("--chain-mode", choices=["ghost", "hide"], default="ghost",
+                    help="How to render non-focus chains for proteins whose CSV row "
+                         "sets 'chain' (or which fall back to --default-chain): 'ghost' "
+                         "fades them light grey (default, keeps oligomeric context); "
+                         "'hide' removes them, giving a true single-chain/monomer view.")
+    p.add_argument("--default-chain", default="",
+                    help="Fallback focus chain (e.g. 'A') for any protein whose CSV "
+                         "row leaves 'chain' blank/absent. A CSV value always wins.")
     return p.parse_args(argv)
 
 
@@ -175,7 +210,7 @@ def sanitize(text):
     return str(text).replace(" ", "").replace("/", "-").replace(os.sep, "-")
 
 
-def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, buffer):
+def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, buffer, chain_mode, default_chain):
     cif = find_model(models_dir, protein)
     if cif is None:
         print("[skip] %s: no fold_%s.cif in %s" % (protein, protein, models_dir))
@@ -187,8 +222,49 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
     cmd.show("cartoon", protein)
 
     # Base colour, same grey as convert.py
-    cmd.set_color("custom_grey", [102 / 255.0, 102 / 255.0, 102 / 255.0])
+    cmd.set_color("custom_grey", [178 / 255.0, 178 / 255.0, 178 / 255.0])
     cmd.color("custom_grey", protein)
+
+    # --- NEW: optional single-chain focus, ghosted or hidden ---
+    # If the colour table gives a 'chain' for this protein, that chain
+    # becomes the focus. What happens to the other chains depends on
+    # chain_mode:
+    #   ghost - stay visible, faded and light grey (oligomeric context
+    #           without the visual noise of repeated boundaries)
+    #   hide  - removed from the render entirely (true monomer view; use
+    #           for folds that look wrong/misleading when shown faded
+    #           alongside a lone chain, e.g. tightly intertwined regions)
+    # Blank/missing 'chain' -> paint the whole model, unchanged from the
+    # original behaviour, regardless of chain_mode.
+    focus_chain = (rows[0].get("chain") or "").strip()
+    csv_had_chain = bool(focus_chain)
+    if not focus_chain and default_chain:
+        focus_chain = default_chain.strip()
+
+    available_chains = cmd.get_chains(protein)
+    print("[info] %s: available chains in model = %s" % (protein, available_chains))
+
+    if focus_chain and focus_chain not in available_chains:
+        source = "CSV" if csv_had_chain else "--default-chain"
+        print("[warn] %s: chain '%s' from %s not found in model (available: %s) "
+              "- ignoring, whole model will be painted" % (protein, focus_chain, source, available_chains))
+        focus_chain = ""
+    if not focus_chain:
+        print("[info] %s: no focus chain set (CSV blank, no --default-chain match) "
+              "- painting whole model" % protein)
+    elif not csv_had_chain:
+        print("[info] %s: using --default-chain '%s' (CSV left it blank)" % (protein, focus_chain))
+
+    if focus_chain:
+        other = "%s and not chain %s" % (protein, focus_chain)
+        if chain_mode == "hide":
+            cmd.hide("cartoon", other)
+        else:
+            cmd.set("cartoon_transparency", 0.85, other)
+            cmd.color("grey90", other)
+        paint_sel_base = "%s and chain %s" % (protein, focus_chain)
+    else:
+        paint_sel_base = protein
 
     # Match the viewport to the resolution we'll actually ray-trace at
     # *before* orienting/zooming. orient()/zoom() fit the camera to
@@ -208,8 +284,20 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
 
     cmd.bg_color("white")
     cmd.set("ray_opaque_background", 0)
-    cmd.set("ray_trace_mode", 1)
+
+    # --- NEW: Mol*-style bold outline, flat matte fill ---
+    cmd.set("ray_trace_mode", 1)          # try 3 for heavier/quantised outline
+    cmd.set("ray_trace_color", "black")
+    cmd.set("ray_trace_gain", 0.8)        # outline weight - raise to thicken
+
     cmd.set("ambient", 0.5)
+    cmd.set("specular", 0)
+    cmd.set("shininess", 0)
+    cmd.set("direct", 0.6)
+    cmd.set("light_count", 1)
+
+    cmd.set("cartoon_fancy_helices", 1)
+    cmd.set("cartoon_smooth_loops", 1)
     cmd.set("antialias", 2)
 
     def snapshot(png_out):
@@ -227,7 +315,7 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
                 continue
             color_name = "c_%s_all_%d" % (protein, i)
             cmd.set_color(color_name, rgb)
-            cmd.color(color_name, "%s and resi %s-%s" % (protein, row["res.start"], row["res.end"]))
+            cmd.color(color_name, "%s and resi %s-%s" % (paint_sel_base, row["res.start"], row["res.end"]))
             n_painted += 1
 
         png_out = os.path.join(out_dir, "%s__all-segments.png" % protein)
@@ -235,11 +323,11 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
         cmd.save(os.path.join(out_dir, "%s__all-segments.pse" % protein))
         print("[done] %s combined: %d/%d segments painted -> %s" % (protein, n_painted, len(rows), png_out))
 
-        cmd.color("custom_grey", protein)  # reset before any per-segment renders
+        cmd.color("custom_grey", paint_sel_base)  # reset before any per-segment renders
 
     if mode in ("per-segment", "both"):
         for i, row in enumerate(rows):
-            cmd.color("custom_grey", protein)  # reset every other segment to grey
+            cmd.color("custom_grey", paint_sel_base)  # reset every other segment to grey
 
             rgb = hex_to_rgb01(row.get("color"))
             if rgb is None:
@@ -249,7 +337,7 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
 
             color_name = "c_%s_seg%d" % (protein, i)
             cmd.set_color(color_name, rgb)
-            sel = "%s and resi %s-%s" % (protein, row["res.start"], row["res.end"])
+            sel = "%s and resi %s-%s" % (paint_sel_base, row["res.start"], row["res.end"])
             cmd.color(color_name, sel)
 
             tag = sanitize("%s_%s_%s-%s" % (row["domain.type"], row["domain.id"],
@@ -258,7 +346,7 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
             snapshot(png_out)
             print("[done] %s segment %s -> %s" % (protein, tag, png_out))
 
-        cmd.color("custom_grey", protein)  # leave the object clean afterwards
+        cmd.color("custom_grey", paint_sel_base)  # leave the object clean afterwards
 
 
 def main():
@@ -272,7 +360,8 @@ def main():
 
     for protein, rows in sorted(by_protein.items()):
         render(protein, rows, args.models_dir, args.out_dir,
-               args.resolution, args.dpi, not args.no_ray, args.mode, args.buffer)
+               args.resolution, args.dpi, not args.no_ray, args.mode, args.buffer,
+               args.chain_mode, args.default_chain)
 
     cmd.quit()
 
@@ -284,7 +373,9 @@ PYEOF
 # Run
 # ---------------------------------------------------------------------------
 PYMOL_ARGS=( --table "$TABLE" --models-dir "$MODELS_DIR" --out-dir "$OUT_DIR"
-             --resolution "$RESOLUTION" --dpi "$DPI" --mode "$MODE" --buffer "$BUFFER" )
+             --resolution "$RESOLUTION" --dpi "$DPI" --mode "$MODE" --buffer "$BUFFER"
+             --chain-mode "$CHAIN_MODE" )
+[ -n "$DEFAULT_CHAIN" ] && PYMOL_ARGS+=( --default-chain "$DEFAULT_CHAIN" )
 [ -n "$TRACKS" ] && PYMOL_ARGS+=( --tracks "$TRACKS" )
 [ "$NO_RAY" -eq 1 ] && PYMOL_ARGS+=( --no-ray )
 

@@ -128,7 +128,6 @@ setorder(rbps.arch.metrics.filtered, fam.key, -n.ecf.hits)
 rbps.arch.metrics.filtered.top.arch <- rbps.arch.metrics.filtered[, .SD[1], by = .(fam.key)]
 repr.rbps <- rbps.arch.metrics.filtered.top.arch$qname
 
-
 rbp.vis.dir <- file.path(this.part.dir, "vis-rbp-archs")
 make.dir(rbp.vis.dir)
 
