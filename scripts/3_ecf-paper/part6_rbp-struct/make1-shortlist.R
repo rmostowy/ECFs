@@ -186,3 +186,49 @@ for(ri in 1:length(af.model.set)){
   this.ri.plot.outfile <- file.path(af.model.set.dir, sprintf("%s.png", this.ri))
   ggsave(this.ri.plot.outfile, this.ri.plot, width = 7, height = 6)  
 }
+
+#################################
+### Combined 5-panel supplementary figure
+### (subset of af.model.set used in the main-text figure)
+#################################
+
+fig.set <- c("reprseq012341", "reprseq031110", "reprseq019028",
+             "reprseq057378", "reprseq125186")
+
+# fig.set.dir <- file.path(this.part.dir, "fig-set")
+# make.dir(fig.set.dir)
+
+fig.set.plots <- vector("list", length(fig.set))
+names(fig.set.plots) <- fig.set
+
+for (ri in seq_along(fig.set)) {
+  this.ri <- fig.set[ri]
+  this.ri.ecf.hits  <- reprseq.vs.ecfs[qname == this.ri]
+  this.ri.ecod.hits <- reprseq.vs.ecod.top[qname == this.ri]
+  this.ri.ecod.hits.formatted <- this.ri.ecod.hits %>%
+    select(qname, qstart, qend, qlength, sname, sstart, send, slength,
+           pident, bitscore, eval, prob, pval, hit.length, qcov, scov,
+           family = t.id)
+  this.ri.all.hits <- rbind(this.ri.ecf.hits, this.ri.ecod.hits.formatted)
+
+  this.ri.plot <- plot.ecf.distr.over.query(this.ri, this.ri.all.hits) +
+    ggtitle(this.ri)
+
+  # # individual panel, same convention as the af.model.set loop above
+  # this.ri.plot.outfile <- file.path(fig.set.dir, sprintf("%s.png", this.ri))
+  # ggsave(this.ri.plot.outfile, this.ri.plot, width = 7, height = 6)
+
+  fig.set.plots[[this.ri]] <- this.ri.plot
+}
+
+# ---- combine into one supplementary figure ----
+# ncol = 1 stacks all five vertically (safest for legibility of the
+# linear tracks); set to 2 for a 2-column grid, etc.
+fig.set.ncol <- 2
+fig.set.nrow <- ceiling(length(fig.set) / fig.set.ncol)
+
+fig.set.combined <- wrap_plots(fig.set.plots[fig.set], ncol = fig.set.ncol)
+# suppl-4p1_div-cov-short.png
+fig.set.combined.outfile <- file.path(ecf.suppl.figures.dir, "suppl-6p1-raw-ecf-distr.png")
+ggsave(fig.set.combined.outfile, fig.set.combined,
+       width = 7 * fig.set.ncol, height = 6 * fig.set.nrow, limitsize = FALSE)
