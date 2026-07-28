@@ -64,6 +64,14 @@
 #                      all homotrimers) and you don't want to edit the CSV
 #                      or the R script per protein. A CSV 'chain' value,
 #                      when present, always takes priority over this.
+#   --highlight-color hex code, no '#' (e.g. FF1493 for pink). When set,
+#                      every segment is painted this one colour instead of
+#                      its CSV 'color' value - for a main-figure style
+#                      where family identity comes from an external label/
+#                      bracket rather than from colour-coding, so every
+#                      panel gets the same bright accent colour regardless
+#                      of which EF/ECOD/Pfam family it is. Leave unset to
+#                      keep the original per-family CSV colours.
 #
 # Requires PyMOL on PATH (e.g. `conda install -c conda-forge pymol-open-source`,
 # or Schrodinger's PyMOL app with its command-line tool linked).
@@ -78,9 +86,9 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 DATA_DIR="/Users/rmostowy/MGG Dropbox/Rafal Mostowy/Projects/Data/ECFs/v4/paper-ecf/part6_rbp-struct"
 TABLE="$DATA_DIR/pymol-domain-colors.csv"
-MODELS_DIR="/Users/rmostowy/MGG Dropbox/Rafal Mostowy/Projects/Data/ECFs/v4/AF3/Fig7/2026-06/AF3/representatives"
-OUT_DIR="$DATA_DIR/pymol-out-test"
-RESOLUTION=1000
+MODELS_DIR="/Users/rmostowy/MGG Dropbox/Rafal Mostowy/Projects/Data/ECFs/v4/AF3/Fig6/2026-06/AF3/representatives"
+OUT_DIR="$DATA_DIR/pymol-out"
+RESOLUTION=3000
 DPI=300
 TRACKS=""
 NO_RAY=0
@@ -88,6 +96,7 @@ MODE="per-segment"
 BUFFER=50
 CHAIN_MODE="ghost"
 DEFAULT_CHAIN=""
+HIGHLIGHT_COLOR=""
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -105,6 +114,7 @@ while [[ $# -gt 0 ]]; do
     --buffer)        BUFFER="$2"; shift 2 ;;
     --chain-mode)    CHAIN_MODE="$2"; shift 2 ;;
     --default-chain) DEFAULT_CHAIN="$2"; shift 2 ;;
+    --highlight-color) HIGHLIGHT_COLOR="$2"; shift 2 ;;
     -h|--help)
       sed -n '2,40p' "$0" | sed 's/^#//; s/^ //'
       exit 0
@@ -176,6 +186,11 @@ def parse_args():
     p.add_argument("--default-chain", default="",
                     help="Fallback focus chain (e.g. 'A') for any protein whose CSV "
                          "row leaves 'chain' blank/absent. A CSV value always wins.")
+    p.add_argument("--highlight-color", default="",
+                    help="Hex code, no '#' (e.g. FF1493). When set, overrides the CSV "
+                         "'color' column and paints every segment this one colour - "
+                         "for figures where family identity is conveyed by an external "
+                         "label/bracket instead of by colour-coding.")
     return p.parse_args(argv)
 
 
@@ -210,7 +225,7 @@ def sanitize(text):
     return str(text).replace(" ", "").replace("/", "-").replace(os.sep, "-")
 
 
-def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, buffer, chain_mode, default_chain):
+def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, buffer, chain_mode, default_chain, highlight_rgb):
     cif = find_model(models_dir, protein)
     if cif is None:
         print("[skip] %s: no fold_%s.cif in %s" % (protein, protein, models_dir))
@@ -308,7 +323,7 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
     if mode in ("combined", "both"):
         n_painted = 0
         for i, row in enumerate(rows):
-            rgb = hex_to_rgb01(row.get("color"))
+            rgb = highlight_rgb if highlight_rgb is not None else hex_to_rgb01(row.get("color"))
             if rgb is None:
                 print("[warn] %s: missing/bad colour for %s %s (%s-%s), left grey" %
                       (protein, row["domain.type"], row["domain.id"], row["res.start"], row["res.end"]))
@@ -329,7 +344,7 @@ def render(protein, rows, models_dir, out_dir, resolution, dpi, do_ray, mode, bu
         for i, row in enumerate(rows):
             cmd.color("custom_grey", paint_sel_base)  # reset every other segment to grey
 
-            rgb = hex_to_rgb01(row.get("color"))
+            rgb = highlight_rgb if highlight_rgb is not None else hex_to_rgb01(row.get("color"))
             if rgb is None:
                 print("[warn] %s: missing/bad colour for %s %s (%s-%s), skipped" %
                       (protein, row["domain.type"], row["domain.id"], row["res.start"], row["res.end"]))
@@ -354,6 +369,13 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
     tracks = set(t.strip() for t in args.tracks.split(",")) if args.tracks else None
 
+    highlight_rgb = None
+    if args.highlight_color:
+        highlight_rgb = hex_to_rgb01(args.highlight_color)
+        if highlight_rgb is None:
+            sys.exit("--highlight-color must be a 6-digit hex code, no '#' "
+                      "(e.g. FF1493) - got: %r" % args.highlight_color)
+
     by_protein = load_table(args.table, tracks)
     if not by_protein:
         sys.exit("No rows loaded from %s (check --tracks filter)" % args.table)
@@ -361,7 +383,7 @@ def main():
     for protein, rows in sorted(by_protein.items()):
         render(protein, rows, args.models_dir, args.out_dir,
                args.resolution, args.dpi, not args.no_ray, args.mode, args.buffer,
-               args.chain_mode, args.default_chain)
+               args.chain_mode, args.default_chain, highlight_rgb)
 
     cmd.quit()
 
@@ -376,6 +398,7 @@ PYMOL_ARGS=( --table "$TABLE" --models-dir "$MODELS_DIR" --out-dir "$OUT_DIR"
              --resolution "$RESOLUTION" --dpi "$DPI" --mode "$MODE" --buffer "$BUFFER"
              --chain-mode "$CHAIN_MODE" )
 [ -n "$DEFAULT_CHAIN" ] && PYMOL_ARGS+=( --default-chain "$DEFAULT_CHAIN" )
+[ -n "$HIGHLIGHT_COLOR" ] && PYMOL_ARGS+=( --highlight-color "$HIGHLIGHT_COLOR" )
 [ -n "$TRACKS" ] && PYMOL_ARGS+=( --tracks "$TRACKS" )
 [ "$NO_RAY" -eq 1 ] && PYMOL_ARGS+=( --no-ray )
 
