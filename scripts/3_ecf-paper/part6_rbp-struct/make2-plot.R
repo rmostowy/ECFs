@@ -297,7 +297,8 @@ pfam.legend.labels <- all.pfam.coords[, .(
 # =============================================================================
 
 # plotting.proteins <- focal.proteins[focal.proteins != "reprseq057378"]   # all three
-plotting.proteins <- c("reprseq019028", "reprseq031110")
+# plotting.proteins <- c("reprseq019028", "reprseq031110")
+plotting.proteins <- focal.proteins
 
 all.fc <- rbindlist(lapply(results, `[[`, "family.coords"))
 all.pa <- rbindlist(lapply(results, `[[`, "position.assignment"))
@@ -474,15 +475,10 @@ p <- ggplot() +
 
 print(p)
 
-fig.outfile <- file.path(this.part.dir, "focal-examples.png")
-fig.outfile2 <- file.path(this.part.dir, "focal-examples.pdf")
+fig.outfile <- file.path(this.part.dir, "figure6A.pdf")
 ggsave(
   fig.outfile, p,
-  width = 15, height = 8, units = "cm", scale = 1.5
-)
-ggsave(
-  fig.outfile2, p,
-  width = 15, height = 8, units = "cm", scale = 1.5
+  width = 17, height = 8, units = "cm", scale = 1.5
 )
 
 all.cf.out <- copy(all.fc)
