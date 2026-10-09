@@ -53,7 +53,7 @@ setkey(ecfs.vs.ecod, qname)
 # ecfs.potentially.new <- setdiff(all.ecfs, ecfs.with.ecod.hit)
 
 ecf.classification.table.list <- lapply(1:Ne, function(index){
-  cat(index,"\n")
+  # cat(index,"\n")
   # get linked PHROG annotations
   this.ecf <- all.ecfs[index]
   this.ecf.has.reprseqs <- this.ecf %in% ecf2reprseq$ecf

@@ -27,7 +27,7 @@ ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
 ecf.full.table.list <- lapply(1:length(ecf.a3m.list), function(ecf.index){
   this.ecf.file.path <- ecf.a3m.list[ecf.index]
   this.ecf.file.name <- basename(this.ecf.file.path)
-  this.ecf.name = sub("_final\\.a3m$", "", this.ecf.file.name)
+  this.ecf.name = sub("_final_filter\\.a3m$", "", this.ecf.file.name)
   this.ecf.a3m <- readAAStringSet(this.ecf.file.path)
   this.ecf.repr <- names(this.ecf.a3m)[1]
   this.ecf.seqs <- as.character(this.ecf.a3m)
@@ -97,7 +97,7 @@ ecfs.vs.ecfs.all <- fread(ecf.hits.vs.ecf.filename)
 ecfs.vs.ecfs.all[, hit.length := qend - qstart + 1]
 ecfs.vs.ecfs.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecfs.all[, scov := round((send - sstart + 1)/slength, 4)]
-ecfs.vs.ecfs.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.ecfs.all[, qname := gsub("_final_filter", "", qname)]
 ecfs.vs.ecfs.all$sname <- ecf.name.table[.(ecfs.vs.ecfs.all$sname)]$ecf.name
 
 # filter ECF-to-ECF hits
@@ -120,7 +120,7 @@ ecfs.vs.ecod.all <- fread(ecf.hits.vs.ecod.filename)
 ecfs.vs.ecod.all[, hit.length := qend - qstart + 1]
 ecfs.vs.ecod.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.ecod.all[, scov := round((send - sstart + 1)/slength, 4)]
-ecfs.vs.ecod.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.ecod.all[, qname := gsub("_final_filter", "", qname)]
 
 # filter ECF-to-ECF hits
 ecfs.vs.ecod <- ecfs.vs.ecod.all %>%
@@ -146,7 +146,7 @@ ecfs.vs.pfam.all <- fread(ecf.hits.vs.pfam.filename)
 ecfs.vs.pfam.all[, hit.length := qend - qstart + 1]
 ecfs.vs.pfam.all[, qcov := round((qend - qstart + 1)/qlength, 4)]
 ecfs.vs.pfam.all[, scov := round((send - sstart + 1)/slength, 4)]
-ecfs.vs.pfam.all[, qname := gsub("_final", "", qname)]
+ecfs.vs.pfam.all[, qname := gsub("_final_filter", "", qname)]
 ecfs.vs.pfam.all[, accession := sub("\\..*", "", sname)]
 
 # filter ECF-to-ECF hits

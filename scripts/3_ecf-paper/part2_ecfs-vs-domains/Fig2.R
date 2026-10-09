@@ -976,7 +976,7 @@ ecf.pairs <- ecf.x.funct[, .(
   domain.by.x = paste(sprintf("X%s: %s", x.id, domains), collapse = "  ||  ")
 ), by = qname]
 
-interesting <- ecf.pairs[n.x >= 2 & n.functions >= 2][order(-n.functions, -n.x)]
+interesting <- ecf.pairs[n.x >= 2 & n.functions >= 1][order(-n.functions, -n.x)]
 
 ##############################################################################
 ### STEP B -- hand-picked examples: build candidate rows per (ECF, X-group)
@@ -984,7 +984,7 @@ interesting <- ecf.pairs[n.x >= 2 & n.functions >= 2][order(-n.functions, -n.x)]
 
 ## Hand-picked from `interesting` above -- update as the shortlist evolves.
 # ecf.examples <- c("ecf_00043", "ecf_00108", "ecf_01881", "ecf_04622", "ecf_06876")
-ecf.examples <- c("ecf_00043", "ecf_00108", "ecf_01881", "ecf_04622")
+ecf.examples <- c("ecf_04453", "ecf_06876", "ecf_01881", "ecf_00898")
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 ecf.on.reprseq <- reprseq.vs.ecfs[
@@ -1035,10 +1035,10 @@ setorder(cand, ecf, x.id, -drawable, -rs.prob)
 # this.ex <- cand[ecf == ecf.examples[index]]
 # View(this.ex)
 example.choices <- c(
-  list(c("ECOD_000010092_e1s2dA1", "ECOD_002630372_e6lhxA2")),
-  list(c("ECOD_000011272_e1ttzA1", "ECOD_001108045_e3j46n1")),
-  list(c("ECOD_001772495_e3g7dA1", "ECOD_000002765_e1lmb31", "ECOD_000005961_e1nr3A1")),
-  list(c("ECOD_000143750_e3rgoA1", "ECOD_002130862_e6apxA3"))
+  list(c("ECOD_000010092_e1s2dA1", "ECOD_000010607_e2nx2A1")), # ecf_04453
+  list(c("ECOD_000011287_e1hyuA4", "ECOD_001108045_e3j46n1")), # ecf_06876
+  list(c("ECOD_001772495_e3g7dA1", "ECOD_000002765_e1lmb31", "ECOD_000005961_e1nr3A1")), # ecf_00108
+  list(c("ECOD_000002693_e1u5tA2", "ECOD_002770010_e7e5wA2")) # ecf_00898
 )
 
 rep.per.x.list <- lapply(1:length(example.choices), function(index){
@@ -1105,7 +1105,7 @@ draw.ecf.examples <- function(ecf.ids, ncol = 2, dom.col = "#F2C14E", ecf.cols =
     geom_text(data = d[!is.na(dom.start)],
               aes(x = (dom.start + dom.end) / 2, y = y + 0.40, label = dom.label),
               size = 2.5, colour = "grey20", vjust = 0, fontface = "bold") +
-    facet_wrap(~ column, ncol = ncol, scales = "free_y") +
+    facet_wrap(~ column, ncol = ncol, scales = "free") +
     ggh4x::facetted_pos_scales(y = y.scales) +
     scale_fill_manual(values = ecf.cols, name = "ECF") +
     scale_x_continuous(expand = expansion(mult = c(0.04, 0.08))) +
