@@ -83,7 +83,7 @@ ecf.projects.datasets <- file.path(mgg.projects, "ECFs", "datasets")
 antidefence.data.path <- file.path(ecf.projects.datasets, "antidefence")
 refseq.input.data.path <- file.path(ecf.projects.datasets, "refseq-input", "ecf-input-dataset")
 
-ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2025-10-24")
+ecf.explorer.path <- file.path(mgg.projects, "ECFs/ecf-explorer/ecf-explorer_2026-10-09")
 ecf.raw.input.path <- file.path(ecf.explorer.path, "input")
 ecf.raw.data.path <- file.path(ecf.explorer.path, "output")
 
@@ -145,6 +145,7 @@ data.input.dir <- file.path(main.data.dir, "input")
 data.output.dir <- file.path(main.data.dir, "output")
 visual.dir <- file.path(main.data.dir, "visualisations")
 
+database.dir <- file.path(data.output.dir, "database")
 data.phrog.dir <- file.path(data.output.dir, "annotation", "phrogs")
 data.domain.dir <- file.path(data.output.dir, "annotation", "domains")
 data.ps.dir <- file.path(data.output.dir, "annotation", "phagescope")
@@ -160,7 +161,7 @@ ecf.suppl.figures.dir <- file.path(ecf.figures.dir, "suppl-figs")
 
 dirs2create <- c(data.tmp.dir,
                  main.data.dir, data.input.dir, data.output.dir, visual.dir,
-                 data.phrog.dir, data.domain.dir, data.ps.dir, data.ecfs.dir,
+                 database.dir, data.phrog.dir, data.domain.dir, data.ps.dir, data.ecfs.dir,
                  data.comparisons.dir, ecf.network.dir,
                  ecf.proj.dir, ecf.figures.dir, ecf.suppl.figures.dir)
 
