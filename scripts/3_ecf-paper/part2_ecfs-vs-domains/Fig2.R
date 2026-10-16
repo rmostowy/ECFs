@@ -132,12 +132,14 @@ reprseq.vs.pfam <- reprseq.vs.pfam.all %>%
          scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
          hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM)
 
+# reprseq.vs.ecod.all$t.id <- ecod.domains[.(reprseq.vs.ecod.all$sname)]$t_id
 reprseq.vs.ecod <- reprseq.vs.ecod.all %>%
   filter(prob >= MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM,
          eval <= MAX.EVAL.FOR.DOMAIN.DETECT.IN.RHMM,
          qcov >= MIN.RHMM.COV.FOR.DOMAIN.DETECT.IN.RHMM,
          scov >= MIN.DOMAIN.COV.FOR.DOMAIN.DETECT.IN.RHMM,
          hit.length >= MIN.HIT.LENGTH.FOR.DOMAIN.DETECT.IN.RHMM)
+
 
 ## Shared plotting helpers. Not exactly "table processing", but defined once
 ## here and reused across every step below -- same role `base_theme` played

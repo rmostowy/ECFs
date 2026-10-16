@@ -127,10 +127,10 @@ prob.threshold <- MIN.PROB.FOR.DOMAIN.DETECT.IN.RHMM
 
 # ECF family colours - fixed palette for known families
 family.colors <- c(
-  EF0007 = "#4E79A7", EF0013 = "#F28E2B", EF0033 = "#E15759",
-  EF0065 = "#76B7B2", EF0079 = "#59A14F", EF0080 = "#EDC948",
-  EF0212 = "#B07AA1", EF0261 = "#FF9DA7", EF0635 = "#9C755F",
-  EF2655 = "#BAB0AC", EF2175 = "#D4A6C8", EF0072 = "#82C0CC"
+  EF0007 = "#4E79A7", EF0012 = "#F28E2B", EF0037 = "#E15759",
+  EF0066 = "#76B7B2", EF0087 = "#59A14F", EF0080 = "#EDC948",
+  EF0212 = "#B07AA1", EF0262 = "#FF9DA7", EF0546 = "#9C755F",
+  EF2537 = "#BAB0AC", EF2093 = "#D4A6C8", EF0231 = "#82C0CC"
 )
 
 # ECOD T-level colours - distinct muted palette to avoid confusion with ECFs
