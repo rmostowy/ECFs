@@ -399,6 +399,7 @@ p.domain.cov.cat <- ggplot(domain.cov.dt.long, aes(x = coverage, y = category, f
   ) +
   scale_y_discrete(labels = phrog.class.labels) +   # <- THIS
   labs(
+    title = "RefSeq",
     x = "Fraction of proteins with ≥1 hit",
     y = NULL
   ) +
@@ -549,6 +550,7 @@ p.phagescope.cov <- ggplot(dt_long, aes(x = coverage, y = category, fill = datab
     expand = expansion(mult = c(0, 0.02))
   ) +
   labs(
+    title = "PhageScope",
     x = "Fraction of proteins with ≥1 hit",
     y = NULL
   ) +
@@ -576,8 +578,8 @@ ggsave(p.phagescope.cov.outfile, p.phagescope.cov, width = 4.5, height = 5.5)
 
 
 # wrap the ComplexUpset objects so they count as ONE panel each
-p_upset_onepanel <- wrap_elements(full = p.upset)
-p_upset_ps_onepanel <- wrap_elements(full = p.upset.phagescope)
+p_upset_onepanel <- wrap_elements(full = p.upset) + ggtitle("RefSeq")
+p_upset_ps_onepanel <- wrap_elements(full = p.upset.phagescope) + ggtitle("PhageScope")
 
 fig <- (
   (p_upset_onepanel | p.domain.cov.cat) /
@@ -586,7 +588,9 @@ fig <- (
   plot_annotation(tag_levels = "A") &
   theme(
     plot.tag = element_text(face = "bold", size = 24),
-    plot.tag.position = c(0.02, 0.98)
+    plot.tag.position = c(0.02, 0.98),
+    plot.title = element_text(hjust = 0.2, face = "bold", size = 14),
+    plot.title.position = "plot"
   )
 
 fig.outfile <- file.path(ecf.figures.dir, "figure3.png")
