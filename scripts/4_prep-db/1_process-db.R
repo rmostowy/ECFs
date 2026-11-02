@@ -28,7 +28,7 @@ ecf.a3m.list <- list.files(ecfs.a3m.dir, full.names = T, recursive = F)
 for(ecf.index in 1:length(ecf.a3m.list)){
   this.ecf.file.path <- ecf.a3m.list[ecf.index]
   this.ecf.file.name <- basename(this.ecf.file.path)
-  this.ecf.name = sub("_final\\.a3m$", "", this.ecf.file.name)
+  this.ecf.name = sub("_final_filter\\.a3m$", "", this.ecf.file.name)
   this.ecf.a3m <- readBStringSet(this.ecf.file.path)
   names(this.ecf.a3m)[1] <- this.ecf.name
   this.ecf.a3m.outfile <- sprintf("%s.a3m", this.ecf.name)
