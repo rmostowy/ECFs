@@ -6,6 +6,18 @@ The repository holds **code only**. All input data, intermediate tables, figures
 
 This README describes how the repository is organised. It is a description, not a tutorial. It covers the current code only.
 
+## Citation
+Bogna J. Smug\*, Krzysztof Szczepaniak\*, Stanislaw Dunin-Horkawicz & Rafal J. Mostowy. 
+*Evolutionarily Conserved Fragments reveal modular architecture and expand 
+functional coverage in bacteriophage proteins.* Manuscript in preparation.
+(\*equal contribution)
+
+Please also cite the archived data, which has its own DOI:
+
+Smug B, Szczepaniak K, Dunin-Horkawicz S & Mostowy RJ. 
+*ECF database v1.0.0* [Data set]. Zenodo.
+
+
 ## Terminology used in the scripts
 
 | Term | Meaning |
