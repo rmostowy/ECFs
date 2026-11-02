@@ -293,13 +293,16 @@ enrich.results <- rbindlist(lapply(all.dd.families, function(fam) {
 # -----------------------------------------------------------------------------
 
 enrich.results[, qval := p.adjust(pval, method = "BH")]
-# enrich.results[, qval := p.adjust(pval, method = "bonferroni")]
-enrich.sig <- enrich.results[
+# Haldane-Anscombe-corrected OR (display only; always finite)
+enrich.results[, or.hald :=
+  ((n_dd_fam_funct + 0.5) * (N.dd.annotated.only - n_dd_fam - n_dd_funct + n_dd_fam_funct + 0.5)) /
+  ((n_dd_fam - n_dd_fam_funct + 0.5) * (n_dd_funct - n_dd_fam_funct + 0.5))]
+ enrich.sig <- enrich.results[
   qval        <= MAX.QVAL     &
     odds.ratio  >  1            &
     n_dd_fam_funct >= MIN.DD.WITH.FAM
 ]
-setorder(enrich.sig, funct, -odds.ratio)
+setorder(enrich.sig, funct, pval, -n_dd_fam_funct, -frac_funct_in_fam, -n_dd_fam_total, family)
 
 # -----------------------------------------------------------------------------
 # Step 4: Summarise per function — how many significant ECF families?
@@ -318,10 +321,10 @@ fam.diversity.per.funct <- merge(
 
 # Significant enriched families per function
 sig.per.funct <- enrich.sig[, .(
-  n_sig_fams       = .N,
-  top_family       = family[which.max(odds.ratio)],
-  top_odds         = max(odds.ratio),
-  top_frac         = frac_funct_in_fam[which.max(odds.ratio)]
+  n_sig_fams = .N,
+  top_family = family[1],
+  top_odds   = or.hald[1],
+  top_frac   = frac_funct_in_fam[1]
 ), by = funct]
 
 funct.summary <- merge(fam.diversity.per.funct, sig.per.funct, 
@@ -372,18 +375,14 @@ p.scatter <- ggplot(
 # Show top 3 families per function, sized by n_dd_fam_funct, 
 # colored by odds ratio
 
-top3.per.funct <- enrich.sig[
-  , .SD[order(-odds.ratio)][1:min(.N, 3L)],
-  by = funct
-]
+top3.per.funct <- enrich.sig[, head(.SD, 3L), by = funct]
 
 # Order functions by ECF family diversity (links to Panel A)
 funct.order.b <- funct.summary[order(-n_unique_fams)]$funct
-top3.per.funct[, funct := factor(funct, levels = funct.order.b)]
+top3.per.funct[, funct := factor(funct, levels = rev(funct.order.b))]
 
 # Order families within each function by odds ratio
-top3.per.funct[, family.rank := frank(-odds.ratio, ties.method = "first"), 
-               by = funct]
+top3.per.funct[, family.rank := seq_len(.N), by = funct]
 top3.per.funct[, family.label := paste0(family, "\n(n=", n_dd_fam_funct, ")")]
 
 p.dotplot <- ggplot(
@@ -391,7 +390,7 @@ p.dotplot <- ggplot(
   aes(x     = factor(family.rank),
       y     = funct,
       size  = n_dd_fam_funct,
-      color = log2(odds.ratio))
+      color = log2(or.hald))
 ) +
   geom_point(alpha = 0.85) +
   geom_text(
@@ -399,12 +398,12 @@ p.dotplot <- ggplot(
     size = 2.0, vjust = -1.2, color = "black"
   ) +
   scale_color_gradient2(
-    low      = "steelblue",
-    mid      = "white",
-    high     = "#E15759",
-    midpoint = 1,
-    name     = "log2(Odds ratio)"
-  ) +
+  low      = "steelblue",
+  mid      = "white",
+  high     = "#E15759",
+  midpoint = 0,                         # was 1; log2(OR) = 0 means no enrichment
+  name     = "log2(Odds ratio)\n(Haldane-corrected)"
+) +
   scale_size_continuous(
     name  = "Domain-dark\nproteins",
     range = c(2, 10)
