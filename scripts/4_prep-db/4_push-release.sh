@@ -2,17 +2,26 @@
 #
 # 4_push-release.sh
 #
-# Uploads the release files built by 3_make-release.sh to GitHub as a release
-# of this repository (using the GitHub CLI, `gh`):
+# Creates a GitHub release of this repository (using the GitHub CLI, `gh`) with
+# the database files built by 3_make-release.sh attached:
 #
 #   ecf-hhsuitedb.tar.gz, ecf-a3m.tar.gz, ecf-metadata.csv, SHA256SUMS.txt
 #
+# Code and database share ONE version series (see the README): the release is
+# the git tag VERSION, so its source archive (the code) and the database files
+# belong to the same release. Publishing the release makes Zenodo archive the
+# source code of the tag and issue a DOI for this version.
+#
 # The release text is taken from release-notes/<version>.md in this repository.
 # By default the release is created as a DRAFT, so it can be checked on GitHub
-# and published by hand.
+# and published by hand. Nothing is archived on Zenodo until it is published.
+#
+# The commit that gets tagged is the current commit (HEAD), which must be
+# committed and pushed first, so that the notes, README, CITATION.cff and
+# scripts of the release are in the archive.
 #
 # Usage:
-#   ./4_push-release.sh VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p]
+#   ./4_push-release.sh VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p] [-f]
 #
 #   VERSION       release tag, e.g. v1.0.0
 #   -d RELEASE_DIR  directory with the release files (output of 3_make-release.sh)
@@ -20,6 +29,8 @@
 #   -n NOTES_FILE   release notes (Markdown)
 #                   default: <repo>/release-notes/VERSION.md
 #   -p              publish immediately instead of creating a draft
+#   -f              proceed although the working tree is not clean or there
+#                   are unpushed commits
 #
 # RELEASE_DIR can also be set through the environment variable OUT.
 #
@@ -36,22 +47,24 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${OUT:-$HOME/Dropbox/Projects/Data/ECFs/v4/output/release}"
 NOTES=""
 DRAFT=(--draft)
+FORCE=0
 
-[ $# -ge 1 ] || die "usage: $0 VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p]"
+[ $# -ge 1 ] || die "usage: $0 VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p] [-f]"
 case "$1" in
-  -h|--help) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
 esac
 VERSION="$1"; shift
 [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]] \
   || die "VERSION should look like v1.0.0 (got '$VERSION')"
 
-while getopts "d:n:ph" opt; do
+while getopts "d:n:pfh" opt; do
   case "$opt" in
     d) OUT="$OPTARG" ;;
     n) NOTES="$OPTARG" ;;
     p) DRAFT=() ;;
-    h) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) die "usage: $0 VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p]" ;;
+    f) FORCE=1 ;;
+    h) sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) die "usage: $0 VERSION [-d RELEASE_DIR] [-n NOTES_FILE] [-p] [-f]" ;;
   esac
 done
 [ -n "$NOTES" ] || NOTES="$REPO/release-notes/$VERSION.md"
@@ -63,6 +76,10 @@ command -v gh >/dev/null 2>&1 || die "GitHub CLI 'gh' not found (https://cli.git
 gh auth status >/dev/null 2>&1 || die "gh is not logged in; run: gh auth login"
 
 [ -f "$NOTES" ] || die "release notes not found: $NOTES"
+if grep -n "<TODO" "$NOTES" >/dev/null; then
+  grep -n "<TODO" "$NOTES" >&2
+  die "release notes still contain <TODO ...> placeholders: $NOTES"
+fi
 
 FILES=(ecf-hhsuitedb.tar.gz ecf-a3m.tar.gz ecf-metadata.csv SHA256SUMS.txt)
 for f in "${FILES[@]}"; do
@@ -84,18 +101,35 @@ echo "Verifying checksums ..."
 # gh works out the target repository from the git remote of the current directory
 cd "$REPO"
 
-if gh release view "$VERSION" >/dev/null 2>&1; then
-  die "a release with tag $VERSION already exists on GitHub"
+# `gh release view` does not find drafts, so list all releases (drafts included)
+if gh release list --limit 1000 --json tagName --jq '.[].tagName' | grep -qx -- "$VERSION"; then
+  die "a release (possibly a draft) with tag $VERSION already exists on GitHub; check: gh release list"
+fi
+if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+  die "a local git tag $VERSION already exists"
 fi
 
-# The tag is created by GitHub from the last pushed commit of the default
-# branch, so uncommitted or unpushed changes would not be part of the release.
+# The release is tagged on the current commit, which GitHub must already have:
+# uncommitted or unpushed changes would not be part of the release (nor of the
+# Zenodo archive).
+PROBLEMS=0
 if [ -n "$(git status --porcelain)" ]; then
-  echo "WARNING: the working tree has uncommitted changes" >&2
+  echo "The working tree has uncommitted or untracked changes:" >&2
+  git status --short >&2
+  PROBLEMS=1
 fi
 if [ -n "$(git rev-list '@{u}..HEAD' 2>/dev/null)" ]; then
-  echo "WARNING: there are local commits that have not been pushed" >&2
+  echo "There are local commits that have not been pushed." >&2
+  PROBLEMS=1
 fi
+if [ "$PROBLEMS" -eq 1 ]; then
+  if [ "$FORCE" -eq 1 ]; then
+    echo "WARNING: continuing because of -f" >&2
+  else
+    die "commit and push first (or use -f)"
+  fi
+fi
+TARGET="$(git rev-parse HEAD)"
 
 # ---------------------------------------------------------------------------
 # Create the release
@@ -103,9 +137,18 @@ fi
 ASSETS=()
 for f in "${FILES[@]}"; do ASSETS+=("$OUT/$f"); done
 
-echo "Creating release $VERSION ${DRAFT[*]:-(published)} ..."
+echo "Creating release $VERSION ${DRAFT[*]:-(published)} on commit ${TARGET:0:7} ..."
 gh release create "$VERSION" \
   "${ASSETS[@]}" \
-  --title "ECF database $VERSION" \
+  --title "ECFs $VERSION: analysis code and ECF database" \
   --notes-file "$NOTES" \
+  --target "$TARGET" \
   ${DRAFT[@]+"${DRAFT[@]}"}
+
+echo
+if [ ${#DRAFT[@]} -gt 0 ]; then
+  echo "The release is a draft: check it on GitHub, then publish it."
+  echo "Publishing creates the tag $VERSION and makes Zenodo archive the code (new version DOI)."
+else
+  echo "The release is published; Zenodo will now archive it (new version DOI)."
+fi

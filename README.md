@@ -12,11 +12,17 @@ Bogna J. Smug\*, Krzysztof Szczepaniak\*, Jade Leconte, Stanislaw Dunin-Horkawic
 functional coverage in bacteriophage proteins.* Manuscript in preparation.
 (\*equal contribution)
 
-Please also cite the archived data, which has its own DOI:
+Please also cite the archived release you used. Each release of this repository is archived on Zenodo, which assigns a DOI to that version (shown on the release page and in the Zenodo record); the "Cite this repository" button on GitHub (from `CITATION.cff`) gives the citation. See [Releases, versions and DOIs](#releases-versions-and-dois).
 
-Smug B, Szczepaniak K, Leconte J, Dunin-Horkawicz S & Mostowy RJ. 
-*ECF database v1.0.1* [Data set]. Zenodo.
+## Releases, versions and DOIs
 
+Code and database are released together, in a **single version series** (`vMAJOR.MINOR.PATCH`, e.g. `v1.0.2`):
+
+- A release is a git tag of this repository. Its automatic source archive is the **code**; from `v1.0.2` the same release also carries the **database files** as downloadable assets (`ecf-hhsuitedb.tar.gz`, `ecf-a3m.tar.gz`, `ecf-metadata.csv`, `SHA256SUMS.txt`). `v1.0.1` contained the code only.
+- **DOIs come from Zenodo.** Publishing a release makes Zenodo archive the source code of the tag and issue a DOI for that version, plus one "concept" DOI that covers all versions. GitHub itself assigns no DOI, and files attached to a release are not part of the Zenodo archive.
+- The database is additionally deposited at FigShare (<https://doi.org/10.6084/m9.figshare.34887162>).
+- The text of each release is in `release-notes/<version>.md`. The release files are built with `scripts/4_prep-db/3_make-release.sh` and uploaded as a draft with `scripts/4_prep-db/4_push-release.sh`; the draft is then published by hand, which triggers the Zenodo archiving.
+- Author and title metadata for the archive are in `CITATION.cff`.
 
 ## Terminology used in the scripts
 
@@ -57,7 +63,7 @@ Smug B, Szczepaniak K, Leconte J, Dunin-Horkawicz S & Mostowy RJ.
     │   ├── part4_arch-regimes/       Fig4.R
     │   ├── part5_funct-rescue/       Fig5.R
     │   └── part6_rbp-struct/         make1-shortlist.R, make2-plot.R, make3-pymol.sh, make4-run.sh
-    ├── 4_prep-db/                2 scripts: HH-suite database and ECF metadata table
+    ├── 4_prep-db/                HH-suite database and ECF metadata table (R); release packaging and upload (bash)
     └── functions/                helper.R, gpt-helper.R, gggenomes.R
 ```
 
@@ -207,7 +213,11 @@ The AlphaFold 3 models are not in the repository.
 
 **`2_ecf-metadata.R`** reads `ecf-table.txt`, `ecfs-family-table.txt`, `ecod-domains.txt`, `pfam-domains.txt`, `ecfs-vs-ecod.txt`, `ecfs-vs-pfam.txt`, `reprseq-ecfs.txt` and the reprseq function annotations. It writes `output/database/ecf-metadata.csv` with one row per ECF: EF, length, number of sequences, top confident ECOD T-level hit and name, top confident Pfam hit and description, and the top PHROG function(s) of the reprseqs carrying the ECF.
 
-The two scripts are independent of each other.
+The two R scripts are independent of each other.
+
+**`3_make-release.sh`** (bash) packs the database for release: `hhsuitedb/` and `a3m/` into `ecf-hhsuitedb.tar.gz` and `ecf-a3m.tar.gz`, a copy of `ecf-metadata.csv`, and `SHA256SUMS.txt`, written to `output/release/`. It checks the inputs first and verifies the archives and checksums afterwards.
+
+**`4_push-release.sh VERSION`** (bash) creates the GitHub release `VERSION` as a draft on the current (pushed) commit, with those four files attached and the text of `release-notes/VERSION.md`. It verifies the checksums, refuses a tag that already exists (drafts included), and refuses notes that still contain `<TODO` placeholders. It requires the GitHub CLI (`gh`).
 
 ## Shared functions (`scripts/functions`)
 
